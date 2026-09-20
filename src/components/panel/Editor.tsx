@@ -13,6 +13,7 @@ import {
   isCropWithinBounds,
   calculateStraightenAngle,
   calculateAutoCropForRotation,
+  fitCropTowards,
   moveCropInsideBounds,
   zoomCrop,
 } from '../../utils/cropUtils';
@@ -1949,30 +1950,9 @@ export default function Editor({ onBackToLibrary, onContextMenu, onImageSelect, 
           height,
         };
 
-        let nextCrop = centered;
-        if (!checkCropValid(toPixel(centered), W, H, rotation)) {
-          let low = 0;
-          let high = 1;
-          nextCrop = resizeStart;
-
-          for (let i = 0; i < 15; i++) {
-            const mid = (low + high) / 2;
-            const testCrop: PercentCrop = {
-              unit: '%',
-              x: resizeStart.x + (centered.x - resizeStart.x) * mid,
-              y: resizeStart.y + (centered.y - resizeStart.y) * mid,
-              width: resizeStart.width + (centered.width - resizeStart.width) * mid,
-              height: resizeStart.height + (centered.height - resizeStart.height) * mid,
-            };
-
-            if (checkCropValid(toPixel(testCrop), W, H, rotation)) {
-              nextCrop = testCrop;
-              low = mid;
-            } else {
-              high = mid;
-            }
-          }
-        }
+        const nextCrop = fitCropTowards(resizeStart, centered, (candidate) =>
+          checkCropValid(toPixel(candidate), W, H, rotation),
+        );
 
         setCrop(nextCrop);
         lastValidCropRef.current = nextCrop;
