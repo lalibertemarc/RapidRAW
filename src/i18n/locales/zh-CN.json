@@ -820,6 +820,14 @@
       "removeGps": "移除 GPS 数据",
       "saveWithMetadata": "保存时包含元数据"
     },
+    "pad": {
+      "aspectRatio": "宽高比",
+      "backgroundColor": "背景颜色",
+      "invalidRatio": "请为宽度和高度输入正数。",
+      "padToAspectRatio": "填充至宽高比",
+      "ratioHeight": "宽高比高度",
+      "ratioWidth": "宽高比宽度"
+    },
     "resize": {
       "dontEnlarge": "不放大",
       "modes": {

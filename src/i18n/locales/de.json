@@ -822,6 +822,14 @@
       "removeGps": "GPS-Daten entfernen",
       "saveWithMetadata": "Mit Metadaten speichern"
     },
+    "pad": {
+      "aspectRatio": "Seitenverhältnis",
+      "backgroundColor": "Hintergrundfarbe",
+      "invalidRatio": "Geben Sie für Breite und Höhe eine positive Zahl ein.",
+      "padToAspectRatio": "Auf Seitenverhältnis erweitern",
+      "ratioHeight": "Höhe des Seitenverhältnisses",
+      "ratioWidth": "Breite des Seitenverhältnisses"
+    },
     "resize": {
       "dontEnlarge": "Nicht vergrößern",
       "modes": {

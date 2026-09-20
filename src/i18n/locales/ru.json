@@ -866,6 +866,14 @@
       "removeGps": "Удалить данные GPS",
       "saveWithMetadata": "Сохранить с метаданными"
     },
+    "pad": {
+      "aspectRatio": "Соотношение сторон",
+      "backgroundColor": "Цвет фона",
+      "invalidRatio": "Введите положительное число для ширины и высоты.",
+      "padToAspectRatio": "Расширить до соотношения сторон",
+      "ratioHeight": "Высота соотношения сторон",
+      "ratioWidth": "Ширина соотношения сторон"
+    },
     "resize": {
       "dontEnlarge": "Не увеличивать",
       "modes": {

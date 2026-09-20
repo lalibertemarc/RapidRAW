@@ -822,6 +822,14 @@
       "removeGps": "Eliminar dades GPS",
       "saveWithMetadata": "Desar amb metadades"
     },
+    "pad": {
+      "aspectRatio": "Relació d'aspecte",
+      "backgroundColor": "Color de fons",
+      "invalidRatio": "Introduïu un nombre positiu per a l'amplada i l'alçada.",
+      "padToAspectRatio": "Ampliar a la relació d'aspecte",
+      "ratioHeight": "Alçada de la relació d'aspecte",
+      "ratioWidth": "Amplada de la relació d'aspecte"
+    },
     "resize": {
       "dontEnlarge": "No ampliar",
       "modes": {
