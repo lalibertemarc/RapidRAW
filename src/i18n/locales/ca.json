@@ -415,6 +415,7 @@
         "aiModelDownloading": "S'està baixant el model d'IA: ",
         "basicInpaintTooltipDisabled": "Rerefons generatiu no disponible o no configurat. Es requereix l'inpainting bàsic.",
         "basicInpaintTooltipEnabled": "L'inpainting bàsic és més ràpid però no és generatiu. Desmarqueu per utilitzar l'IA generativa amb una indicació de text.",
+        "cancelGeneration": "Cancel·lar generació",
         "componentPropertiesTitle": "Propietats de {{name}}",
         "downloading": "S'està baixant: ",
         "fastInpaintDesc": "Omplir la selecció basant-se en els píxels del voltant.",
@@ -790,6 +791,20 @@
       "preserveFolders": "Mantenir l'estructura de carpetes",
       "preserveTimestamps": "Establir les marques de temps dels fitxers des de la data de captura EXIF",
       "title": "Configuració d'exportació"
+    },
+    "border": {
+      "addBorder": "Afegeix una vora",
+      "bases": {
+        "eachEdge": "Cada vora respectiva",
+        "longEdge": "Vora llarga",
+        "shortEdge": "Vora curta"
+      },
+      "basis": "Base del gruix",
+      "color": "Color de la vora",
+      "invalidPercent": "Introduïu un nombre entre 0 i 100 per a tots dos.",
+      "leftRight": "Esquerra i dreta",
+      "percent": "%",
+      "topBottom": "A dalt i a baix"
     },
     "bytes": {
       "bytes": "Bytes",

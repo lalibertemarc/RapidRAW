@@ -435,6 +435,7 @@
         "aiModelDownloading": "Téléchargement du modèle IA : ",
         "basicInpaintTooltipDisabled": "Moteur génératif non disponible ou non configuré. L'inpainting simple est requis.",
         "basicInpaintTooltipEnabled": "L'inpainting simple est plus rapide mais non génératif. Décochez pour utiliser l'IA générative avec un prompt texte.",
+        "cancelGeneration": "Annuler la génération",
         "componentPropertiesTitle": "Propriétés de {{name}}",
         "downloading": "Téléchargement : ",
         "fastInpaintDesc": "Remplir la sélection en fonction des pixels environnants.",
@@ -811,6 +812,20 @@
       "preserveFolders": "Conserver la structure des dossiers",
       "preserveTimestamps": "Définir l'horodatage des fichiers à partir de la date de prise de vue EXIF",
       "title": "Paramètres d'exportation"
+    },
+    "border": {
+      "addBorder": "Ajouter une bordure",
+      "bases": {
+        "eachEdge": "Chaque bord respectif",
+        "longEdge": "Bord long",
+        "shortEdge": "Bord court"
+      },
+      "basis": "Base de l'épaisseur",
+      "color": "Couleur de la bordure",
+      "invalidPercent": "Saisissez un nombre entre 0 et 100 pour les deux.",
+      "leftRight": "Gauche et droite",
+      "percent": "%",
+      "topBottom": "Haut et bas"
     },
     "bytes": {
       "bytes": "Octets",

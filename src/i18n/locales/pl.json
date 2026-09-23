@@ -455,6 +455,7 @@
         "aiModelDownloading": "Pobieranie modelu AI: ",
         "basicInpaintTooltipDisabled": "Generatywny backend jest niedostępny lub nieskonfigurowany. Wymagany jest podstawowy inpainting.",
         "basicInpaintTooltipEnabled": "Podstawowy inpainting jest szybszy, ale nie generatywny. Odznacz, aby użyć Generatywnej AI za pomocą monitu tekstowego.",
+        "cancelGeneration": "Anuluj generowanie",
         "componentPropertiesTitle": "Właściwości dla {{name}}",
         "downloading": "Pobieranie: ",
         "fastInpaintDesc": "Wypełnij zaznaczenie na podstawie otaczających pikseli.",
@@ -832,6 +833,20 @@
       "preserveFolders": "Zachowaj strukturę folderów",
       "preserveTimestamps": "Ustaw datę modyfikacji pliku na podstawie daty wykonania (EXIF)",
       "title": "Ustawienia eksportu"
+    },
+    "border": {
+      "addBorder": "Dodaj ramkę",
+      "bases": {
+        "eachEdge": "Odpowiednia krawędź",
+        "longEdge": "Dłuższa krawędź",
+        "shortEdge": "Krótsza krawędź"
+      },
+      "basis": "Podstawa grubości",
+      "color": "Kolor ramki",
+      "invalidPercent": "Wprowadź liczbę od 0 do 100 dla obu.",
+      "leftRight": "Lewo i prawo",
+      "percent": "%",
+      "topBottom": "Góra i dół"
     },
     "bytes": {
       "bytes": "Bajty",

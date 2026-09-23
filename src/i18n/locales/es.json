@@ -435,6 +435,7 @@
         "aiModelDownloading": "Descargando modelo de IA: ",
         "basicInpaintTooltipDisabled": "Backend generativo no disponible o no configurado. Se requiere Inpainting básico.",
         "basicInpaintTooltipEnabled": "El Inpainting básico es más rápido pero no generativo. Desmarca para usar IA Generativa con un prompt de texto.",
+        "cancelGeneration": "Cancelar generación",
         "componentPropertiesTitle": "Propiedades de {{name}}",
         "downloading": "Descargando: ",
         "fastInpaintDesc": "Rellenar la selección basándose en los píxeles circundantes.",
@@ -811,6 +812,20 @@
       "preserveFolders": "Preservar estructura de carpetas",
       "preserveTimestamps": "Establecer marcas de tiempo del archivo desde la fecha de captura EXIF",
       "title": "Ajustes de exportación"
+    },
+    "border": {
+      "addBorder": "Añadir borde",
+      "bases": {
+        "eachEdge": "Cada borde respectivo",
+        "longEdge": "Borde largo",
+        "shortEdge": "Borde corto"
+      },
+      "basis": "Base del grosor",
+      "color": "Color del borde",
+      "invalidPercent": "Introduce un número entre 0 y 100 para ambos.",
+      "leftRight": "Izquierda y Derecha",
+      "percent": "%",
+      "topBottom": "Arriba y Abajo"
     },
     "bytes": {
       "bytes": "Bytes",

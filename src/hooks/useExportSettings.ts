@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
-import { ExportPreset, TiffBitDepth, WatermarkAnchor } from '../components/ui/ExportImportProperties';
+import { BorderBasis, ExportPreset, TiffBitDepth, WatermarkAnchor } from '../components/ui/ExportImportProperties';
 
 export function useExportSettings() {
   const [fileFormat, setFileFormat] = useState('jpeg');
@@ -12,7 +12,12 @@ export function useExportSettings() {
   const [enablePad, setEnablePad] = useState(false);
   const [padRatioWidth, setPadRatioWidth] = useState(1);
   const [padRatioHeight, setPadRatioHeight] = useState(1);
-  const [padColor, setPadColor] = useState('#000000');
+  const [padColor, setPadColor] = useState('#ffffff');
+  const [enableBorder, setEnableBorder] = useState(false);
+  const [borderBasis, setBorderBasis] = useState<BorderBasis>(BorderBasis.LongEdge);
+  const [borderHorizontalPercent, setBorderHorizontalPercent] = useState(2);
+  const [borderVerticalPercent, setBorderVerticalPercent] = useState(2);
+  const [borderColor, setBorderColor] = useState('#ffffff');
   const [keepMetadata, setKeepMetadata] = useState(true);
   const [preserveTimestamps, setPreserveTimestamps] = useState(false);
   const [stripGps, setStripGps] = useState(true);
@@ -39,7 +44,12 @@ export function useExportSettings() {
     setEnablePad(preset.enablePad ?? false);
     setPadRatioWidth(preset.padRatioWidth ?? 1);
     setPadRatioHeight(preset.padRatioHeight ?? 1);
-    setPadColor(preset.padColor ?? '#000000');
+    setPadColor(preset.padColor ?? '#ffffff');
+    setEnableBorder(preset.enableBorder ?? false);
+    setBorderBasis((preset.borderBasis as BorderBasis) ?? BorderBasis.LongEdge);
+    setBorderHorizontalPercent(preset.borderHorizontalPercent ?? 2);
+    setBorderVerticalPercent(preset.borderVerticalPercent ?? 2);
+    setBorderColor(preset.borderColor ?? '#ffffff');
     setKeepMetadata(preset.keepMetadata);
     setPreserveTimestamps(preset.preserveTimestamps ?? false);
     setStripGps(preset.stripGps);
@@ -69,6 +79,11 @@ export function useExportSettings() {
       padRatioWidth,
       padRatioHeight,
       padColor,
+      enableBorder,
+      borderBasis,
+      borderHorizontalPercent,
+      borderVerticalPercent,
+      borderColor,
       keepMetadata,
       preserveTimestamps,
       stripGps,
@@ -96,6 +111,11 @@ export function useExportSettings() {
       padRatioWidth,
       padRatioHeight,
       padColor,
+      enableBorder,
+      borderBasis,
+      borderHorizontalPercent,
+      borderVerticalPercent,
+      borderColor,
       keepMetadata,
       preserveTimestamps,
       stripGps,
@@ -136,6 +156,16 @@ export function useExportSettings() {
     setPadRatioHeight,
     padColor,
     setPadColor,
+    enableBorder,
+    setEnableBorder,
+    borderBasis,
+    setBorderBasis,
+    borderHorizontalPercent,
+    setBorderHorizontalPercent,
+    borderVerticalPercent,
+    setBorderVerticalPercent,
+    borderColor,
+    setBorderColor,
     keepMetadata,
     setKeepMetadata,
     preserveTimestamps,

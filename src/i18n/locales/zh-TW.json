@@ -413,6 +413,7 @@
         "aiModelDownloading": "AI 模型下載中：",
         "basicInpaintTooltipDisabled": "生成式後端不可用或未配置。需要基礎影像修復。",
         "basicInpaintTooltipEnabled": "基礎影像修復更快但不具備生成式能力。取消勾選以使用生成式 AI 並輸入文字提示。",
+        "cancelGeneration": "取消生成",
         "componentPropertiesTitle": "{{name}} 屬性",
         "downloading": "下載中：",
         "fastInpaintDesc": "基於周圍畫素填充選區。",
@@ -788,6 +789,20 @@
       "preserveFolders": "保留資料夾結構",
       "preserveTimestamps": "將檔案時間戳設為 EXIF 拍攝日期",
       "title": "匯出設定"
+    },
+    "border": {
+      "addBorder": "新增邊框",
+      "bases": {
+        "eachEdge": "各自邊長",
+        "longEdge": "長邊",
+        "shortEdge": "短邊"
+      },
+      "basis": "厚度基準",
+      "color": "邊框顏色",
+      "invalidPercent": "請為兩者輸入 0 到 100 之間的數字。",
+      "leftRight": "左右",
+      "percent": "%",
+      "topBottom": "上下"
     },
     "bytes": {
       "bytes": "位元組",
