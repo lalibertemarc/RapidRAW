@@ -225,6 +225,9 @@ export interface AppSettings {
   exportPresets?: ExportPreset[];
   myLenses?: any;
   customAspectRatios?: CustomAspectRatio[];
+  adjustmentSectionOrder?: string[];
+  hiddenAdjustmentSections?: string[];
+  collapsibleSectionsState?: CollapsibleSectionsState;
   enableFolderImageCounts?: boolean;
   displayEditIcon?: boolean;
   linearRawMode?: string;
@@ -386,6 +389,14 @@ export interface UiVisibility {
   leftPanel: boolean;
   rightPanel: boolean;
   quickFilter?: boolean;
+}
+
+export interface CollapsibleSectionsState {
+  basic: boolean;
+  color: boolean;
+  curves: boolean;
+  details: boolean;
+  effects: boolean;
 }
 
 export interface WaveformData {
