@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { RotateCcw, Copy, ClipboardPaste, Spline, Settings2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import type { ParseKeys } from 'i18next';
 import {
   ActiveChannel,
   Adjustments,
@@ -457,7 +458,7 @@ export default function CurveGraph({
     [histogram],
   );
 
-  const activePoints = isParametricMode
+  const activePoints: Array<Coord> = isParametricMode
     ? buildParametricPoints(activeParametricSettings)
     : (localPoints ?? adjustments?.curves?.[activeChannel]);
 
@@ -779,7 +780,7 @@ export default function CurveGraph({
         <div className="flex items-center gap-1 shrink-0">
           {Object.keys(channelConfig).map((channel: any) => {
             const selected = activeChannel === channel;
-            const channelLabel = t(`adjustments.curves.channels.${channel}`);
+            const channelLabel = t(`adjustments.curves.channels.${channel}` as ParseKeys);
             return (
               <button
                 key={channel}

@@ -768,7 +768,7 @@ const ListItemComponent = ({
 export const Thumbnail = React.memo(ThumbnailComponent);
 const ListItem = React.memo(ListItemComponent);
 
-const RowComponent = ({
+export const Row = ({
   index,
   style,
   rows,
@@ -952,5 +952,3 @@ const RowComponent = ({
     </div>
   );
 };
-
-export const Row = React.memo(RowComponent);

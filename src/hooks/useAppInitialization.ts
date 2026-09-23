@@ -18,6 +18,7 @@ import {
   ThumbnailSize,
   ThumbnailAspectRatio,
 } from '../components/ui/AppProperties';
+import type { FolderTree } from '../components/panel/right/FolderTree';
 import { useTranslation } from 'react-i18next';
 
 interface UseAppInitializationProps {
@@ -212,7 +213,7 @@ export const useAppInitialization = ({
 
         if (settings?.pinnedFolders && settings.pinnedFolders.length > 0) {
           try {
-            const trees = await invoke(Invokes.GetPinnedFolderTrees, {
+            const trees = await invoke<FolderTree[]>(Invokes.GetPinnedFolderTrees, {
               paths: settings.pinnedFolders,
               expandedFolders: settings.lastFolderState?.expandedFolders || [],
               showImageCounts: settings.enableFolderImageCounts || settings.folderTreeSort?.key === 'imageCount',

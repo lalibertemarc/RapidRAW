@@ -219,7 +219,7 @@ export function useImageProcessing(
 
             setEditor((state) => {
               if (state.interactivePatch && state.interactivePatch.url)
-                setTimeout(() => URL.revokeObjectURL(state.interactivePatch.url), 100);
+                setTimeout(() => URL.revokeObjectURL(state.interactivePatch!.url), 100);
               return {
                 interactivePatch: {
                   url,
@@ -253,7 +253,7 @@ export function useImageProcessing(
 
             setEditor((state) => {
               if (state.interactivePatch && state.interactivePatch.url) {
-                setTimeout(() => URL.revokeObjectURL(state.interactivePatch.url), 500);
+                setTimeout(() => URL.revokeObjectURL(state.interactivePatch!.url), 500);
               }
               return { interactivePatch: null };
             });

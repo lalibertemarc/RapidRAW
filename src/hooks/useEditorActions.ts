@@ -287,7 +287,7 @@ export function useEditorActions() {
       const { appSettings } = useSettingsStore.getState();
       const { setProcess } = useProcessStore.getState();
 
-      if (!copiedAdjustments || !appSettings) return;
+      if (!copiedAdjustments || !appSettings?.copyPasteSettings) return;
 
       const { mode, includedAdjustments } = appSettings.copyPasteSettings;
       const adjustmentsToApply: Partial<Adjustments> = {};
