@@ -297,7 +297,6 @@
       "actions": {
         "copySectionSettings": "Copiar ajustaments de {{section}}",
         "customizePanels": "Personalitzar taulers",
-        "hideSection": "Ocultar {{section}}",
         "pasteLabel": "Enganxar ajustaments de {{section}}",
         "pasteSettings": "Enganxar ajustaments",
         "resetPanelLayout": "Restablir per defecte",
@@ -1495,14 +1494,6 @@
     }
   },
   "settings": {
-    "adjustments": {
-      "chromaticAberration": "Aberració cromàtica",
-      "colorCalibration": "Calibratge de color",
-      "description": "Oculteu les seccions d'ajust que no utilitzeu sovint per simplificar el tauler d'edició. La vostra configuració es conservarà i s'aplicarà fins i tot quan estigui oculta.",
-      "grain": "Gra",
-      "noiseReduction": "Reducció de soroll",
-      "title": "Visibilitat dels ajustaments"
-    },
     "categories": {
       "general": "General",
       "processing": "Processament",

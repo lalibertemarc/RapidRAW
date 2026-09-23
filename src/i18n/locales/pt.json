@@ -313,7 +313,6 @@
       "actions": {
         "copySectionSettings": "Copiar Configurações de {{section}}",
         "customizePanels": "Personalizar Painéis",
-        "hideSection": "Ocultar {{section}}",
         "pasteLabel": "Colar Configurações de {{section}}",
         "pasteSettings": "Colar Configurações",
         "resetPanelLayout": "Redefinir para o Padrão",
@@ -1526,14 +1525,6 @@
     }
   },
   "settings": {
-    "adjustments": {
-      "chromaticAberration": "Aberração Cromática",
-      "colorCalibration": "Calibração de Cores",
-      "description": "Oculte as seções de ajuste que você não usa com frequência para simplificar o painel de edição. Suas configurações serão preservadas e aplicadas mesmo quando ocultas.",
-      "grain": "Granulação",
-      "noiseReduction": "Redução de Ruído",
-      "title": "Visibilidade dos Ajustes"
-    },
     "categories": {
       "general": "Geral",
       "processing": "Processamento",

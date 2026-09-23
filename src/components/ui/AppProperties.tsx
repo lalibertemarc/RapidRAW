@@ -227,6 +227,8 @@ export interface AppSettings {
   customAspectRatios?: CustomAspectRatio[];
   adjustmentSectionOrder?: string[];
   hiddenAdjustmentSections?: string[];
+  adjustmentToolOrder?: Record<string, string[]>;
+  collapsedAdjustmentTools?: string[];
   collapsibleSectionsState?: CollapsibleSectionsState;
   enableFolderImageCounts?: boolean;
   displayEditIcon?: boolean;

@@ -5,10 +5,11 @@ import { useTranslation } from 'react-i18next';
 import Slider from '../ui/Slider';
 import ColorWheel from '../ui/ColorWheel';
 import { ColorAdjustment, ColorCalibration, HueSatLum, INITIAL_ADJUSTMENTS } from '../../utils/adjustments';
-import { Adjustments, ColorGrading } from '../../utils/adjustments';
+import { Adjustments, ColorGrading, getAdjustmentToolOrder } from '../../utils/adjustments';
 import { AppSettings } from '../ui/AppProperties';
 import Text from '../ui/Text';
-import { TextColors, TextVariants, TextWeights } from '../../types/typography';
+import AdjustmentSubSection from './AdjustmentSubSection';
+import { TextColors, TextWeights } from '../../types/typography';
 
 interface ColorProps {
   color: string;
@@ -330,10 +331,7 @@ const ColorCalibrationPanel = ({ adjustments, setAdjustments, onDragStateChange 
   const trackSuffix = `${activePrimary}s`;
 
   return (
-    <div className="p-2 bg-bg-tertiary rounded-md mt-4">
-      <Text variant={TextVariants.heading} className="mb-2">
-        {t('adjustments.color.calibration.title')}
-      </Text>
+    <div>
       <div>
         <Text color={TextColors.primary} weight={TextWeights.medium} className="mb-1">
           {t('adjustments.color.calibration.shadows')}
@@ -405,6 +403,7 @@ export default function ColorPanel({
   const { t } = useTranslation();
   const [activeColor, setActiveColor] = useState('reds');
   const adjustmentVisibility = appSettings?.adjustmentVisibility || {};
+  const toolOrder = getAdjustmentToolOrder('color', appSettings?.adjustmentToolOrder);
   const isWgpuEnabled = appSettings?.useWgpuRenderer !== false;
 
   const HSL_COLORS = useMemo<Array<ColorProps>>(
@@ -469,151 +468,175 @@ export default function ColorPanel({
   const luminance_slider = `lum-slider-${activeColor}`;
 
   return (
-    <div className="space-y-4">
-      <div className="p-1 bg-bg-tertiary rounded-md">
-        <div className="flex justify-between items-center mb-2">
-          <Text variant={TextVariants.heading}>{t('adjustments.color.whiteBalance')}</Text>
-          {!isForMask && toggleWbPicker && (
-            <button
-              onClick={toggleWbPicker}
-              className={`p-1.5 rounded-md transition-colors ${
-                isWbPickerActive ? 'bg-accent text-button-text' : 'hover:bg-bg-secondary text-text-secondary'
-              }`}
-              data-tooltip={t('adjustments.color.wbPickerTooltip')}
-            >
-              <Pipette size={16} />
-            </button>
-          )}
-        </div>
-        <Slider
-          label={t('adjustments.color.temperature')}
-          max={100}
-          min={-100}
-          onChange={(e: any) => handleAdjustmentChange(ColorAdjustment.Temperature, e.target.value)}
-          step={1}
-          value={adjustments.temperature || 0}
-          trackClassName="temperature-gradient-track"
-          onDragStateChange={onDragStateChange}
-        />
-        <Slider
-          label={t('adjustments.color.tint')}
-          max={100}
-          min={-100}
-          onChange={(e: any) => handleAdjustmentChange(ColorAdjustment.Tint, e.target.value)}
-          step={1}
-          value={adjustments.tint || 0}
-          trackClassName="tint-gradient-track"
-          onDragStateChange={onDragStateChange}
-        />
-      </div>
+    <div className="flex flex-col gap-4">
+      {adjustmentVisibility.whiteBalance !== false && (
+        <AdjustmentSubSection
+          actions={
+            !isForMask &&
+            toggleWbPicker && (
+              <button
+                onClick={toggleWbPicker}
+                className={`p-1.5 rounded-md transition-colors ${
+                  isWbPickerActive ? 'bg-accent text-button-text' : 'hover:bg-bg-secondary text-text-secondary'
+                }`}
+                data-tooltip={t('adjustments.color.wbPickerTooltip')}
+              >
+                <Pipette size={16} />
+              </button>
+            )
+          }
+          id="whiteBalance"
+          order={toolOrder.indexOf('whiteBalance')}
+          title={t('adjustments.color.whiteBalance')}
+        >
+          <Slider
+            label={t('adjustments.color.temperature')}
+            max={100}
+            min={-100}
+            onChange={(e: any) => handleAdjustmentChange(ColorAdjustment.Temperature, e.target.value)}
+            step={1}
+            value={adjustments.temperature || 0}
+            trackClassName="temperature-gradient-track"
+            onDragStateChange={onDragStateChange}
+          />
+          <Slider
+            label={t('adjustments.color.tint')}
+            max={100}
+            min={-100}
+            onChange={(e: any) => handleAdjustmentChange(ColorAdjustment.Tint, e.target.value)}
+            step={1}
+            value={adjustments.tint || 0}
+            trackClassName="tint-gradient-track"
+            onDragStateChange={onDragStateChange}
+          />
+        </AdjustmentSubSection>
+      )}
 
-      <div className="p-1 bg-bg-tertiary rounded-md">
-        <Text variant={TextVariants.heading} className="mb-2">
-          {t('adjustments.color.presence')}
-        </Text>
-        <Slider
-          label={t('adjustments.color.vibrance')}
-          max={100}
-          min={-100}
-          onChange={(e: any) => handleAdjustmentChange(ColorAdjustment.Vibrance, e.target.value)}
-          step={1}
-          value={adjustments.vibrance || 0}
-          onDragStateChange={onDragStateChange}
-        />
-        <Slider
-          label={t('adjustments.color.saturation')}
-          max={100}
-          min={-100}
-          onChange={(e: any) => handleAdjustmentChange(ColorAdjustment.Saturation, e.target.value)}
-          step={1}
-          value={adjustments.saturation || 0}
-          onDragStateChange={onDragStateChange}
-        />
-      </div>
+      {adjustmentVisibility.colorPresence !== false && (
+        <AdjustmentSubSection
+          id="colorPresence"
+          order={toolOrder.indexOf('colorPresence')}
+          title={t('adjustments.color.presence')}
+        >
+          <Slider
+            label={t('adjustments.color.vibrance')}
+            max={100}
+            min={-100}
+            onChange={(e: any) => handleAdjustmentChange(ColorAdjustment.Vibrance, e.target.value)}
+            step={1}
+            value={adjustments.vibrance || 0}
+            onDragStateChange={onDragStateChange}
+          />
+          <Slider
+            label={t('adjustments.color.saturation')}
+            max={100}
+            min={-100}
+            onChange={(e: any) => handleAdjustmentChange(ColorAdjustment.Saturation, e.target.value)}
+            step={1}
+            value={adjustments.saturation || 0}
+            onDragStateChange={onDragStateChange}
+          />
+        </AdjustmentSubSection>
+      )}
 
-      <div className="p-1 bg-bg-tertiary rounded-md">
-        <Text variant={TextVariants.heading} className="mb-2">
-          {isForMask ? t('adjustments.color.localHue') : t('adjustments.color.hue')}
-        </Text>
-        <Slider
-          label={t('adjustments.color.hue')}
-          max={180}
-          min={-180}
-          onChange={(e: any) => handleAdjustmentChange(ColorAdjustment.Hue, e.target.value)}
-          step={1}
-          value={adjustments.hue || 0}
-          trackClassName="hue-range-track"
-          onDragStateChange={onDragStateChange}
-        />
-      </div>
+      {adjustmentVisibility.hue !== false && (
+        <AdjustmentSubSection
+          id="hue"
+          order={toolOrder.indexOf('hue')}
+          title={isForMask ? t('adjustments.color.localHue') : t('adjustments.color.hue')}
+        >
+          <Slider
+            label={t('adjustments.color.hue')}
+            max={180}
+            min={-180}
+            onChange={(e: any) => handleAdjustmentChange(ColorAdjustment.Hue, e.target.value)}
+            step={1}
+            value={adjustments.hue || 0}
+            trackClassName="hue-range-track"
+            onDragStateChange={onDragStateChange}
+          />
+        </AdjustmentSubSection>
+      )}
 
-      <div className="p-1 bg-bg-tertiary rounded-md">
-        <Text variant={TextVariants.heading} className="mb-3">
-          {t('adjustments.color.colorGrading')}
-        </Text>
-        <ColorGradingPanel
-          adjustments={adjustments}
-          setAdjustments={setAdjustments}
-          appSettings={appSettings}
-          onDragStateChange={onDragStateChange}
-        />
-      </div>
+      {adjustmentVisibility.colorGrading !== false && (
+        <AdjustmentSubSection
+          id="colorGrading"
+          order={toolOrder.indexOf('colorGrading')}
+          title={t('adjustments.color.colorGrading')}
+        >
+          <ColorGradingPanel
+            adjustments={adjustments}
+            setAdjustments={setAdjustments}
+            appSettings={appSettings}
+            onDragStateChange={onDragStateChange}
+          />
+        </AdjustmentSubSection>
+      )}
 
-      <div className="p-1 bg-bg-tertiary rounded-md">
-        <Text variant={TextVariants.heading} className="mb-3">
-          {t('adjustments.color.colorMixer')}
-        </Text>
-        <div className="flex justify-between mb-4 px-1">
-          {HSL_COLORS.map(({ name, color, label }) => (
-            <ColorSwatch
-              color={color}
-              isActive={activeColor === name}
-              key={name}
-              name={name}
-              onClick={setActiveColor}
-              ariaLabel={t('adjustments.color.ariaSelectColor', { name: label })}
-            />
-          ))}
-        </div>
-        <Slider
-          label={t('adjustments.color.hue')}
-          max={100}
-          min={-100}
-          onChange={(e: any) => handleHslChange(ColorAdjustment.Hue, e.target.value)}
-          step={1}
-          value={currentHsl.hue}
-          trackClassName={hue_slider}
-          onDragStateChange={onDragStateChange}
-        />
-        <Slider
-          label={t('adjustments.color.saturation')}
-          max={100}
-          min={-100}
-          onChange={(e: any) => handleHslChange(ColorAdjustment.Saturation, e.target.value)}
-          step={1}
-          value={currentHsl.saturation}
-          trackClassName={saturation_slider}
-          onDragStateChange={onDragStateChange}
-        />
-        <Slider
-          label={t('adjustments.color.luminance')}
-          max={100}
-          min={-100}
-          onChange={(e: any) => handleHslChange(ColorAdjustment.Luminance, e.target.value)}
-          step={1}
-          value={currentHsl.luminance}
-          trackClassName={luminance_slider}
-          onDragStateChange={onDragStateChange}
-        />
-      </div>
+      {adjustmentVisibility.colorMixer !== false && (
+        <AdjustmentSubSection
+          id="colorMixer"
+          order={toolOrder.indexOf('colorMixer')}
+          title={t('adjustments.color.colorMixer')}
+        >
+          <div className="flex justify-between mb-4 px-1">
+            {HSL_COLORS.map(({ name, color, label }) => (
+              <ColorSwatch
+                color={color}
+                isActive={activeColor === name}
+                key={name}
+                name={name}
+                onClick={setActiveColor}
+                ariaLabel={t('adjustments.color.ariaSelectColor', { name: label })}
+              />
+            ))}
+          </div>
+          <Slider
+            label={t('adjustments.color.hue')}
+            max={100}
+            min={-100}
+            onChange={(e: any) => handleHslChange(ColorAdjustment.Hue, e.target.value)}
+            step={1}
+            value={currentHsl.hue}
+            trackClassName={hue_slider}
+            onDragStateChange={onDragStateChange}
+          />
+          <Slider
+            label={t('adjustments.color.saturation')}
+            max={100}
+            min={-100}
+            onChange={(e: any) => handleHslChange(ColorAdjustment.Saturation, e.target.value)}
+            step={1}
+            value={currentHsl.saturation}
+            trackClassName={saturation_slider}
+            onDragStateChange={onDragStateChange}
+          />
+          <Slider
+            label={t('adjustments.color.luminance')}
+            max={100}
+            min={-100}
+            onChange={(e: any) => handleHslChange(ColorAdjustment.Luminance, e.target.value)}
+            step={1}
+            value={currentHsl.luminance}
+            trackClassName={luminance_slider}
+            onDragStateChange={onDragStateChange}
+          />
+        </AdjustmentSubSection>
+      )}
 
       {!isForMask && adjustmentVisibility.colorCalibration !== false && (
-        <ColorCalibrationPanel
-          adjustments={adjustments}
-          setAdjustments={setAdjustments}
-          appSettings={appSettings}
-          onDragStateChange={onDragStateChange}
-        />
+        <AdjustmentSubSection
+          id="colorCalibration"
+          order={toolOrder.indexOf('colorCalibration')}
+          title={t('adjustments.color.calibration.title')}
+        >
+          <ColorCalibrationPanel
+            adjustments={adjustments}
+            setAdjustments={setAdjustments}
+            appSettings={appSettings}
+            onDragStateChange={onDragStateChange}
+          />
+        </AdjustmentSubSection>
       )}
     </div>
   );

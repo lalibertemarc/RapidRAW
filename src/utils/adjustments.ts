@@ -954,13 +954,49 @@ export const ADJUSTMENT_SECTIONS: Sections = {
   ],
 };
 
-export const getAdjustmentSectionOrder = (order: string[] = []): string[] => {
-  const defaultOrder = Object.keys(ADJUSTMENT_SECTIONS);
-  const savedOrder = order.filter(
-    (section, index) => defaultOrder.includes(section) && order.indexOf(section) === index,
-  );
-  return [...savedOrder, ...defaultOrder.filter((section) => !savedOrder.includes(section))];
+const reconcileOrder = (defaultOrder: string[], order: string[] = []): string[] => {
+  const savedOrder = order.filter((id, index) => defaultOrder.includes(id) && order.indexOf(id) === index);
+  return [...savedOrder, ...defaultOrder.filter((id) => !savedOrder.includes(id))];
 };
+
+export const getAdjustmentSectionOrder = (order?: string[]): string[] =>
+  reconcileOrder(Object.keys(ADJUSTMENT_SECTIONS), order);
 
 export const getVisibleAdjustmentSections = (order?: string[], hidden: string[] = []): string[] =>
   getAdjustmentSectionOrder(order).filter((section) => !hidden.includes(section));
+
+export interface AdjustmentSectionTool {
+  id: string;
+  isVisibleByDefault: boolean;
+  label: string;
+}
+
+export const ADJUSTMENT_SECTION_TOOLS: Record<string, Array<AdjustmentSectionTool>> = {
+  color: [
+    { id: 'whiteBalance', isVisibleByDefault: true, label: 'adjustments.color.whiteBalance' },
+    { id: 'colorPresence', isVisibleByDefault: true, label: 'adjustments.color.presence' },
+    { id: 'hue', isVisibleByDefault: true, label: 'adjustments.color.hue' },
+    { id: 'colorGrading', isVisibleByDefault: true, label: 'adjustments.color.colorGrading' },
+    { id: 'colorMixer', isVisibleByDefault: true, label: 'adjustments.color.colorMixer' },
+    { id: 'colorCalibration', isVisibleByDefault: false, label: 'adjustments.color.calibration.title' },
+  ],
+  details: [
+    { id: 'sharpening', isVisibleByDefault: true, label: 'adjustments.details.sharpening' },
+    { id: 'presence', isVisibleByDefault: true, label: 'adjustments.details.presence' },
+    { id: 'noiseReduction', isVisibleByDefault: true, label: 'adjustments.details.noiseReduction' },
+    { id: 'chromaticAberration', isVisibleByDefault: false, label: 'adjustments.details.chromaticAberration' },
+  ],
+  effects: [
+    { id: 'creative', isVisibleByDefault: true, label: 'adjustments.effects.creative' },
+    { id: 'lensBlur', isVisibleByDefault: true, label: 'adjustments.effects.lensBlur' },
+    { id: 'lut', isVisibleByDefault: true, label: 'adjustments.effects.lut' },
+    { id: 'vignette', isVisibleByDefault: true, label: 'adjustments.effects.vignette' },
+    { id: 'grain', isVisibleByDefault: true, label: 'adjustments.effects.grain' },
+  ],
+};
+
+export const getAdjustmentToolOrder = (section: string, toolOrder?: Record<string, string[]>): string[] =>
+  reconcileOrder(
+    (ADJUSTMENT_SECTION_TOOLS[section] ?? []).map((tool) => tool.id),
+    toolOrder?.[section],
+  );
