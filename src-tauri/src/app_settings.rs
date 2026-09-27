@@ -18,7 +18,7 @@ pub struct SortCriteria {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct FilterCriteria {
-    pub rating: u8,
+    pub rating: i8,
     pub raw_status: String,
     #[serde(default)]
     pub edited_status: Option<String>,
