@@ -1208,14 +1208,14 @@ export default function SettingsPanel({
                       </SettingItem>
 
                       <SettingItem
-                        label={t('settings.general.superFocusMode')}
-                        description={t('settings.general.superFocusModeDesc')}
+                        label={t('settings.general.toolFocusMode')}
+                        description={t('settings.general.toolFocusModeDesc')}
                       >
                         <Switch
-                          checked={appSettings?.enableSuperFocusMode ?? false}
-                          id="super-focus-mode-toggle"
-                          label={t('settings.general.enableSuperFocusMode')}
-                          onChange={(checked) => onSettingsChange({ ...appSettings, enableSuperFocusMode: checked })}
+                          checked={appSettings?.enableToolFocusMode ?? false}
+                          id="tool-focus-mode-toggle"
+                          label={t('settings.general.enableToolFocusMode')}
+                          onChange={(checked) => onSettingsChange({ ...appSettings, enableToolFocusMode: checked })}
                         />
                       </SettingItem>
 

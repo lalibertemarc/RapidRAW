@@ -32,7 +32,7 @@ export default function AdjustmentSubSection({ actions, children, id, order, tit
     if (!appSettings) {
       return;
     }
-    const siblingTools = appSettings.enableSuperFocusMode
+    const siblingTools = appSettings.enableToolFocusMode
       ? (Object.keys(ADJUSTMENT_SECTION_TOOLS)
           .map(getAdjustmentSectionToolIds)
           .find((tools) => tools.includes(id)) ?? [])
