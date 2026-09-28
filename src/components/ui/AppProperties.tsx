@@ -1,6 +1,7 @@
 import { ExportPreset } from './ExportImportProperties';
 import { Adjustments, CopyPasteSettings } from '../../utils/adjustments';
 import { ToolType } from '../panel/right/Masks';
+import type { WhiteBalance, WhiteBalanceMode } from '../../utils/whiteBalance';
 
 export const GLOBAL_KEYS = [
   ' ',
@@ -237,6 +238,7 @@ export interface AppSettings {
   useWgpuRenderer?: boolean;
   editorNeutralGreyBg?: boolean;
   canvasInputMode?: 'mouse' | 'trackpad';
+  whiteBalanceMode?: WhiteBalanceMode;
   zoomSpeedMultiplier?: number;
   zoomPhotoToPixelClick?: boolean;
   keybinds?: { [action: string]: string[] };
@@ -341,6 +343,7 @@ export interface Progress {
 }
 
 export interface SelectedImage {
+  asShotWhiteBalance?: WhiteBalance;
   exif: any;
   group_id?: string | null;
   height: number;

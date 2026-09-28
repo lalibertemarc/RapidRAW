@@ -1,5 +1,6 @@
 use crate::gpu_processing::WgpuDisplay;
 use crate::guided_perspective::{GuideLine, compute_guided_homography, count_valid_lines};
+use crate::white_balance::{self, WhiteBalance};
 use bytemuck::{Pod, Zeroable};
 use glam::{Mat3, Vec2, Vec3};
 use image::{DynamicImage, GenericImageView, Rgb32FImage, Rgba};
@@ -1478,13 +1479,13 @@ pub struct GlobalAdjustments {
     pub whites: f32,
     pub blacks: f32,
     pub saturation: f32,
-    pub temperature: f32,
-    pub tint: f32,
     pub vibrance: f32,
     pub hue: f32,
+    pub wb_log_gain_l: f32,
+    pub wb_log_gain_m: f32,
+    pub wb_log_gain_s: f32,
     _pad_color1: f32,
     _pad_color2: f32,
-    _pad_color3: f32,
 
     pub sharpness: f32,
     pub luma_noise_reduction: f32,
@@ -1567,8 +1568,6 @@ pub struct MaskAdjustments {
     pub whites: f32,
     pub blacks: f32,
     pub saturation: f32,
-    pub temperature: f32,
-    pub tint: f32,
     pub vibrance: f32,
 
     pub sharpness: f32,
@@ -1584,8 +1583,10 @@ pub struct MaskAdjustments {
     pub sharpness_threshold: f32,
 
     pub hue: f32,
-    _pad_cg1: f32,
-    _pad_cg2: f32,
+    pub wb_log_gain_l: f32,
+    pub wb_log_gain_m: f32,
+    pub wb_log_gain_s: f32,
+    _pad_wb: f32,
     pub color_grading_shadows: ColorGradeSettings,
     pub color_grading_midtones: ColorGradeSettings,
     pub color_grading_highlights: ColorGradeSettings,
@@ -1632,8 +1633,6 @@ struct AdjustmentScales {
     whites: f32,
     blacks: f32,
     saturation: f32,
-    temperature: f32,
-    tint: f32,
     vibrance: f32,
 
     sharpness: f32,
@@ -1681,8 +1680,6 @@ const SCALES: AdjustmentScales = AdjustmentScales {
     whites: 30.0,
     blacks: 40.0,
     saturation: 100.0,
-    temperature: 25.0,
-    tint: 100.0,
     vibrance: 100.0,
 
     sharpness: 50.0,
@@ -2076,9 +2073,14 @@ pub fn is_image_edited(
         return true;
     }
 
-    let current_adj = get_all_adjustments_from_json(adj, is_raw, tonemapper_override);
-    let default_adj =
-        get_all_adjustments_from_json(&serde_json::json!({}), is_raw, tonemapper_override);
+    let reference = WhiteBalance::reference();
+    let current_adj = get_all_adjustments_from_json(adj, is_raw, reference, tonemapper_override);
+    let default_adj = get_all_adjustments_from_json(
+        &serde_json::json!({}),
+        is_raw,
+        reference,
+        tonemapper_override,
+    );
 
     bytemuck::bytes_of(&current_adj) != bytemuck::bytes_of(&default_adj)
 }
@@ -2086,6 +2088,7 @@ pub fn is_image_edited(
 fn get_global_adjustments_from_json(
     js_adjustments: &serde_json::Value,
     is_raw: bool,
+    white_balance_gains: [f32; 3],
     tonemapper_override: Option<u32>,
 ) -> GlobalAdjustments {
     let visibility = js_adjustments.get("sectionVisibility");
@@ -2221,13 +2224,13 @@ fn get_global_adjustments_from_json(
         blacks: get_val("basic", "blacks", SCALES.blacks, None),
 
         saturation: get_val("color", "saturation", SCALES.saturation, None),
-        temperature: get_val("color", "temperature", SCALES.temperature, None),
-        tint: get_val("color", "tint", SCALES.tint, None),
         vibrance: get_val("color", "vibrance", SCALES.vibrance, None),
         hue: get_val("color", "hue", 1.0, None),
+        wb_log_gain_l: white_balance_gains[0],
+        wb_log_gain_m: white_balance_gains[1],
+        wb_log_gain_s: white_balance_gains[2],
         _pad_color1: 0.0,
         _pad_color2: 0.0,
-        _pad_color3: 0.0,
 
         sharpness: get_val("details", "sharpness", SCALES.sharpness, None),
         luma_noise_reduction: get_val(
@@ -2380,7 +2383,10 @@ fn get_global_adjustments_from_json(
     }
 }
 
-fn get_mask_adjustments_from_json(adj: &serde_json::Value) -> MaskAdjustments {
+fn get_mask_adjustments_from_json(
+    adj: &serde_json::Value,
+    global_white_balance: WhiteBalance,
+) -> MaskAdjustments {
     if adj.is_null() {
         return MaskAdjustments::default();
     }
@@ -2423,6 +2429,17 @@ fn get_mask_adjustments_from_json(adj: &serde_json::Value) -> MaskAdjustments {
         Vec::new()
     };
     let cg_obj = adj.get("colorGrading").cloned().unwrap_or_default();
+    let [wb_log_gain_l, wb_log_gain_m, wb_log_gain_s] = if is_visible("color") {
+        white_balance::adaptation_log_gains(
+            global_white_balance,
+            global_white_balance.shifted(
+                adj["temperature"].as_f64().unwrap_or(0.0),
+                adj["tint"].as_f64().unwrap_or(0.0),
+            ),
+        )
+    } else {
+        [0.0; 3]
+    };
 
     MaskAdjustments {
         exposure: get_val("basic", "exposure", SCALES.exposure),
@@ -2434,8 +2451,6 @@ fn get_mask_adjustments_from_json(adj: &serde_json::Value) -> MaskAdjustments {
         blacks: get_val("basic", "blacks", SCALES.blacks),
 
         saturation: get_val("color", "saturation", SCALES.saturation),
-        temperature: get_val("color", "temperature", SCALES.temperature),
-        tint: get_val("color", "tint", SCALES.tint),
         vibrance: get_val("color", "vibrance", SCALES.vibrance),
 
         sharpness: get_val("details", "sharpness", SCALES.sharpness),
@@ -2456,8 +2471,10 @@ fn get_mask_adjustments_from_json(adj: &serde_json::Value) -> MaskAdjustments {
         sharpness_threshold: get_val("details", "sharpnessThreshold", SCALES.sharpness_threshold),
 
         hue: get_val("color", "hue", 1.0),
-        _pad_cg1: 0.0,
-        _pad_cg2: 0.0,
+        wb_log_gain_l,
+        wb_log_gain_m,
+        wb_log_gain_s,
+        _pad_wb: 0.0,
         color_grading_shadows: if is_visible("color") {
             parse_color_grade_settings(&cg_obj["shadows"])
         } else {
@@ -2514,9 +2531,25 @@ fn get_mask_adjustments_from_json(adj: &serde_json::Value) -> MaskAdjustments {
 pub fn get_all_adjustments_from_json(
     js_adjustments: &serde_json::Value,
     is_raw: bool,
+    as_shot_white_balance: WhiteBalance,
     tonemapper_override: Option<u32>,
 ) -> AllAdjustments {
-    let global = get_global_adjustments_from_json(js_adjustments, is_raw, tonemapper_override);
+    let color_visible = js_adjustments
+        .get("sectionVisibility")
+        .and_then(|v| v.get("color"))
+        .and_then(|s| s.as_bool())
+        .unwrap_or(true);
+    let target_white_balance = if color_visible {
+        white_balance::from_adjustments(js_adjustments, as_shot_white_balance)
+    } else {
+        as_shot_white_balance
+    };
+    let global = get_global_adjustments_from_json(
+        js_adjustments,
+        is_raw,
+        white_balance::adaptation_log_gains(as_shot_white_balance, target_white_balance),
+        tonemapper_override,
+    );
     let mut mask_adjustments = [MaskAdjustments::default(); MAX_MASKS];
     let mut mask_count = 0;
 
@@ -2531,7 +2564,8 @@ pub fn get_all_adjustments_from_json(
         .enumerate()
         .take(MAX_MASKS)
     {
-        mask_adjustments[i] = get_mask_adjustments_from_json(&mask_def.adjustments);
+        mask_adjustments[i] =
+            get_mask_adjustments_from_json(&mask_def.adjustments, target_white_balance);
         mask_count += 1;
     }
 
@@ -3561,28 +3595,10 @@ fn point_in_convex_quad(px: f64, py: f64, quad: &[(f64, f64)]) -> bool {
     true
 }
 
-fn white_balance_from_rgb(r: f32, g: f32, b: f32) -> (f32, f32) {
-    let sum_rb = r + b;
-    let temperature = if sum_rb > 0.0001 {
-        ((b - r) / sum_rb) * 125.0
-    } else {
-        0.0
-    };
-
-    let m = sum_rb / 2.0;
-    let sum_gm = g + m;
-    let tint = if sum_gm > 0.0001 {
-        ((g - m) / sum_gm) * 400.0
-    } else {
-        0.0
-    };
-
-    (temperature.clamp(-100.0, 100.0), tint.clamp(-100.0, 100.0))
-}
-
 fn compute_white_balance_sample(
     image: &DynamicImage,
     is_raw: bool,
+    as_shot: WhiteBalance,
     corners: &[UvPoint],
 ) -> Result<WhiteBalanceSample, String> {
     if corners.len() < 3 {
@@ -3646,14 +3662,15 @@ fn compute_white_balance_sample(
     let r = (sum[0] / count as f64) as f32;
     let g = (sum[1] / count as f64) as f32;
     let b = (sum[2] / count as f64) as f32;
-    let (temperature, tint) = white_balance_from_rgb(r, g, b);
+    let picked = white_balance::pick_white_balance([r as f64, g as f64, b as f64], as_shot)
+        .unwrap_or(as_shot);
 
     Ok(WhiteBalanceSample {
         r,
         g,
         b,
-        temperature,
-        tint,
+        temperature: picked.temperature as f32,
+        tint: picked.tint as f32,
         count,
     })
 }
@@ -3663,11 +3680,23 @@ pub async fn sample_white_balance(
     corners: Vec<UvPoint>,
     state: tauri::State<'_, AppState>,
 ) -> Result<WhiteBalanceSample, String> {
-    let (image, is_raw) = crate::get_original_image(&state)?;
+    let (image, is_raw, as_shot) = {
+        let original_image_lock = state.original_image.lock().unwrap();
+        let loaded_image = original_image_lock
+            .as_ref()
+            .ok_or("No original image loaded")?;
+        (
+            Arc::clone(&loaded_image.image),
+            loaded_image.is_raw,
+            loaded_image.as_shot_white_balance,
+        )
+    };
 
-    tokio::task::spawn_blocking(move || compute_white_balance_sample(&image, is_raw, &corners))
-        .await
-        .map_err(|e| format!("Task execution failed: {}", e))?
+    tokio::task::spawn_blocking(move || {
+        compute_white_balance_sample(&image, is_raw, as_shot, &corners)
+    })
+    .await
+    .map_err(|e| format!("Task execution failed: {}", e))?
 }
 
 #[cfg(test)]
@@ -3684,28 +3713,32 @@ mod white_balance_sample_tests {
     }
 
     #[test]
-    fn neutral_grey_gives_zero() {
+    fn neutral_grey_gives_as_shot() {
         let img =
             DynamicImage::ImageRgba32F(ImageBuffer::from_pixel(4, 4, Rgba([0.3, 0.3, 0.3, 1.0])));
-        let s = compute_white_balance_sample(&img, true, &full_frame()).unwrap();
+        let s = compute_white_balance_sample(&img, true, WhiteBalance::reference(), &full_frame())
+            .unwrap();
+        let reference = WhiteBalance::reference();
         assert_eq!(s.count, 16);
-        assert!(s.temperature.abs() < 1e-4);
-        assert!(s.tint.abs() < 1e-4);
+        assert!((s.temperature as f64 - reference.temperature).abs() < 1.0);
+        assert!((s.tint as f64 - reference.tint).abs() < 0.1);
     }
 
     #[test]
     fn non_raw_is_linearised() {
         let img = DynamicImage::ImageRgb32F(ImageBuffer::from_pixel(4, 4, Rgb([0.5, 0.5, 0.5])));
-        let s = compute_white_balance_sample(&img, false, &full_frame()).unwrap();
+        let s = compute_white_balance_sample(&img, false, WhiteBalance::reference(), &full_frame())
+            .unwrap();
         assert!((s.r - srgb_channel_to_linear(0.5)).abs() < 1e-5);
     }
 
     #[test]
-    fn blue_cast_gives_positive_temperature() {
+    fn blue_cast_gives_higher_temperature() {
         let img =
             DynamicImage::ImageRgba32F(ImageBuffer::from_pixel(4, 4, Rgba([0.2, 0.3, 0.4, 1.0])));
-        let s = compute_white_balance_sample(&img, true, &full_frame()).unwrap();
-        assert!(s.temperature > 0.0);
+        let s = compute_white_balance_sample(&img, true, WhiteBalance::reference(), &full_frame())
+            .unwrap();
+        assert!(s.temperature as f64 > WhiteBalance::reference().temperature);
     }
 
     #[test]
@@ -3714,7 +3747,7 @@ mod white_balance_sample_tests {
         buf.put_pixel(2, 1, Rgba([0.9, 0.5, 0.1, 1.0]));
         let img = DynamicImage::ImageRgba32F(buf);
         let quad = vec![uv(0.6, 0.3), uv(0.61, 0.3), uv(0.61, 0.31), uv(0.6, 0.31)];
-        let s = compute_white_balance_sample(&img, true, &quad).unwrap();
+        let s = compute_white_balance_sample(&img, true, WhiteBalance::reference(), &quad).unwrap();
         assert_eq!(s.count, 1);
         assert!((s.r - 0.9).abs() < 1e-5);
     }
@@ -3727,8 +3760,9 @@ mod white_balance_sample_tests {
         }
         let img = DynamicImage::ImageRgba32F(buf);
         let diamond = vec![uv(0.5, 0.0), uv(1.0, 0.5), uv(0.5, 1.0), uv(0.0, 0.5)];
-        let s = compute_white_balance_sample(&img, true, &diamond).unwrap();
+        let s =
+            compute_white_balance_sample(&img, true, WhiteBalance::reference(), &diamond).unwrap();
         assert!(s.count < 16);
-        assert!(s.temperature.abs() < 1e-4);
+        assert!((s.temperature as f64 - WhiteBalance::reference().temperature).abs() < 1.0);
     }
 }

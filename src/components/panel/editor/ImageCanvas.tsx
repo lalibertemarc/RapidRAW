@@ -16,6 +16,13 @@ import type { OverlayMode } from '../right/CropPanel';
 import CompositionOverlays from './overlays/CompositionOverlays';
 import { calculateStraightenAngle } from '../../../utils/cropUtils';
 import { toast } from 'react-toastify';
+import {
+  getWhiteBalanceMode,
+  toRelativeWhiteBalance,
+  WhiteBalanceMode,
+  withKelvinWhiteBalance,
+  withRelativeWhiteBalance,
+} from '../../../utils/whiteBalance';
 
 interface CursorPreview {
   visible: boolean;
@@ -2176,17 +2183,21 @@ const ImageCanvas = memo(
           if (state.generation === generation) {
             setWbSample(sample);
           }
-          setAdjustments((prev: Adjustments) => ({
-            ...prev,
-            temperature: sample.temperature,
-            tint: sample.tint,
-          }));
+          const asShot = selectedImage?.asShotWhiteBalance;
+          const picked = { temperature: sample.temperature, tint: sample.tint };
+          if (asShot) {
+            setAdjustments((prev: Adjustments) =>
+              getWhiteBalanceMode(appSettings) === WhiteBalanceMode.Kelvin
+                ? withKelvinWhiteBalance(prev, picked)
+                : withRelativeWhiteBalance(prev, toRelativeWhiteBalance(asShot, picked)),
+            );
+          }
           onWbPicked?.();
         } catch (err) {
           console.error('Failed to pick white balance:', err);
         }
       },
-      [setAdjustments, onWbPicked],
+      [setAdjustments, onWbPicked, selectedImage?.asShotWhiteBalance, appSettings],
     );
 
     useEffect(() => {
