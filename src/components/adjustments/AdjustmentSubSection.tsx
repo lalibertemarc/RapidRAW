@@ -6,7 +6,7 @@ import Text from '../ui/Text';
 import { TextVariants } from '../../types/typography';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { useCollapsibleHeight } from '../../hooks/useCollapsibleHeight';
-import { ADJUSTMENT_SECTION_TOOLS, withAdjustmentLayout } from '../../utils/adjustments';
+import { ADJUSTMENT_SECTION_TOOLS, getAdjustmentSectionToolIds, withAdjustmentLayout } from '../../utils/adjustments';
 
 interface AdjustmentSubSectionProps {
   actions?: ReactNode;
@@ -32,18 +32,16 @@ export default function AdjustmentSubSection({ actions, children, id, order, tit
     if (!appSettings) {
       return;
     }
-    if (!isCollapsed) {
-      handleSettingsChange(withAdjustmentLayout(appSettings, { collapsedTools: [...collapsedTools, id] }));
-      return;
-    }
     const siblingTools = appSettings.enableSuperFocusMode
-      ? (Object.values(ADJUSTMENT_SECTION_TOOLS)
-          .find((tools) => tools.some((tool) => tool.id === id))
-          ?.map((tool) => tool.id) ?? [])
+      ? (Object.keys(ADJUSTMENT_SECTION_TOOLS)
+          .map(getAdjustmentSectionToolIds)
+          .find((tools) => tools.includes(id)) ?? [])
       : [];
     handleSettingsChange(
       withAdjustmentLayout(appSettings, {
-        collapsedTools: [...new Set([...collapsedTools, ...siblingTools])].filter((tool) => tool !== id),
+        collapsedTools: isCollapsed
+          ? [...new Set([...collapsedTools, ...siblingTools])].filter((tool) => tool !== id)
+          : [...collapsedTools, id],
       }),
     );
   };
