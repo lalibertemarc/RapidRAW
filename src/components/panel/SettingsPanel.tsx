@@ -1207,6 +1207,18 @@ export default function SettingsPanel({
                         />
                       </SettingItem>
 
+                      <SettingItem
+                        label={t('settings.general.superFocusMode')}
+                        description={t('settings.general.superFocusModeDesc')}
+                      >
+                        <Switch
+                          checked={appSettings?.enableSuperFocusMode ?? false}
+                          id="super-focus-mode-toggle"
+                          label={t('settings.general.enableSuperFocusMode')}
+                          onChange={(checked) => onSettingsChange({ ...appSettings, enableSuperFocusMode: checked })}
+                        />
+                      </SettingItem>
+
                       <SettingItem label={t('settings.general.font')} description={t('settings.general.fontDesc')}>
                         <Dropdown
                           onChange={(value: any) => onSettingsChange({ ...appSettings, fontFamily: value })}
