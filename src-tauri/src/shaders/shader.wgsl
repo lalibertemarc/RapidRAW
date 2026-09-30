@@ -387,6 +387,11 @@ fn apply_curve(val: f32, points: array<Point, 16>, count: u32) -> f32 {
     return local_points[count - 1u].y / 255.0;
 }
 
+fn get_whites_multiplier(color: vec3<f32>, wh: f32) -> f32 {
+    let t = clamp(pow(max(get_luma(max(color, vec3<f32>(0.0))), 0.0001), 0.4545), 0.0, 1.0);
+    return exp2(wh * t * t);
+}
+
 fn apply_tonal_adjustments(
     color: vec3<f32>,
     blurred_color_input_space: vec3<f32>,
@@ -394,7 +399,8 @@ fn apply_tonal_adjustments(
     con: f32,
     sh: f32,
     wh: f32,
-    bl: f32
+    bl: f32,
+    exposure_gain: f32
 ) -> vec3<f32> {
     var rgb = color;
 
@@ -404,10 +410,10 @@ fn apply_tonal_adjustments(
     } else {
         blurred_linear = srgb_to_linear(blurred_color_input_space);
     }
+    blurred_linear *= exposure_gain;
 
     if (wh != 0.0) {
-        let white_level = 1.0 - wh * 0.25;
-        let w_mult = 1.0 / max(white_level, 0.01);
+        let w_mult = get_whites_multiplier(rgb, wh);
         rgb *= w_mult;
         blurred_linear *= w_mult;
     }
@@ -422,8 +428,8 @@ fn apply_tonal_adjustments(
         let t_pixel = pow(safe_pixel_luma, 0.4545);
         let t_blurred = pow(safe_blurred_luma, 0.4545);
 
-        let shadow_lift = sh * t_pixel * pow(max(1.0 - t_pixel, 0.0), 4.5);
-        let black_lift = bl * t_pixel * pow(max(1.0 - t_pixel, 0.0), 12.0);
+        let shadow_lift = select(sh, sh * 0.6, sh < 0.0) * t_pixel * pow(max(1.0 - t_pixel, 0.0), 3.0);
+        let black_lift = bl * t_pixel * pow(max(1.0 - t_pixel, 0.0), 7.0);
         let lift_amount = max(shadow_lift + black_lift, 0.0);
 
         let t_pixel_curved = max(t_pixel + shadow_lift + black_lift, 0.0);
@@ -453,7 +459,7 @@ fn apply_tonal_adjustments(
 
         if (luma_ratio > 1.0) {
             let recovered_luma = get_luma(rgb);
-            let boost_amount = clamp((luma_ratio - 1.0) * 0.15, 0.0, 0.4);
+            let boost_amount = clamp((luma_ratio - 1.0) * 0.08, 0.0, 0.25);
             rgb = mix(rgb, vec3<f32>(recovered_luma), boost_amount);
         }
     }
@@ -1104,7 +1110,7 @@ fn apply_centre_tonal_and_color(
     return processed_color;
 }
 
-fn apply_dehaze(color: vec3<f32>, blurred_color_input_space: vec3<f32>, is_raw: u32, amount: f32) -> vec3<f32> {
+fn apply_dehaze(color: vec3<f32>, blurred_color_input_space: vec3<f32>, is_raw: u32, amount: f32, exposure_gain: f32) -> vec3<f32> {
     if (amount == 0.0) { return color; }
 
     var blurred_linear: vec3<f32>;
@@ -1113,6 +1119,7 @@ fn apply_dehaze(color: vec3<f32>, blurred_color_input_space: vec3<f32>, is_raw: 
     } else {
         blurred_linear = srgb_to_linear(blurred_color_input_space);
     }
+    blurred_linear *= exposure_gain;
 
     let atmospheric_light = vec3<f32>(0.95, 0.97, 1.0);
 
@@ -1592,7 +1599,7 @@ fn apply_glow_bloom(
 
     blurred_linear = apply_linear_exposure(blurred_linear, exp);
     blurred_linear = apply_filmic_exposure(blurred_linear, bright);
-    blurred_linear = apply_tonal_adjustments(blurred_linear, blurred_color_input_space, is_raw, 0.0, 0.0, wh, 0.0);
+    blurred_linear = apply_tonal_adjustments(blurred_linear, blurred_color_input_space, is_raw, 0.0, 0.0, wh, 0.0, 1.0);
 
     let linear_luma = get_luma(max(blurred_linear, vec3<f32>(0.0)));
 
@@ -1660,7 +1667,7 @@ fn apply_halation(
 
     blurred_linear = apply_linear_exposure(blurred_linear, exp);
     blurred_linear = apply_filmic_exposure(blurred_linear, bright);
-    blurred_linear = apply_tonal_adjustments(blurred_linear, blurred_color_input_space, is_raw, 0.0, 0.0, wh, 0.0);
+    blurred_linear = apply_tonal_adjustments(blurred_linear, blurred_color_input_space, is_raw, 0.0, 0.0, wh, 0.0, 1.0);
 
     let linear_luma = get_luma(max(blurred_linear, vec3<f32>(0.0)));
 
@@ -1829,6 +1836,7 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>) {
     locally_contrasted_rgb = apply_centre_local_contrast(locally_contrasted_rgb, adjustments.global.centre, absolute_coord_i, clarity_blurred, is_raw);
 
     var processed_rgb = apply_linear_exposure(locally_contrasted_rgb, t_exposure);
+    let exposure_gain = exp2(t_exposure);
 
     if (t_glow > 0.0) {
         processed_rgb = apply_glow_bloom(
@@ -1858,10 +1866,10 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>) {
         processed_rgb += flare_color * t_flare * protection;
     }
 
-    var composite_rgb_linear = apply_dehaze(processed_rgb, structure_blurred, is_raw, t_dehaze);
+    var composite_rgb_linear = apply_dehaze(processed_rgb, structure_blurred, is_raw, t_dehaze, exposure_gain);
     composite_rgb_linear = apply_white_balance(composite_rgb_linear, t_temperature, t_tint);
     composite_rgb_linear = apply_centre_tonal_and_color(composite_rgb_linear, adjustments.global.centre, absolute_coord_i);
-    composite_rgb_linear = apply_tonal_adjustments(composite_rgb_linear, tonal_blurred, is_raw, t_contrast, t_shadows, t_whites, t_blacks);
+    composite_rgb_linear = apply_tonal_adjustments(composite_rgb_linear, tonal_blurred, is_raw, t_contrast, t_shadows, t_whites, t_blacks, exposure_gain);
     composite_rgb_linear = apply_highlights_adjustment(composite_rgb_linear, absolute_coord_i, scale, is_raw, t_highlights);
     composite_rgb_linear = apply_color_calibration(composite_rgb_linear, adjustments.global.color_calibration);
     composite_rgb_linear = apply_hsl_panel(composite_rgb_linear, final_hsl, absolute_coord_i);

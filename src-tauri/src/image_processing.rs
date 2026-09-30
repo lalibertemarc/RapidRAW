@@ -1697,10 +1697,10 @@ const SCALES: AdjustmentScales = AdjustmentScales {
     exposure: 0.8,
     brightness: 0.8,
     contrast: 100.0,
-    highlights: 120.0,
-    shadows: 120.0,
-    whites: 30.0,
-    blacks: 40.0,
+    highlights: 70.0,
+    shadows: 80.0,
+    whites: 50.0,
+    blacks: 55.0,
     saturation: 100.0,
     temperature: 25.0,
     tint: 100.0,
@@ -1711,7 +1711,7 @@ const SCALES: AdjustmentScales = AdjustmentScales {
     luma_noise_reduction: 100.0,
     color_noise_reduction: 100.0,
     clarity: 125.0,
-    dehaze: 750.0,
+    dehaze: 300.0,
     structure: 125.0,
     centré: 250.0,
 
@@ -3265,17 +3265,17 @@ pub fn perform_auto_analysis(image: &DynamicImage) -> AutoAdjustmentResults {
 
     const SHADOW_LUMA_MAX: usize = 32;
     const SHADOW_PERCENT_THRESHOLD: f64 = 0.05;
-    const SHADOW_BOOST_SCALE: f64 = 40.0;
-    const SHADOW_MAX: f64 = 50.0;
-    const HIGHLIGHT_BOOST_SCALE: f64 = 120.0;
-    const HIGHLIGHT_MAX: f64 = 70.0;
+    const SHADOW_BOOST_SCALE: f64 = 20.0;
+    const SHADOW_MAX: f64 = 25.0;
+    const HIGHLIGHT_BOOST_SCALE: f64 = 70.0;
+    const HIGHLIGHT_MAX: f64 = 41.0;
 
     const VIBRANCY_SAT_THRESHOLD: f32 = 0.2;
     const VIBRANCY_SCALE: f64 = 120.0;
 
     const DEHAZE_RANGE_THRESHOLD: f64 = 120.0;
     const DEHAZE_SAT_THRESHOLD: f32 = 0.15;
-    const DEHAZE_SCALE: f64 = 35.0;
+    const DEHAZE_SCALE: f64 = 14.0;
     const CLARITY_RANGE_THRESHOLD: f64 = 180.0;
     const CLARITY_SCALE: f64 = 50.0;
 
@@ -3288,8 +3288,8 @@ pub fn perform_auto_analysis(image: &DynamicImage) -> AutoAdjustmentResults {
     const CENTRE_MAX: f64 = 60.0;
 
     const MID_GRAY: f64 = 128.0;
-    const BLACKS_SCALE: f64 = 0.5;
-    const WHITES_SCALE: f64 = 0.2;
+    const BLACKS_SCALE: f64 = 0.48;
+    const WHITES_SCALE: f64 = 0.12;
     const EXPOSURE_OUTPUT_SCALE: f64 = 20.0;
     const BRIGHTNESS_SCALE: f64 = 0.007;
 
