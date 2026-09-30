@@ -3676,20 +3676,20 @@ pub async fn sample_white_balance(
     corners: Vec<UvPoint>,
     state: tauri::State<'_, AppState>,
 ) -> Result<WhiteBalanceSample, String> {
-    let (image, is_raw, as_shot) = {
-        let original_image_lock = state.original_image.lock().unwrap();
-        let loaded_image = original_image_lock
-            .as_ref()
-            .ok_or("No original image loaded")?;
-        (
-            Arc::clone(&loaded_image.image),
-            loaded_image.is_raw,
-            loaded_image.as_shot_white_balance,
-        )
-    };
+    let loaded_image = state
+        .original_image
+        .lock()
+        .unwrap()
+        .clone()
+        .ok_or("No original image loaded")?;
 
     tokio::task::spawn_blocking(move || {
-        compute_white_balance_sample(&image, is_raw, as_shot, &corners)
+        compute_white_balance_sample(
+            &loaded_image.image,
+            loaded_image.is_raw,
+            loaded_image.as_shot_white_balance,
+            &corners,
+        )
     })
     .await
     .map_err(|e| format!("Task execution failed: {}", e))?
