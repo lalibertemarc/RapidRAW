@@ -2116,6 +2116,10 @@ fn is_section_visible(adjustments: &serde_json::Value, section: &str) -> bool {
         .unwrap_or(true)
 }
 
+fn is_color_tool_visible(adjustments: &serde_json::Value, tool: &str) -> bool {
+    is_section_visible(adjustments, "color") && is_section_visible(adjustments, tool)
+}
+
 fn get_global_adjustments_from_json(
     js_adjustments: &serde_json::Value,
     is_raw: bool,
@@ -2182,6 +2186,9 @@ fn get_global_adjustments_from_json(
     } else {
         Vec::new()
     };
+
+    let color_grading_visible = is_color_tool_visible(js_adjustments, "colorGrading");
+    let color_mixer_visible = is_color_tool_visible(js_adjustments, "colorMixer");
 
     let cg_obj = js_adjustments
         .get("colorGrading")
@@ -2346,32 +2353,32 @@ fn get_global_adjustments_from_json(
         _pad_cg2: 0.0,
         _pad_cg3: 0.0,
         _pad_cg4: 0.0,
-        color_grading_shadows: if is_visible("color") {
+        color_grading_shadows: if color_grading_visible {
             parse_color_grade_settings(&cg_obj["shadows"])
         } else {
             ColorGradeSettings::default()
         },
-        color_grading_midtones: if is_visible("color") {
+        color_grading_midtones: if color_grading_visible {
             parse_color_grade_settings(&cg_obj["midtones"])
         } else {
             ColorGradeSettings::default()
         },
-        color_grading_highlights: if is_visible("color") {
+        color_grading_highlights: if color_grading_visible {
             parse_color_grade_settings(&cg_obj["highlights"])
         } else {
             ColorGradeSettings::default()
         },
-        color_grading_global: if is_visible("color") {
+        color_grading_global: if color_grading_visible {
             parse_color_grade_settings(&cg_obj["global"])
         } else {
             ColorGradeSettings::default()
         },
-        color_grading_blending: if is_visible("color") {
+        color_grading_blending: if color_grading_visible {
             cg_obj["blending"].as_f64().unwrap_or(50.0) as f32 / SCALES.color_grading_blending
         } else {
             0.5
         },
-        color_grading_balance: if is_visible("color") {
+        color_grading_balance: if color_grading_visible {
             cg_obj["balance"].as_f64().unwrap_or(0.0) as f32 / SCALES.color_grading_balance
         } else {
             0.0
@@ -2381,7 +2388,7 @@ fn get_global_adjustments_from_json(
 
         color_calibration: color_cal_settings,
 
-        hsl: if is_visible("color") {
+        hsl: if color_mixer_visible {
             parse_hsl_adjustments(&js_adjustments.get("hsl").cloned().unwrap_or_default())
         } else {
             [HslColor::default(); 8]
@@ -2450,6 +2457,9 @@ fn get_mask_adjustments_from_json(
     } else {
         Vec::new()
     };
+    let color_grading_visible = is_color_tool_visible(adj, "colorGrading");
+    let color_mixer_visible = is_color_tool_visible(adj, "colorMixer");
+
     let cg_obj = adj.get("colorGrading").cloned().unwrap_or_default();
     let [wb_log_gain_l, wb_log_gain_m, wb_log_gain_s] = if is_visible("color") {
         white_balance::adaptation_log_gains(
@@ -2497,32 +2507,32 @@ fn get_mask_adjustments_from_json(
         wb_log_gain_m,
         wb_log_gain_s,
         _pad_wb: 0.0,
-        color_grading_shadows: if is_visible("color") {
+        color_grading_shadows: if color_grading_visible {
             parse_color_grade_settings(&cg_obj["shadows"])
         } else {
             ColorGradeSettings::default()
         },
-        color_grading_midtones: if is_visible("color") {
+        color_grading_midtones: if color_grading_visible {
             parse_color_grade_settings(&cg_obj["midtones"])
         } else {
             ColorGradeSettings::default()
         },
-        color_grading_highlights: if is_visible("color") {
+        color_grading_highlights: if color_grading_visible {
             parse_color_grade_settings(&cg_obj["highlights"])
         } else {
             ColorGradeSettings::default()
         },
-        color_grading_global: if is_visible("color") {
+        color_grading_global: if color_grading_visible {
             parse_color_grade_settings(&cg_obj["global"])
         } else {
             ColorGradeSettings::default()
         },
-        color_grading_blending: if is_visible("color") {
+        color_grading_blending: if color_grading_visible {
             cg_obj["blending"].as_f64().unwrap_or(50.0) as f32 / SCALES.color_grading_blending
         } else {
             0.5
         },
-        color_grading_balance: if is_visible("color") {
+        color_grading_balance: if color_grading_visible {
             cg_obj["balance"].as_f64().unwrap_or(0.0) as f32 / SCALES.color_grading_balance
         } else {
             0.0
@@ -2530,7 +2540,7 @@ fn get_mask_adjustments_from_json(
         _pad5: 0.0,
         _pad6: 0.0,
 
-        hsl: if is_visible("color") {
+        hsl: if color_mixer_visible {
             parse_hsl_adjustments(&adj.get("hsl").cloned().unwrap_or_default())
         } else {
             [HslColor::default(); 8]
