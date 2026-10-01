@@ -212,6 +212,7 @@ export function useLibraryActions(handleImageSelect?: (path: string, openInEdito
         activeAiPatchContainerId: null,
         activeAiSubMaskId: null,
         isWbPickerActive: false,
+        mixerPickerProperty: null,
       });
     }
   }, []);

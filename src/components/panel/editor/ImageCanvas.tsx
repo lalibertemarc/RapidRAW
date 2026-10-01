@@ -12,6 +12,7 @@ import { RenderSize } from '../../../hooks/useImageRenderSize';
 import { useOsPlatform } from '../../../hooks/useOsPlatform';
 import { useTranslation } from 'react-i18next';
 import { useEditorStore } from '../../../store/useEditorStore';
+import { useHslMixerPicker } from '../../../hooks/useHslMixerPicker';
 import type { OverlayMode } from '../right/CropPanel';
 import CompositionOverlays from './overlays/CompositionOverlays';
 import { calculateStraightenAngle } from '../../../utils/cropUtils';
@@ -1707,6 +1708,18 @@ const ImageCanvas = memo(
       : 0;
 
     const effectiveZoomScale = transformState.scale > 0 ? transformState.scale : 1;
+
+    const {
+      isActive: isMixerPickerActive,
+      isDragging: isMixerPickerDragging,
+      start: startMixerPick,
+    } = useHslMixerPicker({
+      getCanvasPointer,
+      imageRenderSize,
+      previewUrl: finalPreviewUrl,
+      zoomScale: effectiveZoomScale,
+      setAdjustments,
+    });
     const brushStageSize = (brushSettings?.size ?? 0) / effectiveZoomScale;
     const brushImageSpaceSize = brushStageSize / (imageRenderSize.scale || 1);
 
@@ -2240,6 +2253,11 @@ const ImageCanvas = memo(
           return;
         }
 
+        if (isMixerPickerActive) {
+          startMixerPick(e);
+          return;
+        }
+
         if (isParametricActive && activeSubMask) {
           const pos = getCanvasPointer(e.target.getStage());
           if (!pos) return;
@@ -2436,6 +2454,8 @@ const ImageCanvas = memo(
         mapScreenToUv,
         isWbPickerActive,
         isInsideImage,
+        isMixerPickerActive,
+        startMixerPick,
         isInitialDrawing,
         isBrushActive,
         isCloneOrHealActive,
@@ -2474,6 +2494,10 @@ const ImageCanvas = memo(
           const uv = mapScreenToUv(pos.x, pos.y);
           setDraftGuideLine((prev) => (prev ? { p1: prev.p1, p2: uv } : null));
           if (e.evt && e.evt.cancelable) e.evt.preventDefault();
+          return;
+        }
+
+        if (isMixerPickerActive) {
           return;
         }
 
@@ -2705,6 +2729,7 @@ const ImageCanvas = memo(
         mapScreenToUv,
         isToolActive,
         isWbPickerActive,
+        isMixerPickerActive,
         isInitialDrawing,
         activeMaskId,
         activeAiSubMaskId,
@@ -3119,6 +3144,8 @@ const ImageCanvas = memo(
     const effectiveCursor = useMemo(() => {
       if (isGuidedPerspectiveActive && isCropping) return 'crosshair';
       if (isWbPickerActive) return 'crosshair';
+      if (isMixerPickerDragging) return 'ns-resize';
+      if (isMixerPickerActive) return 'crosshair';
       if (isParametricActive) return 'crosshair';
       if (isInitialDrawing) return 'crosshair';
 
@@ -3146,6 +3173,8 @@ const ImageCanvas = memo(
       isGuidedPerspectiveActive,
       isCropping,
       isWbPickerActive,
+      isMixerPickerDragging,
+      isMixerPickerActive,
       isInitialDrawing,
       isBrushActive,
       isCloneOrHealActive,
@@ -3369,7 +3398,7 @@ const ImageCanvas = memo(
             </div>
           </div>
 
-          {(isMasking || isAiEditing || isWbPickerActive) && (
+          {(isMasking || isAiEditing || isWbPickerActive || isMixerPickerActive) && (
             <div
               style={{
                 position: 'absolute',
