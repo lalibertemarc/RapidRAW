@@ -1446,11 +1446,9 @@ fn try_load_embedded_raw_preview(source_path: &Path, target_res: u32) -> Option<
 
     let preview = match exif_processing::read_exif(&mmap) {
         Some(exif) => exif_embedded_preview(&exif)?,
-        None => std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            crate::raw_processing::extract_embedded_preview(&mmap)
-        }))
-        .ok()
-        .flatten()?,
+        None => {
+            image_loader::safe_embedded_preview_fallback(&mmap, &source_path.to_string_lossy())?
+        }
     };
 
     (preview.width().max(preview.height()) >= (target_res as f32 * 0.95) as u32).then_some(preview)
