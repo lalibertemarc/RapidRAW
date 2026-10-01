@@ -80,6 +80,7 @@ import {
   MaskContainer,
   ADJUSTMENT_SECTIONS,
   getVisibleAdjustmentSections,
+  showSectionAndTools,
 } from '../../../utils/adjustments';
 import { useContextMenu } from '../../../context/ContextMenuContext';
 import { OPTION_SEPARATOR, Orientation, Panel } from '../../ui/AppProperties';
@@ -2062,10 +2063,10 @@ function SettingsPanel({
       setMaskContainerAdjustments((prev: any) => ({
         ...prev,
         ...copiedSectionAdjustments.values,
-        sectionVisibility: {
-          ...(prev.sectionVisibility || INITIAL_MASK_ADJUSTMENTS.sectionVisibility),
-          [sectionName]: true,
-        },
+        sectionVisibility: showSectionAndTools(
+          prev.sectionVisibility || INITIAL_MASK_ADJUSTMENTS.sectionVisibility,
+          sectionName,
+        ),
       }));
     };
 
@@ -2079,10 +2080,10 @@ function SettingsPanel({
       setMaskContainerAdjustments((prev: any) => ({
         ...prev,
         ...resetValues,
-        sectionVisibility: {
-          ...(prev.sectionVisibility || INITIAL_MASK_ADJUSTMENTS.sectionVisibility),
-          [sectionName]: true,
-        },
+        sectionVisibility: showSectionAndTools(
+          prev.sectionVisibility || INITIAL_MASK_ADJUSTMENTS.sectionVisibility,
+          sectionName,
+        ),
       }));
     };
 
@@ -2295,6 +2296,8 @@ function SettingsPanel({
                 isForMask={true}
                 appSettings={appSettings}
                 onDragStateChange={onDragStateChange}
+                onToggleVisibility={handleToggleVisibility}
+                sectionVisibility={sectionVisibility}
               />
             </CollapsibleSection>
           );
