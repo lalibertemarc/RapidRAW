@@ -12,7 +12,7 @@ import { ChannelConfig } from '../components/adjustments/Curves';
 import { ImageDimensions } from '../hooks/useImageRenderSize';
 import { ToolType } from '../components/panel/right/Masks';
 import { OverlayMode } from '../components/panel/right/CropPanel';
-import { HslMixerProperty, HslPresence } from '../utils/hslMixer';
+import { HslMixerProperty } from '../utils/hslMixer';
 
 interface InteractivePatch {
   url: string;
@@ -67,7 +67,6 @@ interface EditorState {
   isStraightenActive: boolean;
   isWbPickerActive: boolean;
   mixerPickerProperty: HslMixerProperty | null;
-  mixerPickerPresence: HslPresence | null;
   isGuidedPerspectiveActive: boolean;
   liveRotation: number | null;
   cropSessionSnapshot: { path: string | null; geometry: CropGeometry } | null;
@@ -134,7 +133,6 @@ export const useEditorStore = create<EditorState>((set) => ({
   isStraightenActive: false,
   isWbPickerActive: false,
   mixerPickerProperty: null,
-  mixerPickerPresence: null,
   isGuidedPerspectiveActive: false,
   liveRotation: null,
   cropSessionSnapshot: null,
