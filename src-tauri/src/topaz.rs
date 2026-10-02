@@ -4,6 +4,10 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::SystemTime;
 
+use rawler::decoders::{RawDecodeParams, WellKnownIFD};
+use rawler::rawsource::RawSource;
+use rawler::tags::{DngTag, TiffCommonTag};
+use serde_json::Value;
 use tauri::AppHandle;
 
 use crate::app_settings::load_settings;
@@ -31,6 +35,62 @@ fn snapshot_dngs(dir: &Path) -> HashMap<PathBuf, SystemTime> {
             Some((path, modified))
         })
         .collect()
+}
+
+fn sorted_sides(w: usize, h: usize) -> (usize, usize) {
+    (w.max(h), w.min(h))
+}
+
+fn raw_size(path: &Path) -> Option<(usize, usize)> {
+    let source = RawSource::new(path).ok()?;
+    let decoder = rawler::get_decoder(&source).ok()?;
+    let raw = decoder
+        .raw_image(&source, &RawDecodeParams::default(), true)
+        .ok()?;
+    let (w, h) = raw
+        .crop_area
+        .map_or((raw.width, raw.height), |area| (area.d.w, area.d.h));
+    Some(sorted_sides(w, h))
+}
+
+fn dng_size(path: &Path) -> Option<(usize, usize)> {
+    let source = RawSource::new(path).ok()?;
+    let decoder = rawler::get_decoder(&source).ok()?;
+    let ifd = decoder.ifd(WellKnownIFD::Raw).ok()??;
+    let (w, h) = match ifd.get_entry(DngTag::DefaultCropSize) {
+        Some(size) => (size.force_usize(0), size.force_usize(1)),
+        None => (
+            ifd.get_entry(TiffCommonTag::ImageWidth)?.force_usize(0),
+            ifd.get_entry(TiffCommonTag::ImageLength)?.force_usize(0),
+        ),
+    };
+    Some(sorted_sides(w, h))
+}
+
+fn was_resized(source: &Path, output: &Path) -> bool {
+    let (Some(before), Some(after)) = (raw_size(source), dng_size(output)) else {
+        return false;
+    };
+    let differs = |a: usize, b: usize| a.abs_diff(b) as f64 > a as f64 * 0.05;
+    differs(before.0, after.0) || differs(before.1, after.1)
+}
+
+fn copy_sidecar(source: &Path, dest: &Path, drop_crop: bool) -> Result<(), String> {
+    if !drop_crop {
+        return fs::copy(source, dest)
+            .map(|_| ())
+            .map_err(|e| e.to_string());
+    }
+    let content = fs::read_to_string(source).map_err(|e| e.to_string())?;
+    let mut metadata: Value = serde_json::from_str(&content).map_err(|e| e.to_string())?;
+    if let Some(adjustments) = metadata
+        .get_mut("adjustments")
+        .and_then(|a| a.as_object_mut())
+    {
+        adjustments.insert("crop".to_string(), Value::Null);
+    }
+    let json = serde_json::to_string_pretty(&metadata).map_err(|e| e.to_string())?;
+    fs::write(dest, json).map_err(|e| e.to_string())
 }
 
 fn unique_output_path(dir: &Path, stem: &str) -> PathBuf {
@@ -99,7 +159,8 @@ pub async fn edit_in_topaz(path: String, app_handle: AppHandle) -> Result<Option
         let output_path_str = output_path.to_string_lossy().to_string();
         if source_sidecar.exists() {
             let (_, dest_sidecar) = parse_virtual_path(&output_path_str);
-            if let Err(e) = fs::copy(&source_sidecar, &dest_sidecar) {
+            let drop_crop = was_resized(&source_path, &output_path);
+            if let Err(e) = copy_sidecar(&source_sidecar, &dest_sidecar, drop_crop) {
                 log::warn!("Failed to copy sidecar file for Topaz output: {}", e);
             }
         }
