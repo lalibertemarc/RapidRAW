@@ -13,6 +13,7 @@ use tauri::AppHandle;
 use crate::app_settings::load_settings;
 use crate::file_management::parse_virtual_path;
 use crate::formats::is_raw_file;
+use crate::lut_processing::unique_lut_destination;
 
 const DEFAULT_TOPAZ_PATH: &str =
     r"C:\Program Files\Topaz Labs LLC\Topaz Photo AI\Topaz Photo AI.exe";
@@ -37,38 +38,30 @@ fn snapshot_dngs(dir: &Path) -> HashMap<PathBuf, SystemTime> {
         .collect()
 }
 
-fn sorted_sides(w: usize, h: usize) -> (usize, usize) {
-    (w.max(h), w.min(h))
-}
-
-fn raw_size(path: &Path) -> Option<(usize, usize)> {
+fn image_size(path: &Path) -> Option<(usize, usize)> {
     let source = RawSource::new(path).ok()?;
     let decoder = rawler::get_decoder(&source).ok()?;
-    let raw = decoder
-        .raw_image(&source, &RawDecodeParams::default(), true)
-        .ok()?;
-    let (w, h) = raw
-        .crop_area
-        .map_or((raw.width, raw.height), |area| (area.d.w, area.d.h));
-    Some(sorted_sides(w, h))
-}
-
-fn dng_size(path: &Path) -> Option<(usize, usize)> {
-    let source = RawSource::new(path).ok()?;
-    let decoder = rawler::get_decoder(&source).ok()?;
-    let ifd = decoder.ifd(WellKnownIFD::Raw).ok()??;
-    let (w, h) = match ifd.get_entry(DngTag::DefaultCropSize) {
-        Some(size) => (size.force_usize(0), size.force_usize(1)),
-        None => (
-            ifd.get_entry(TiffCommonTag::ImageWidth)?.force_usize(0),
-            ifd.get_entry(TiffCommonTag::ImageLength)?.force_usize(0),
-        ),
+    let (w, h) = if is_dng(path) {
+        let ifd = decoder.ifd(WellKnownIFD::Raw).ok()??;
+        match ifd.get_entry(DngTag::DefaultCropSize) {
+            Some(size) => (size.force_usize(0), size.force_usize(1)),
+            None => (
+                ifd.get_entry(TiffCommonTag::ImageWidth)?.force_usize(0),
+                ifd.get_entry(TiffCommonTag::ImageLength)?.force_usize(0),
+            ),
+        }
+    } else {
+        let raw = decoder
+            .raw_image(&source, &RawDecodeParams::default(), true)
+            .ok()?;
+        raw.crop_area
+            .map_or((raw.width, raw.height), |area| (area.d.w, area.d.h))
     };
-    Some(sorted_sides(w, h))
+    Some((w.max(h), w.min(h)))
 }
 
 fn was_resized(source: &Path, output: &Path) -> bool {
-    let (Some(before), Some(after)) = (raw_size(source), dng_size(output)) else {
+    let (Some(before), Some(after)) = (image_size(source), image_size(output)) else {
         return false;
     };
     let differs = |a: usize, b: usize| a.abs_diff(b) as f64 > a as f64 * 0.05;
@@ -91,16 +84,6 @@ fn copy_sidecar(source: &Path, dest: &Path, drop_crop: bool) -> Result<(), Strin
     }
     let json = serde_json::to_string_pretty(&metadata).map_err(|e| e.to_string())?;
     fs::write(dest, json).map_err(|e| e.to_string())
-}
-
-fn unique_output_path(dir: &Path, stem: &str) -> PathBuf {
-    let mut candidate = dir.join(format!("{}_Topaz.dng", stem));
-    let mut index = 2;
-    while candidate.exists() {
-        candidate = dir.join(format!("{}_Topaz-{}.dng", stem, index));
-        index += 1;
-    }
-    candidate
 }
 
 #[tauri::command]
@@ -147,7 +130,7 @@ pub async fn edit_in_topaz(path: String, app_handle: AppHandle) -> Result<Option
             .file_stem()
             .and_then(|s| s.to_str())
             .unwrap_or("topaz");
-        let output_path = unique_output_path(&dir, stem);
+        let output_path = unique_lut_destination(&dir, &format!("{}_Topaz", stem), "dng");
         fs::rename(&topaz_output, &output_path)
             .map_err(|e| format!("Failed to rename Topaz output: {}", e))?;
 
