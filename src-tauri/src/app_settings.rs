@@ -592,6 +592,8 @@ pub struct AppSettings {
     pub adjustment_layout: AdjustmentLayout,
     #[serde(default)]
     pub workspace: WorkspaceState,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub topaz_path: Option<String>,
 }
 
 impl Default for AppSettings {
@@ -691,6 +693,7 @@ impl Default for AppSettings {
             custom_aspect_ratios: Vec::new(),
             adjustment_layout: AdjustmentLayout::default(),
             workspace: WorkspaceState::default(),
+            topaz_path: None,
         }
     }
 }

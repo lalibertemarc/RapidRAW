@@ -51,6 +51,7 @@ export enum Invokes {
   CullImages = 'cull_images',
   DeleteFolder = 'delete_folder',
   DuplicateFile = 'duplicate_file',
+  EditInTopaz = 'edit_in_topaz',
   EstimateExportSizes = 'estimate_export_sizes',
   ExportImages = 'export_images',
   FrontendLog = 'frontend_log',
@@ -264,6 +265,7 @@ export interface AppSettings {
   groupPreferredType?: GroupPreference; // legacy
   alwaysDecodeRawThumbnails?: boolean;
   workspace?: WorkspaceState;
+  topazPath?: string;
 }
 
 export interface BrushSettings {

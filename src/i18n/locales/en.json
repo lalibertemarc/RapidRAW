@@ -190,6 +190,7 @@
       "cullImage": "Cull Image",
       "denoise": "Denoise Image",
       "editImage": "Edit Image",
+      "editInTopaz": "Edit in Topaz Photo AI",
       "exportImage": "Export Image",
       "flag": "Flag",
       "flagPick": "Picked",
@@ -297,7 +298,10 @@
       "failedMove": "Failed to move files: {{err}}",
       "failedMoveError": "Failed to move: {{err}}",
       "failedMoveInvalid": "Failed to move: Target group not found or invalid.",
-      "failedRemoveImages": "Failed to remove images: {{err}}"
+      "failedRemoveImages": "Failed to remove images: {{err}}",
+      "topazFailed": "Topaz Photo AI failed: {{err}}",
+      "topazNoOutput": "Topaz Photo AI closed without saving a DNG.",
+      "topazWaiting": "Waiting for Topaz Photo AI. Save the image there to bring the DNG back."
     }
   },
   "editor": {
@@ -1855,6 +1859,13 @@
       "thumbnailRes": "Thumbnail Resolution",
       "thumbnailResDesc": "Determines the resolution of generated library thumbnails. Higher values produce sharper images during loading.",
       "title": "Processing Engine",
+      "topaz": {
+        "browse": "Browse",
+        "path": "Topaz Photo AI Path",
+        "pathDesc": "Location of Topaz Photo AI.exe, used by \"Edit in Topaz Photo AI\". Leave empty to use the default install location.",
+        "pathPlaceholder": "Default install location",
+        "title": "Topaz Photo AI"
+      },
       "wgpu": "WGPU Direct Rendering",
       "wgpuDescAndroid": "Bypasses browser encoding for instantly responsive live previews. (Disabled on Android: Native WGPU surface creation is currently not supported alongside the mobile webview.)",
       "wgpuDescLinux": "Bypasses browser encoding for instantly responsive live previews. (Disabled on Linux: Tauri uses GTK for webviews, which conflicts with WGPU on the same X11 surface and causes flickering.)",
