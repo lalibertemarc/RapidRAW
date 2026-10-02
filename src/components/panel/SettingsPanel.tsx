@@ -47,6 +47,7 @@ import { TextColors, TextVariants, TextWeights } from '../../types/typography';
 import { useOsPlatform } from '../../hooks/useOsPlatform';
 import { useCloudUsage } from '../../hooks/useCloudUsage';
 import { open } from '@tauri-apps/plugin-shell';
+import { open as openDialog } from '@tauri-apps/plugin-dialog';
 import { RotateCcw } from 'lucide-react';
 import { useUIStore } from '../../store/useUIStore';
 
@@ -503,6 +504,7 @@ export default function SettingsPanel({
 
   const [aiProvider, setAiProvider] = useState(appSettings?.aiProvider || 'cpu');
   const [aiConnectorAddress, setAiConnectorAddress] = useState<string>(appSettings?.aiConnectorAddress || '');
+  const [topazPath, setTopazPath] = useState<string>(appSettings?.topazPath || '');
   const [newShortcut, setNewShortcut] = useState('');
   const [newAiTag, setNewAiTag] = useState('');
 
@@ -624,6 +626,9 @@ export default function SettingsPanel({
     }
     if (appSettings?.aiProvider !== aiProvider) {
       setAiProvider(appSettings?.aiProvider || 'cpu');
+    }
+    if (appSettings?.topazPath !== topazPath) {
+      setTopazPath(appSettings?.topazPath || '');
     }
     setProcessingSettings({
       editorPreviewResolution: appSettings?.editorPreviewResolution || 1920,
@@ -2329,6 +2334,45 @@ export default function SettingsPanel({
                         )}
                       </AnimatePresence>
                     </div>
+                  </div>
+
+                  <div className="p-6 bg-surface rounded-xl shadow-md">
+                    <Text variant={TextVariants.title} color={TextColors.accent} className="mb-8">
+                      {t('settings.processing.topaz.title')}
+                    </Text>
+                    <SettingItem
+                      label={t('settings.processing.topaz.path')}
+                      description={t('settings.processing.topaz.pathDesc')}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Input
+                          className="grow"
+                          id="topaz-path"
+                          onBlur={() => onSettingsChange({ ...appSettings, topazPath: topazPath || undefined })}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTopazPath(e.target.value)}
+                          onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => e.stopPropagation()}
+                          placeholder={t('settings.processing.topaz.pathPlaceholder')}
+                          type="text"
+                          value={topazPath}
+                          bgClassName="bg-bg-primary"
+                        />
+                        <Button
+                          className="w-32"
+                          onClick={async () => {
+                            const selected = await openDialog({
+                              multiple: false,
+                              filters: [{ name: 'Topaz Photo AI', extensions: ['exe'] }],
+                            });
+                            if (typeof selected === 'string') {
+                              setTopazPath(selected);
+                              onSettingsChange({ ...appSettings, topazPath: selected });
+                            }
+                          }}
+                        >
+                          {t('settings.processing.topaz.browse')}
+                        </Button>
+                      </div>
+                    </SettingItem>
                   </div>
 
                   <div className="p-6 bg-surface rounded-xl shadow-md">
