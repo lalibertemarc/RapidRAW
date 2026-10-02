@@ -111,7 +111,7 @@ pub fn list_luts_in_dir(dir: &Path, is_built_in: bool) -> anyhow::Result<Vec<Lut
     Ok(entries)
 }
 
-fn unique_lut_destination(dir: &Path, stem: &str, extension: &str) -> PathBuf {
+pub fn unique_lut_destination(dir: &Path, stem: &str, extension: &str) -> PathBuf {
     let mut candidate = dir.join(format!("{}.{}", stem, extension));
     let mut suffix = 1;
     while candidate.exists() && suffix < 1000 {
