@@ -165,11 +165,6 @@ export function useAppContextMenus(props: UseAppContextMenusProps) {
     [albumIcons, t],
   );
 
-  const canEditInTopaz = useCallback(
-    (path: string, isRaw: boolean) => isRaw && !path.split('?')[0].toLowerCase().endsWith('.dng'),
-    [],
-  );
-
   const handleEditInTopaz = useCallback(
     async (path: string) => {
       toast.info(t('contextMenus.toasts.topazWaiting'));
@@ -186,6 +181,14 @@ export function useAppContextMenus(props: UseAppContextMenusProps) {
       }
     },
     [props, t],
+  );
+
+  const buildTopazOptions = useCallback(
+    (path: string, isRaw: boolean): Option[] =>
+      isRaw && !path.split('?')[0].toLowerCase().endsWith('.dng')
+        ? [{ label: t('contextMenus.editor.editInTopaz'), icon: Sparkles, onClick: () => handleEditInTopaz(path) }]
+        : [],
+    [handleEditInTopaz, t],
   );
 
   const handleEditorContextMenu = useCallback(
@@ -210,15 +213,7 @@ export function useAppContextMenus(props: UseAppContextMenusProps) {
           icon: FileInput,
           onClick: () => setPanel(Panel.Export),
         },
-        ...(canEditInTopaz(selectedImage.path, selectedImage.isRaw)
-          ? [
-              {
-                label: t('contextMenus.editor.editInTopaz'),
-                icon: Sparkles,
-                onClick: () => handleEditInTopaz(selectedImage.path),
-              },
-            ]
-          : []),
+        ...buildTopazOptions(selectedImage.path, selectedImage.isRaw),
         { type: OPTION_SEPARATOR },
         { label: t('contextMenus.editor.undo'), icon: Undo, onClick: undo, disabled: !canUndo },
         { label: t('contextMenus.editor.redo'), icon: Redo, onClick: redo, disabled: !canRedo },
@@ -368,8 +363,7 @@ export function useAppContextMenus(props: UseAppContextMenusProps) {
       handleRate,
       handleSetColorLabel,
       handleTagsChanged,
-      canEditInTopaz,
-      handleEditInTopaz,
+      buildTopazOptions,
       showContextMenu,
       t,
     ],
@@ -588,17 +582,10 @@ export function useAppContextMenus(props: UseAppContextMenusProps) {
               { type: OPTION_SEPARATOR },
             ]
           : [{ icon: FileInput, label: exportLabel, onClick: onExportClick }, { type: OPTION_SEPARATOR }]),
-        ...(isSingleSelection &&
-        canEditInTopaz(finalSelection[0], !!imageList.find((img) => img.path === finalSelection[0])?.is_raw)
-          ? [
-              {
-                icon: Sparkles,
-                label: t('contextMenus.editor.editInTopaz'),
-                onClick: () => handleEditInTopaz(finalSelection[0]),
-              },
-              { type: OPTION_SEPARATOR },
-            ]
-          : []),
+        ...buildTopazOptions(
+          finalSelection[0],
+          isSingleSelection && !!imageList.find((img) => img.path === finalSelection[0])?.is_raw,
+        ).flatMap((option) => [option, { type: OPTION_SEPARATOR }]),
         {
           disabled: !isSingleSelection,
           icon: Copy,
@@ -873,8 +860,7 @@ export function useAppContextMenus(props: UseAppContextMenusProps) {
       handleSetColorLabel,
       handleTagsChanged,
       handleResetAdjustments,
-      canEditInTopaz,
-      handleEditInTopaz,
+      buildTopazOptions,
       showContextMenu,
       props,
       t,
