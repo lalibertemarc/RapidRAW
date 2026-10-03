@@ -99,7 +99,8 @@ fn recover_clipped_pixel(r: f32, g: f32, b: f32) -> (f32, f32, f32) {
     if magenta > 0.0 {
         let target_g = cur_r.min(cur_b) * 0.80 + ((cur_r + cur_b) * 0.5) * 0.20;
         let correction = (target_g - cur_g).max(0.0);
-        cur_g += correction * outer_blend;
+        let magenta_weight = smoothstep(0.0, 0.25, magenta / max_c);
+        cur_g += correction * outer_blend * magenta_weight;
     }
 
     let residual = (cur_r.min(cur_b) - cur_g).max(0.0);
