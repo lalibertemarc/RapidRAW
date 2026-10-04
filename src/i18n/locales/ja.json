@@ -442,6 +442,8 @@
       "apply": "適用",
       "applyTooltip": "切り抜きを適用 (Enter)",
       "aspectRatioHeading": "アスペクト比",
+      "autoStraightenFailed": "自動角度補正に失敗しました: {{error}}",
+      "autoStraightenNoHorizon": "はっきりした水平線が見つかりません",
       "cancel": "キャンセル",
       "cancelTooltip": "切り抜きの変更を元に戻す (Esc)",
       "custom": {
@@ -543,6 +545,7 @@
       "rotationHeading": "回転",
       "title": "切り抜きと変形",
       "tooltips": {
+        "autoStraighten": "自動角度補正（Shift+S）",
         "compositionOverlay": "構図ガイド",
         "flipHoriz": "画像を水平方向に反転",
         "flipVert": "画像を垂直方向に反転",
@@ -1634,6 +1637,7 @@
     },
     "keybinds": {
       "actions": {
+        "auto_straighten": "自動角度補正（水平線を水平に）",
         "brush_size_down": "ブラシサイズを縮小",
         "brush_size_up": "ブラシサイズを拡大",
         "color_label_blue": "カラーラベル: ブルー",

@@ -464,6 +464,8 @@
       "apply": "Aplicar",
       "applyTooltip": "Aplicar recorte (Intro)",
       "aspectRatioHeading": "Relación de aspecto",
+      "autoStraightenFailed": "Error al enderezar automáticamente: {{error}}",
+      "autoStraightenNoHorizon": "No se encontró un horizonte claro",
       "cancel": "Cancelar",
       "cancelTooltip": "Deshacer cambios de recorte (Esc)",
       "custom": {
@@ -565,6 +567,7 @@
       "rotationHeading": "Rotación",
       "title": "Recortar y transformar",
       "tooltips": {
+        "autoStraighten": "Enderezar automáticamente (Shift+S)",
         "compositionOverlay": "Superposición de composición",
         "flipHoriz": "Voltear imagen horizontalmente",
         "flipVert": "Voltear imagen verticalmente",
@@ -1671,6 +1674,7 @@
     },
     "keybinds": {
       "actions": {
+        "auto_straighten": "Enderezar automáticamente (nivelar horizonte)",
         "brush_size_down": "Reducir tamaño del pincel",
         "brush_size_up": "Aumentar tamaño del pincel",
         "color_label_blue": "Etiqueta de color: Azul",
