@@ -77,7 +77,7 @@ const MIXER_TRACK_PREFIX: Record<HslMixerProperty, string> = { hue: 'hue', satur
 const ToggleIconButton = ({ isActive, onClick, tooltip, children }: ToggleIconButtonProps) => (
   <button
     onClick={onClick}
-    className={`p-1.5 rounded-md transition-colors ${
+    className={`w-6 h-6 flex items-center justify-center rounded-md transition-colors ${
       isActive ? 'bg-accent text-button-text' : 'hover:bg-bg-secondary text-text-secondary'
     }`}
     data-tooltip={tooltip}
@@ -594,7 +594,7 @@ export default function ColorPanel({
                 {asShotWhiteBalance && (
                   <button
                     onClick={toggleWhiteBalanceMode}
-                    className={`px-1.5 py-0.5 rounded-md text-xs font-semibold transition-colors ${
+                    className={`w-6 h-6 flex items-center justify-center rounded-md text-xs font-semibold transition-colors ${
                       isKelvinMode ? 'bg-accent text-button-text' : 'hover:bg-bg-secondary text-text-secondary'
                     }`}
                     data-tooltip={t('adjustments.color.kelvinModeTooltip')}
