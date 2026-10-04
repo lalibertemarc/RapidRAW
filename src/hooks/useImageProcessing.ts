@@ -491,6 +491,7 @@ export function useImageProcessing(
     isSliderDragging,
     multiSelectedPaths,
     appSettings?.enableLivePreviews,
+    appSettings?.enableBaselineExposure,
     appSettings?.copyPasteSettings?.includedAdjustments,
     appSettings?.copyPasteSettings?.autoSync,
     isWaveformVisible,

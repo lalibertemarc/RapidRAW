@@ -153,7 +153,9 @@ export function useEditorActions() {
     const selectedImage = useEditorStore.getState().selectedImage;
     if (!selectedImage?.isReady) return;
     try {
-      const autoAdjustments: Adjustments = await invoke(Invokes.CalculateAutoAdjustments);
+      const autoAdjustments: Adjustments = await invoke(Invokes.CalculateAutoAdjustments, {
+        jsAdjustments: useEditorStore.getState().adjustments,
+      });
       setAdjustments((prev: Adjustments) => ({
         ...prev,
         ...autoAdjustments,
@@ -193,7 +195,8 @@ export function useEditorActions() {
 
       if (isShowing) {
         const override = { ...INITIAL_ADJUSTMENTS };
-        const geometryKeys: Array<keyof Adjustments> = [
+        const preservedKeys: Array<keyof Adjustments> = [
+          'baselineExposure',
           'crop',
           'rotation',
           'flipHorizontal',
@@ -219,7 +222,7 @@ export function useEditorActions() {
           'lensVignetteEnabled',
         ];
 
-        geometryKeys.forEach((key) => {
+        preservedKeys.forEach((key) => {
           (override as any)[key] = state.adjustments[key];
         });
 
