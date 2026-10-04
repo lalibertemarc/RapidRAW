@@ -443,7 +443,7 @@
       "applyTooltip": "应用裁剪 (Enter)",
       "aspectRatioHeading": "宽高比",
       "autoStraightenFailed": "自动拉直失败：{{error}}",
-      "autoStraightenNoHorizon": "未找到清晰的地平线",
+      "autoStraightenNoLines": "未找到可用于拉直的直线",
       "cancel": "取消",
       "cancelTooltip": "撤销裁剪更改 (Esc)",
       "custom": {
@@ -1637,7 +1637,7 @@
     },
     "keybinds": {
       "actions": {
-        "auto_straighten": "自动拉直（校平地平线）",
+        "auto_straighten": "自动拉直",
         "brush_size_down": "减小画笔大小",
         "brush_size_up": "增大画笔大小",
         "color_label_blue": "颜色标签：蓝色",

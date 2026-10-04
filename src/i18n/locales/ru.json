@@ -485,7 +485,7 @@
       "applyTooltip": "Применить кадрирование (Enter)",
       "aspectRatioHeading": "Соотношение сторон",
       "autoStraightenFailed": "Не удалось выровнять автоматически: {{error}}",
-      "autoStraightenNoHorizon": "Чёткий горизонт не найден",
+      "autoStraightenNoLines": "Не найдено прямых линий для выравнивания",
       "cancel": "Отмена",
       "cancelTooltip": "Отменить изменения кадрирования (Esc)",
       "custom": {
@@ -587,7 +587,7 @@
       "rotationHeading": "Вращение",
       "title": "Обрезка и трансформация",
       "tooltips": {
-        "autoStraighten": "Автовыравнивание горизонта (Shift+S)",
+        "autoStraighten": "Автовыравнивание (Shift+S)",
         "compositionOverlay": "Сетка композиции",
         "flipHoriz": "Отразить горизонтально",
         "flipVert": "Отразить вертикально",
@@ -1711,7 +1711,7 @@
     },
     "keybinds": {
       "actions": {
-        "auto_straighten": "Автовыравнивание горизонта",
+        "auto_straighten": "Автовыравнивание",
         "brush_size_down": "Уменьшить размер кисти",
         "brush_size_up": "Увеличить размер кисти",
         "color_label_blue": "Цветовая метка: Синий",

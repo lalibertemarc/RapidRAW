@@ -465,7 +465,7 @@
       "applyTooltip": "Applica ritaglio (Invio)",
       "aspectRatioHeading": "Proporzioni",
       "autoStraightenFailed": "Raddrizzamento automatico non riuscito: {{error}}",
-      "autoStraightenNoHorizon": "Nessun orizzonte chiaro trovato",
+      "autoStraightenNoLines": "Nessuna linea retta trovata per raddrizzare",
       "cancel": "Annulla",
       "cancelTooltip": "Annulla modifiche al ritaglio (Esc)",
       "custom": {
@@ -1674,7 +1674,7 @@
     },
     "keybinds": {
       "actions": {
-        "auto_straighten": "Raddrizza automaticamente (livella l'orizzonte)",
+        "auto_straighten": "Raddrizza automaticamente",
         "brush_size_down": "Riduci dimensione pennello",
         "brush_size_up": "Aumenta dimensione pennello",
         "color_label_blue": "Etichetta colore: Blu",

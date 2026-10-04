@@ -485,7 +485,7 @@
       "applyTooltip": "Zastosuj kadrowanie (Enter)",
       "aspectRatioHeading": "Proporcje",
       "autoStraightenFailed": "Automatyczne prostowanie nie powiodło się: {{error}}",
-      "autoStraightenNoHorizon": "Nie znaleziono wyraźnego horyzontu",
+      "autoStraightenNoLines": "Nie znaleziono prostych linii do wyprostowania",
       "cancel": "Anuluj",
       "cancelTooltip": "Cofnij zmiany kadrowania (Esc)",
       "custom": {
@@ -1711,7 +1711,7 @@
     },
     "keybinds": {
       "actions": {
-        "auto_straighten": "Automatyczne prostowanie (poziomowanie horyzontu)",
+        "auto_straighten": "Automatyczne prostowanie",
         "brush_size_down": "Zmniejsz rozmiar pędzla",
         "brush_size_up": "Zwiększ rozmiar pędzla",
         "color_label_blue": "Etykieta koloru: Niebieski",

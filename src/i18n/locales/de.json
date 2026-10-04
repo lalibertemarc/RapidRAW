@@ -445,7 +445,7 @@
       "applyTooltip": "Zuschnitt anwenden (Eingabe)",
       "aspectRatioHeading": "Seitenverhältnis",
       "autoStraightenFailed": "Automatisches Ausrichten fehlgeschlagen: {{error}}",
-      "autoStraightenNoHorizon": "Kein klarer Horizont gefunden",
+      "autoStraightenNoLines": "Keine geraden Linien zum Ausrichten gefunden",
       "cancel": "Abbrechen",
       "cancelTooltip": "Zuschnittänderungen verwerfen (Esc)",
       "custom": {
@@ -1639,7 +1639,7 @@
     },
     "keybinds": {
       "actions": {
-        "auto_straighten": "Automatisch ausrichten (Horizont begradigen)",
+        "auto_straighten": "Automatisch ausrichten",
         "brush_size_down": "Pinselgröße verringern",
         "brush_size_up": "Pinselgröße erhöhen",
         "color_label_blue": "Farbmarkierung: Blau",
