@@ -17,6 +17,7 @@ pub const TINT_PER_RELATIVE_UNIT: f64 = 1.5;
 const TINT_SCALE: f64 = -3000.0;
 const ILLUMINANT_A_TEMPERATURE: f64 = 2856.0;
 const ILLUMINANT_D65_TEMPERATURE: f64 = 6504.0;
+const MIN_LMS_FRACTION_OF_LOCUS: f64 = 0.25;
 
 const BRADFORD: DMat3 = DMat3::from_cols_array(&[
     0.8951, -0.7502, 0.0389, 0.2664, 1.7135, -0.0685, -0.1614, 0.0367, 1.0296,
@@ -163,9 +164,15 @@ impl WhiteBalance {
         .clamped()
     }
 
-    fn lms(self) -> DVec3 {
+    fn chromaticity_lms(self) -> DVec3 {
         let (x, y) = self.to_xy();
         BRADFORD * DVec3::new(x / y, 1.0, (1.0 - x - y) / y)
+    }
+
+    fn lms(self) -> DVec3 {
+        let locus = Self { tint: 0.0, ..self }.chromaticity_lms();
+        self.chromaticity_lms()
+            .max(locus * MIN_LMS_FRACTION_OF_LOCUS)
     }
 
     pub fn from_camera_neutral(xyz_to_camera: &[f32], neutral: &[f32]) -> Option<Self> {
