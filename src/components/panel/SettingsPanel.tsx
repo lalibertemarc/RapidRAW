@@ -584,6 +584,7 @@ export default function SettingsPanel({
     smallThumbnailResolution: appSettings?.smallThumbnailResolution || 480,
     mediumThumbnailResolution: appSettings?.mediumThumbnailResolution || 1280,
     rawHighlightCompression: appSettings?.rawHighlightCompression ?? 2.5,
+    baselineExposure: appSettings?.baselineExposure ?? 0.7,
     processingBackend: appSettings?.processingBackend || 'auto',
     linuxGpuOptimization: appSettings?.linuxGpuOptimization ?? false,
     highResZoomMultiplier: appSettings?.highResZoomMultiplier || 1.0,
@@ -694,6 +695,7 @@ export default function SettingsPanel({
       smallThumbnailResolution: appSettings?.smallThumbnailResolution || 480,
       mediumThumbnailResolution: appSettings?.mediumThumbnailResolution || 1280,
       rawHighlightCompression: appSettings?.rawHighlightCompression ?? 2.5,
+      baselineExposure: appSettings?.baselineExposure ?? 0.7,
       processingBackend: appSettings?.processingBackend || 'auto',
       linuxGpuOptimization: appSettings?.linuxGpuOptimization ?? false,
       highResZoomMultiplier: appSettings?.highResZoomMultiplier || 1.0,
@@ -2330,6 +2332,68 @@ export default function SettingsPanel({
                           options={linearRawOptions}
                           value={appSettings?.linearRawMode || 'auto'}
                           triggerClassName="bg-bg-primary"
+                        />
+                      </SettingItem>
+
+                      <div className="space-y-4">
+                        <SettingItem
+                          label={t('settings.processing.preprocessing.baselineExposure')}
+                          description={t('settings.processing.preprocessing.baselineExposureDesc')}
+                        >
+                          <Switch
+                            checked={appSettings?.enableBaselineExposure ?? false}
+                            id="baseline-exposure-toggle"
+                            label={t('settings.processing.preprocessing.enableBaselineExposure')}
+                            onChange={(checked) =>
+                              onSettingsChange({ ...appSettings, enableBaselineExposure: checked })
+                            }
+                          />
+                        </SettingItem>
+
+                        <AnimatePresence>
+                          {(appSettings?.enableBaselineExposure ?? false) && (
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: 'auto', opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              transition={{ duration: 0.3, ease: 'easeInOut' }}
+                            >
+                              <div className="pl-4 border-l-2 border-border-color ml-1 space-y-3">
+                                <SettingItem
+                                  label={t('settings.processing.preprocessing.baselineExposureAmount')}
+                                  description={t('settings.processing.preprocessing.baselineExposureAmountDesc')}
+                                >
+                                  <Slider
+                                    label={t('settings.tagging.amount')}
+                                    min={0}
+                                    max={2}
+                                    step={0.05}
+                                    value={processingSettings.baselineExposure}
+                                    defaultValue={0.7}
+                                    onChange={(e) =>
+                                      handleProcessingSettingChange('baselineExposure', Number(e.target.value))
+                                    }
+                                    fillOrigin="min"
+                                    suffix=" EV"
+                                  />
+                                </SettingItem>
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+
+                      <SettingItem
+                        label={t('settings.processing.preprocessing.highlightPreservation')}
+                        description={t('settings.processing.preprocessing.highlightPreservationDesc')}
+                      >
+                        <Switch
+                          checked={appSettings?.compensateHighlightPreservation ?? true}
+                          id="highlight-preservation-toggle"
+                          label={t('settings.processing.preprocessing.enableHighlightPreservation')}
+                          onChange={(checked) =>
+                            onSettingsChange({ ...appSettings, compensateHighlightPreservation: checked })
+                          }
                         />
                       </SettingItem>
 
