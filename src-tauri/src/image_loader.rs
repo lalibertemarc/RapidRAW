@@ -1015,13 +1015,13 @@ pub async fn load_image(
     }
 
     let (orig_width, orig_height) = pristine_arc.dimensions();
-    let as_shot_white_balance = crate::white_balance::as_shot_white_balance(&source_path_str);
+    let as_shot = crate::as_shot::as_shot(&source_path_str);
 
     *state.original_image.lock().unwrap() = Some(LoadedImage {
         path,
         image: pristine_arc,
         is_raw,
-        as_shot_white_balance,
+        as_shot,
     });
 
     Ok(LoadImageResult {
@@ -1030,6 +1030,6 @@ pub async fn load_image(
         metadata,
         exif: exif_data,
         is_raw,
-        as_shot_white_balance,
+        as_shot_white_balance: as_shot.white_balance,
     })
 }
