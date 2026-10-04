@@ -435,7 +435,7 @@
     "crop": {
       "aspectRatioHeading": "Beeldverhouding",
       "autoStraightenFailed": "Automatisch rechtzetten mislukt: {{error}}",
-      "autoStraightenNoHorizon": "Geen duidelijke horizon gevonden",
+      "autoStraightenNoLines": "Geen rechte lijnen gevonden om recht te zetten",
       "custom": {
         "hPlaceholder": "H",
         "hTooltip": "Hoogte",
@@ -1610,7 +1610,7 @@
     },
     "keybinds": {
       "actions": {
-        "auto_straighten": "Automatisch rechtzetten (horizon waterpas)",
+        "auto_straighten": "Automatisch rechtzetten",
         "brush_size_down": "Penseelgrootte verkleinen",
         "brush_size_up": "Penseelgrootte vergroten",
         "color_label_blue": "Kleurlabel: blauw",
