@@ -48,6 +48,7 @@ import {
   Album as AlbumIcon,
   PencilSparkles,
   Sparkles,
+  Wand2,
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
@@ -67,9 +68,9 @@ import {
   Album,
   AlbumGroup,
 } from '../components/ui/AppProperties';
-import { Color, COLOR_LABELS, INITIAL_ADJUSTMENTS, normalizeLoadedAdjustments } from '../utils/adjustments';
+import { Color, COLOR_LABELS, INITIAL_ADJUSTMENTS } from '../utils/adjustments';
 import TaggingSubMenu from '../context/TaggingSubMenu';
-import { useEditorActions } from './useEditorActions';
+import { reloadAdjustmentsForPaths, useEditorActions } from './useEditorActions';
 import { useLibraryActions } from './useLibraryActions';
 import { globalImageCache } from '../utils/ImageLRUCache';
 
@@ -93,6 +94,8 @@ export function useAppContextMenus(props: UseAppContextMenusProps) {
   const {
     handleAutoAdjustments,
     handleAutoLensCorrection,
+    handleAutoStraighten,
+    handleAutoStraightenPaths,
     handleResetAdjustments,
     handleCopyAdjustments,
     handlePasteAdjustments,
@@ -276,6 +279,12 @@ export function useAppContextMenus(props: UseAppContextMenusProps) {
               disabled: !selectedImage?.isReady,
             },
             {
+              label: t('contextMenus.editor.autoStraighten'),
+              icon: Wand2,
+              onClick: handleAutoStraighten,
+              disabled: !selectedImage?.isReady,
+            },
+            {
               label: t('contextMenus.editor.denoise'),
               icon: Grip,
               onClick: () => {
@@ -406,9 +415,8 @@ export function useAppContextMenus(props: UseAppContextMenusProps) {
       event.preventDefault();
       event.stopPropagation();
 
-      const { selectedImage, copiedAdjustments, setEditor } = useEditorStore.getState();
-      const { multiSelectedPaths, imageList, libraryActivePath, albumTree, activeAlbumId, setLibrary } =
-        useLibraryStore.getState();
+      const { selectedImage, copiedAdjustments } = useEditorStore.getState();
+      const { multiSelectedPaths, imageList, albumTree, activeAlbumId, setLibrary } = useLibraryStore.getState();
       const { appSettings } = useSettingsStore.getState();
       const { activeView, setUI, setPanel } = useUIStore.getState();
       const { setProcess } = useProcessStore.getState();
@@ -529,23 +537,7 @@ export function useAppContextMenus(props: UseAppContextMenusProps) {
         finalSelection.forEach((p) => globalImageCache.delete(p));
 
         invoke(Invokes.ApplyAutoAdjustmentsToPaths, { paths: finalSelection })
-          .then(async () => {
-            if (selectedImage && finalSelection.includes(selectedImage.path)) {
-              const metadata: any = await invoke(Invokes.LoadMetadata, { path: selectedImage.path });
-              if (metadata.adjustments && !metadata.adjustments.is_null) {
-                const normalized = normalizeLoadedAdjustments(metadata.adjustments);
-                setEditor({ adjustments: normalized });
-                useEditorStore.getState().resetHistory(normalized);
-              }
-            }
-            if (libraryActivePath && finalSelection.includes(libraryActivePath)) {
-              const metadata: any = await invoke(Invokes.LoadMetadata, { path: libraryActivePath });
-              if (metadata.adjustments && !metadata.adjustments.is_null) {
-                const normalized = normalizeLoadedAdjustments(metadata.adjustments);
-                setLibrary({ libraryActiveAdjustments: normalized });
-              }
-            }
-          })
+          .then(() => reloadAdjustmentsForPaths(finalSelection))
           .catch((err) => {
             console.error('Failed to apply auto adjustments to paths:', err);
             toast.error(t('contextMenus.toasts.failedApplyAuto', { err }));
@@ -639,6 +631,11 @@ export function useAppContextMenus(props: UseAppContextMenusProps) {
               label: t('contextMenus.thumbnail.autoLensCorrection', { count: selectionCount }),
               icon: Aperture,
               onClick: () => handleAutoLensCorrection(finalSelection),
+            },
+            {
+              label: t('contextMenus.thumbnail.autoStraighten', { count: selectionCount }),
+              icon: Wand2,
+              onClick: () => handleAutoStraightenPaths(finalSelection),
             },
             {
               label: denoiseLabel,
