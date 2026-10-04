@@ -57,6 +57,7 @@ interface EditorState {
   overlayMode: OverlayMode;
   overlayRotation: number;
   isStraightenActive: boolean;
+  isAutoStraightening: boolean;
   isWbPickerActive: boolean;
   isGuidedPerspectiveActive: boolean;
   liveRotation: number | null;
@@ -121,6 +122,7 @@ export const useEditorStore = create<EditorState>((set) => ({
   overlayMode: 'thirds',
   overlayRotation: 0,
   isStraightenActive: false,
+  isAutoStraightening: false,
   isWbPickerActive: false,
   isGuidedPerspectiveActive: false,
   liveRotation: null,

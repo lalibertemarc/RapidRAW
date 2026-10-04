@@ -459,6 +459,8 @@
     },
     "crop": {
       "aspectRatioHeading": "Proporzioni",
+      "autoStraightenFailed": "Raddrizzamento automatico non riuscito: {{error}}",
+      "autoStraightenNoHorizon": "Nessun orizzonte chiaro trovato",
       "custom": {
         "hPlaceholder": "A",
         "hTooltip": "Altezza",
@@ -558,6 +560,7 @@
       "rotationHeading": "Rotazione",
       "title": "Ritaglio e Trasformazione",
       "tooltips": {
+        "autoStraighten": "Raddrizza automaticamente (Shift+S)",
         "compositionOverlay": "Sovrapposizione Composizione",
         "flipHoriz": "Rifletti immagine orizzontalmente",
         "flipVert": "Rifletti immagine verticalmente",
@@ -1664,6 +1667,7 @@
     },
     "keybinds": {
       "actions": {
+        "auto_straighten": "Raddrizza automaticamente (livella l'orizzonte)",
         "brush_size_down": "Riduci dimensione pennello",
         "brush_size_up": "Aumenta dimensione pennello",
         "color_label_blue": "Etichetta colore: Blu",

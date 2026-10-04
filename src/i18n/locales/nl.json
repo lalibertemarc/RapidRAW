@@ -434,6 +434,8 @@
     },
     "crop": {
       "aspectRatioHeading": "Beeldverhouding",
+      "autoStraightenFailed": "Automatisch rechtzetten mislukt: {{error}}",
+      "autoStraightenNoHorizon": "Geen duidelijke horizon gevonden",
       "custom": {
         "hPlaceholder": "H",
         "hTooltip": "Hoogte",
@@ -533,6 +535,7 @@
       "rotationHeading": "Rotatie",
       "title": "Bijsnijden & transformeren",
       "tooltips": {
+        "autoStraighten": "Automatisch rechtzetten (Shift+S)",
         "compositionOverlay": "Compositie-overlay",
         "flipHoriz": "Afbeelding horizontaal spiegelen",
         "flipVert": "Afbeelding verticaal spiegelen",
@@ -1607,6 +1610,7 @@
     },
     "keybinds": {
       "actions": {
+        "auto_straighten": "Automatisch rechtzetten (horizon waterpas)",
         "brush_size_down": "Penseelgrootte verkleinen",
         "brush_size_up": "Penseelgrootte vergroten",
         "color_label_blue": "Kleurlabel: blauw",
