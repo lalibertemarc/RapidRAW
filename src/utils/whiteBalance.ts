@@ -27,8 +27,8 @@ const toMired = (kelvin: number) => 1_000_000 / kelvin;
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
 export const kelvinSliderScale = {
-  fromPosition: (position: number) => -toMired(position),
-  toPosition: (kelvin: number) => -toMired(kelvin),
+  fromPosition: Math.exp,
+  toPosition: Math.log,
 };
 
 export const getWhiteBalanceMode = (settings: AppSettings | null | undefined): WhiteBalanceMode =>
