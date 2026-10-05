@@ -64,8 +64,8 @@ fn apply_tonal_adjustments(color: vec3<f32>, con: f32, wh: f32) -> vec3<f32> {
     var rgb = color;
 
     if (wh != 0.0) {
-        let t = clamp(pow(max(get_luma(max(rgb, vec3<f32>(0.0))), 0.0001), 0.4545), 0.0, 1.0);
-        rgb *= exp2(wh * t * t);
+        let white_level = 1.0 - wh * 0.25;
+        rgb = rgb / max(white_level, 0.01);
     }
     return rgb;
 }
