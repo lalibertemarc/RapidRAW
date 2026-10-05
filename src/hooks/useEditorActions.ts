@@ -331,13 +331,19 @@ export function useEditorActions() {
 
   const handleAutoStraightenPaths = useCallback(
     (paths: string[]) => {
-      if (paths.length === 0) return;
-      paths.forEach((p) => globalImageCache.delete(p));
-      invoke(Invokes.ApplyAutoStraightenToPaths, { paths })
-        .then(() => reloadAdjustmentsForPaths(paths))
+      const { selectedImage } = useEditorStore.getState();
+      const editingPath = useUIStore.getState().activeView === 'editor' ? selectedImage?.path : undefined;
+      const batchPaths = paths.filter((path) => path !== editingPath);
+      if (batchPaths.length < paths.length) {
+        handleAutoStraighten();
+      }
+      if (batchPaths.length === 0) return;
+      batchPaths.forEach((p) => globalImageCache.delete(p));
+      invoke(Invokes.ApplyAutoStraightenToPaths, { paths: batchPaths })
+        .then(() => reloadAdjustmentsForPaths(batchPaths))
         .catch((err) => toast.error(t('editor.crop.autoStraightenFailed', { error: String(err) })));
     },
-    [t],
+    [handleAutoStraighten, t],
   );
 
   const handleCopyAdjustments = useCallback(async (pathOrEvent?: string | any) => {
