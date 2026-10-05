@@ -15,7 +15,7 @@
       "reset": "Opnieuw instellen",
       "shadows": "Schaduwen",
       "toneMapper": "Toonmapping",
-      "whites": "Wittinten"   
+      "whites": "Wittinten"
     },
     "color": {
       "ariaSelectColor": "Selecteer {{name}} kleur",
@@ -1588,7 +1588,7 @@
       "enableFocusMode": "Focusmodus inschakelen",
       "enableNeutralGreyCanvas": "Neutrale grijze achtergrond inschakelen",
       "enableOsTitlebar": "OS-titelbalk inschakelen",
-      "enableToolFocusMode": "Toolfocusmodus inschakelen",      
+      "enableToolFocusMode": "Toolfocusmodus inschakelen",
       "enableXmpSync": "XMP-synchronisatie inschakelen",
       "focusMode": "Focusmodus",
       "focusModeDesc": "Helpt u te concentreren door andere panelen automatisch te sluiten wanneer u een nieuw paneel opent.",
@@ -1709,6 +1709,11 @@
             "signup": "Aanmelden op de website",
             "upgradeBtn": "Upgraden op website",
             "upgradeDesc": "Om Cloud AI-functies te gebruiken heeft u een cloudabonnement nodig."
+          },
+          "statuses": {
+            "connecting": "Verbinden…",
+            "retry": "Verbinding opnieuw proberen",
+            "unsupported": "Aanmelden bij de cloud is momenteel alleen beschikbaar op desktop."
           },
           "title": "Cloudservice"
         },

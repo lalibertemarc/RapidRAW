@@ -1741,6 +1741,11 @@
             "upgradeBtn": "在网站上升级",
             "upgradeDesc": "要使用云端 AI 功能，您需要订阅云端服务。"
           },
+          "statuses": {
+            "connecting": "正在连接…",
+            "retry": "重试连接",
+            "unsupported": "云端登录目前仅在桌面设备上可用。"
+          },
           "title": "云端服务"
         },
         "connector": {

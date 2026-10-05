@@ -1746,6 +1746,11 @@
             "upgradeBtn": "Actualitzar al lloc web",
             "upgradeDesc": "Per utilitzar les funcions de la IA al núvol, us cal una subscripció al núvol."
           },
+          "statuses": {
+            "connecting": "Connectant…",
+            "retry": "Tornar a intentar la connexió",
+            "unsupported": "L'inici de sessió al núvol actualment només està disponible a l'escriptori."
+          },
           "title": "Servei al núvol"
         },
         "connector": {

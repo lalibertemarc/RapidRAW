@@ -1780,6 +1780,11 @@
             "upgradeBtn": "Fazer Upgrade no Site",
             "upgradeDesc": "Para usar recursos de IA na Nuvem, você precisa de uma assinatura na Nuvem."
           },
+          "statuses": {
+            "connecting": "Conectando…",
+            "retry": "Tentar conexão novamente",
+            "unsupported": "O login na nuvem está atualmente disponível apenas no desktop."
+          },
           "title": "Serviço na Nuvem"
         },
         "connector": {

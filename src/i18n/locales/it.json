@@ -1779,6 +1779,11 @@
             "upgradeBtn": "Esegui l'upgrade sul Sito Web",
             "upgradeDesc": "Per utilizzare le funzionalità dell'AI Cloud, è necessario un abbonamento Cloud."
           },
+          "statuses": {
+            "connecting": "Connessione in corso…",
+            "retry": "Riprova connessione",
+            "unsupported": "L'accesso al cloud è attualmente disponibile solo su desktop."
+          },
           "title": "Servizio Cloud"
         },
         "connector": {

@@ -1741,6 +1741,11 @@
             "upgradeBtn": "在網站上升級",
             "upgradeDesc": "要使用雲端 AI 功能，您需要訂閱雲端服務。"
           },
+          "statuses": {
+            "connecting": "連線中…",
+            "retry": "重試連線",
+            "unsupported": "雲端登入目前僅在桌面裝置上可用。"
+          },
           "title": "雲端服務"
         },
         "connector": {

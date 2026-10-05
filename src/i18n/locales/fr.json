@@ -1779,6 +1779,11 @@
             "upgradeBtn": "Mettre à niveau sur le site",
             "upgradeDesc": "Pour utiliser les fonctionnalités de l'IA Cloud, vous avez besoin d'un abonnement Cloud."
           },
+          "statuses": {
+            "connecting": "Connexion…",
+            "retry": "Réessayer la connexion",
+            "unsupported": "La connexion au cloud n'est actuellement disponible que sur ordinateur."
+          },
           "title": "Service Cloud"
         },
         "connector": {

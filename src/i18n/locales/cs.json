@@ -711,8 +711,8 @@
       "organization": {
         "addTagPlaceholder": "Přidat značku...",
         "colorLabel": "Barevný štítek",
-        "none": "Žádný",
         "noTags": "Žádné značky",
+        "none": "Žádný",
         "rating": "Hodnocení",
         "ratingLabels": "Hodnocení a štítky",
         "tags": "Značky",
@@ -1738,6 +1738,11 @@
             "upgradeBtn": "Upgrade na webu",
             "upgradeDesc": "Chcete-li používat funkce Cloud AI, potřebujete cloudové předplatné."
           },
+          "statuses": {
+            "connecting": "Připojování…",
+            "retry": "Opakovat připojení",
+            "unsupported": "Přihlášení do cloudu je momentálně k dispozici pouze na počítači."
+          },
           "title": "Cloudová služba"
         },
         "connector": {
@@ -1871,8 +1876,8 @@
     "tagging": {
       "addCustomPlaceholder": "Přidat vlastní značky AI (oddělené čárkami)...",
       "addCustomTooltip": "Přidejte značku AI",
-      "addShortcutsPlaceholder": "Přidat zkratky (oddělené čárkami)...",
       "addShortcutTooltip": "Přidat zkratku",
+      "addShortcutsPlaceholder": "Přidat zkratky (oddělené čárkami)...",
       "aiTagging": "AI značkování",
       "aiTaggingDesc": "Umožňuje automatické označování snímků pomocí modelu AI (CLIP). Tím se stáhne další model a ovlivní to výkon při procházení složek. Značky se používají k vyhledávání ve složce.",
       "amount": "Počet",

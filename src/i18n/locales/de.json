@@ -1743,6 +1743,11 @@
             "upgradeBtn": "Upgrade auf der Website",
             "upgradeDesc": "Um Cloud-KI-Funktionen zu nutzen, benötigen Sie ein Cloud-Abonnement."
           },
+          "statuses": {
+            "connecting": "Verbinden…",
+            "retry": "Verbindung erneut versuchen",
+            "unsupported": "Die Cloud-Anmeldung ist derzeit nur auf dem Desktop verfügbar."
+          },
           "title": "Cloud-Dienst"
         },
         "connector": {

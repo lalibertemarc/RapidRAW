@@ -1741,6 +1741,11 @@
             "upgradeBtn": "Webサイトでアップグレード",
             "upgradeDesc": "クラウドAI機能を使用するには、クラウドサブスクリプションへの加入が必要です。"
           },
+          "statuses": {
+            "connecting": "接続中…",
+            "retry": "接続を再試行",
+            "unsupported": "クラウドへのサインインは現在、デスクトップでのみ利用可能です。"
+          },
           "title": "クラウドサービス"
         },
         "connector": {

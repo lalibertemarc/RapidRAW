@@ -1779,6 +1779,11 @@
             "upgradeBtn": "Mejorar en la web",
             "upgradeDesc": "Para usar las funciones de IA en la nube, necesitas una suscripción Cloud."
           },
+          "statuses": {
+            "connecting": "Conectando…",
+            "retry": "Reintentar conexión",
+            "unsupported": "El inicio de sesión en la nube actualmente solo está disponible en escritorio."
+          },
           "title": "Servicio en la nube"
         },
         "connector": {

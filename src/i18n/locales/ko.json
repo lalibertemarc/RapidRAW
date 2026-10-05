@@ -1741,6 +1741,11 @@
             "upgradeBtn": "웹사이트에서 업그레이드",
             "upgradeDesc": "클라우드 AI 기능을 사용하려면 클라우드 구독이 필요합니다."
           },
+          "statuses": {
+            "connecting": "연결 중…",
+            "retry": "연결 재시도",
+            "unsupported": "클라우드 로그인은 현재 데스크톱에서만 사용할 수 있습니다."
+          },
           "title": "클라우드 서비스"
         },
         "connector": {

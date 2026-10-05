@@ -2368,10 +2368,20 @@ export default function SettingsPanel({
                               )}
 
                               {(authStatus === 'idle' || authStatus === 'loading') && (
-                                <Text variant={TextVariants.small}>Connecting…</Text>
+                                <Text variant={TextVariants.small}>
+                                  {t('settings.processing.ai.cloud.statuses.connecting')}
+                                </Text>
                               )}
 
-                              {authStatus === 'unavailable' && <Button onClick={initAuth}>Retry connection</Button>}
+                              {authStatus === 'unsupported' && (
+                                <Text variant={TextVariants.small}>
+                                  {t('settings.processing.ai.cloud.statuses.unsupported')}
+                                </Text>
+                              )}
+
+                              {authStatus === 'unavailable' && (
+                                <Button onClick={initAuth}>{t('settings.processing.ai.cloud.statuses.retry')}</Button>
+                              )}
                             </div>
                           </motion.div>
                         )}

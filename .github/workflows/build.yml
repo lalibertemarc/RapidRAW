@@ -112,20 +112,6 @@ jobs:
           ndk-version: r26d
           link-to-sdk: true
 
-      - name: Setup NDK toolchain symlinks for OpenSSL
-        if: inputs.mobile == 'android'
-        shell: bash
-        run: |
-          TOOLCHAIN="${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin"
-          echo "$TOOLCHAIN" >> $GITHUB_PATH
-
-          for tool in ar ranlib strip; do
-            ln -sf "$TOOLCHAIN/llvm-$tool" "$TOOLCHAIN/aarch64-linux-android-$tool"
-            ln -sf "$TOOLCHAIN/llvm-$tool" "$TOOLCHAIN/arm-linux-androideabi-$tool"
-            ln -sf "$TOOLCHAIN/llvm-$tool" "$TOOLCHAIN/x86_64-linux-android-$tool"
-            ln -sf "$TOOLCHAIN/llvm-$tool" "$TOOLCHAIN/i686-linux-android-$tool"
-          done
-
       - name: Install frontend dependencies
         run: npm install
 
@@ -178,8 +164,6 @@ jobs:
         shell: bash
         env:
           NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
-          ANDROID_NDK_ROOT: ${{ steps.setup-ndk.outputs.ndk-path }}
-          ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
           ORT_SKIP_DOWNLOAD: '1'
           ORT_LIB_LOCATION: ${{ format('{0}/src-tauri/libs/arm64-v8a', github.workspace) }}
           ORT_STRATEGY: manual
