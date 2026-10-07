@@ -23,9 +23,8 @@ use tauri::Manager;
 
 use crate::AppState;
 use crate::exif_processing;
-use crate::file_management::{
-    generate_filename_from_template, parse_virtual_path, read_file_mapped,
-};
+use crate::file_management::{parse_virtual_path, read_file_mapped};
+use crate::filename_template::FilenameSettings;
 use crate::formats::is_raw_file;
 use crate::image_loader::{
     composite_patches_on_image, load_and_composite, load_base_image_from_bytes,
@@ -136,7 +135,6 @@ pub struct ExportSettings {
     #[serde(default)]
     pub preserve_timestamps: bool,
     pub strip_gps: bool,
-    pub filename_template: Option<String>,
     pub watermark: Option<WatermarkSettings>,
     #[serde(default)]
     pub export_masks: bool,
@@ -146,6 +144,8 @@ pub struct ExportSettings {
     pub destination_type: Option<String>,
     #[serde(default)]
     pub subfolder: Option<String>,
+    #[serde(flatten, default)]
+    pub naming: FilenameSettings,
 }
 
 #[derive(Clone)]
@@ -1562,6 +1562,7 @@ pub(crate) async fn export_images_impl(
         }
 
         let used_paths = Arc::new(Mutex::new(std::collections::HashSet::new()));
+        let export_time = chrono::Local::now();
         let semaphore = Arc::new(tokio::sync::Semaphore::new(num_threads));
         let mut join_handles = Vec::new();
 
@@ -1621,19 +1622,12 @@ pub(crate) async fn export_images_impl(
                 hydrate_adjustments(&state, &mut js_adjustments);
                 let is_raw = is_raw_file(&source_path_str);
                 let original_path = std::path::Path::new(&source_path_str);
-                let file_date = exif_processing::get_creation_date_from_path(original_path);
-
-                let filename_template = export_settings
-                    .filename_template
-                    .as_deref()
-                    .unwrap_or("{original_filename}_edited");
-
-                let mut new_stem = generate_filename_from_template(
-                    filename_template,
+                let mut new_stem = export_settings.naming.export_stem(
                     original_path,
-                    global_index + 1,
+                    &sidecar_path,
+                    global_index,
                     total_paths,
-                    &file_date,
+                    export_time,
                 );
 
                 if let Some(vc_id) = explicit_vc {
@@ -2009,12 +2003,12 @@ pub async fn run_headless_export(
         keep_metadata: session.keep_metadata,
         preserve_timestamps: true,
         strip_gps: false,
-        filename_template: None,
         watermark: None,
         export_masks: false,
         preserve_folders: true,
         destination_type: None,
         subfolder: None,
+        naming: FilenameSettings::default(),
     };
 
     let mut custom_adjustments = None;

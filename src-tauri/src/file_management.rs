@@ -13,7 +13,6 @@ use std::sync::atomic::Ordering;
 use std::thread;
 
 use anyhow::Result;
-use chrono::{DateTime, Utc};
 use image::codecs::jpeg::JpegEncoder;
 use image::{DynamicImage, GenericImageView, ImageBuffer, Luma};
 use rayon::prelude::*;
@@ -31,6 +30,7 @@ use crate::PendingMetadata;
 use crate::android_integration::*;
 use crate::app_settings::*;
 use crate::exif_processing;
+use crate::filename_template::{FilenameContext, generate_filename_from_template};
 use crate::formats::{is_raw_file, is_supported_image_file};
 use crate::gpu_processing;
 use crate::image_loader;
@@ -3789,10 +3789,7 @@ pub async fn import_files(
 
                     let new_stem = generate_filename_from_template(
                         &settings.filename_template,
-                        source_name_path,
-                        i + 1,
-                        total_files,
-                        &file_date,
+                        &FilenameContext::new(source_name_path, i, total_files, &file_date),
                     );
                     let extension = source_name_path
                         .extension()
@@ -3841,13 +3838,11 @@ pub async fn import_files(
                 fs::create_dir_all(&final_dest_folder)
                     .map_err(|e| format!("Failed to create destination folder: {}", e))?;
 
-                let new_stem = generate_filename_from_template(
-                    &settings.filename_template,
-                    &source_path,
-                    i + 1,
-                    total_files,
-                    &file_date,
-                );
+                let mut name_context =
+                    FilenameContext::new(&source_path, i, total_files, &file_date);
+                name_context.sidecar_path = Some(&source_sidecar);
+                let new_stem =
+                    generate_filename_from_template(&settings.filename_template, &name_context);
                 let extension = source_path
                     .extension()
                     .and_then(|s| s.to_str())
@@ -3940,36 +3935,6 @@ pub async fn import_files(
     Ok(())
 }
 
-pub fn generate_filename_from_template(
-    template: &str,
-    original_path: &std::path::Path,
-    sequence: usize,
-    total: usize,
-    file_date: &DateTime<Utc>,
-) -> String {
-    let stem = original_path
-        .file_stem()
-        .and_then(|s| s.to_str())
-        .unwrap_or("image");
-    let sequence_str = format!(
-        "{:0width$}",
-        sequence,
-        width = total.to_string().len().max(1)
-    );
-    let local_date = file_date.with_timezone(&chrono::Local);
-
-    let mut result = template.to_string();
-    result = result.replace("{original_filename}", stem);
-    result = result.replace("{sequence}", &sequence_str);
-    result = result.replace("{YYYY}", &local_date.format("%Y").to_string());
-    result = result.replace("{MM}", &local_date.format("%m").to_string());
-    result = result.replace("{DD}", &local_date.format("%d").to_string());
-    result = result.replace("{hh}", &local_date.format("%H").to_string());
-    result = result.replace("{mm}", &local_date.format("%M").to_string());
-
-    result
-}
-
 #[tauri::command]
 pub fn rename_files(
     paths: Vec<String>,
@@ -3985,7 +3950,7 @@ pub fn rename_files(
     let mut renames = HashMap::new();
 
     for (i, path_str) in paths.iter().enumerate() {
-        let (original_path, _) = parse_virtual_path(path_str);
+        let (original_path, sidecar_path) = parse_virtual_path(path_str);
         if !original_path.exists() {
             return Err(format!("File not found: {}", path_str));
         }
@@ -4000,13 +3965,9 @@ pub fn rename_files(
 
         let file_date = exif_processing::get_creation_date_from_path(&original_path);
 
-        let new_stem = generate_filename_from_template(
-            &name_template,
-            &original_path,
-            i + 1,
-            paths.len(),
-            &file_date,
-        );
+        let mut name_context = FilenameContext::new(&original_path, i, paths.len(), &file_date);
+        name_context.sidecar_path = Some(&sidecar_path);
+        let new_stem = generate_filename_from_template(&name_template, &name_context);
         let new_filename = format!("{}.{}", new_stem, extension);
         let new_path = parent.join(new_filename);
 

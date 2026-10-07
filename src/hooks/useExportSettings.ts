@@ -1,5 +1,11 @@
 import { useState, useMemo, useCallback } from 'react';
-import { BorderBasis, ExportPreset, TiffBitDepth, WatermarkAnchor } from '../components/ui/ExportImportProperties';
+import {
+  BorderBasis,
+  ExportPreset,
+  FilenameCase,
+  TiffBitDepth,
+  WatermarkAnchor,
+} from '../components/ui/ExportImportProperties';
 
 export function useExportSettings() {
   const [fileFormat, setFileFormat] = useState('jpeg');
@@ -24,6 +30,10 @@ export function useExportSettings() {
   const [exportMasks, setExportMasks] = useState(false);
   const [preserveFolders, setPreserveFolders] = useState(false);
   const [filenameTemplate, setFilenameTemplate] = useState('{original_filename}_edited');
+  const [sequenceStart, setSequenceStart] = useState(1);
+  const [customText, setCustomText] = useState('');
+  const [filenameCase, setFilenameCase] = useState<FilenameCase>(FilenameCase.AsIs);
+  const [presetName, setPresetName] = useState('');
   const [enableWatermark, setEnableWatermark] = useState(false);
   const [watermarkPath, setWatermarkPath] = useState<string | null>(null);
   const [watermarkAnchor, setWatermarkAnchor] = useState<WatermarkAnchor>(WatermarkAnchor.BottomRight);
@@ -56,6 +66,10 @@ export function useExportSettings() {
     setExportMasks(preset.exportMasks ?? false);
     setPreserveFolders(preset.preserveFolders ?? false);
     setFilenameTemplate(preset.filenameTemplate);
+    setSequenceStart(preset.sequenceStart ?? 1);
+    setCustomText(preset.customText ?? '');
+    setFilenameCase(preset.filenameCase ?? FilenameCase.AsIs);
+    setPresetName(preset.id === '__last_used__' ? (preset.presetName ?? '') : preset.name);
     setEnableWatermark(preset.enableWatermark);
     setWatermarkPath(preset.watermarkPath);
     setWatermarkAnchor(preset.watermarkAnchor as WatermarkAnchor);
@@ -90,6 +104,9 @@ export function useExportSettings() {
       exportMasks,
       preserveFolders,
       filenameTemplate,
+      sequenceStart,
+      customText,
+      filenameCase,
       enableWatermark,
       watermarkPath,
       watermarkAnchor,
@@ -122,6 +139,9 @@ export function useExportSettings() {
       exportMasks,
       preserveFolders,
       filenameTemplate,
+      sequenceStart,
+      customText,
+      filenameCase,
       enableWatermark,
       watermarkPath,
       watermarkAnchor,
@@ -178,6 +198,13 @@ export function useExportSettings() {
     setPreserveFolders,
     filenameTemplate,
     setFilenameTemplate,
+    sequenceStart,
+    setSequenceStart,
+    customText,
+    setCustomText,
+    filenameCase,
+    setFilenameCase,
+    presetName,
     enableWatermark,
     setEnableWatermark,
     watermarkPath,
