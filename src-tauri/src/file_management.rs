@@ -3789,7 +3789,7 @@ pub async fn import_files(
 
                     let new_stem = generate_filename_from_template(
                         &settings.filename_template,
-                        &FilenameContext::new(source_name_path, i, total_files, &file_date),
+                        &FilenameContext::new(source_name_path, None, i, total_files, &file_date),
                     );
                     let extension = source_name_path
                         .extension()
@@ -3838,11 +3838,16 @@ pub async fn import_files(
                 fs::create_dir_all(&final_dest_folder)
                     .map_err(|e| format!("Failed to create destination folder: {}", e))?;
 
-                let mut name_context =
-                    FilenameContext::new(&source_path, i, total_files, &file_date);
-                name_context.sidecar_path = Some(&source_sidecar);
-                let new_stem =
-                    generate_filename_from_template(&settings.filename_template, &name_context);
+                let new_stem = generate_filename_from_template(
+                    &settings.filename_template,
+                    &FilenameContext::new(
+                        &source_path,
+                        Some(&source_sidecar),
+                        i,
+                        total_files,
+                        &file_date,
+                    ),
+                );
                 let extension = source_path
                     .extension()
                     .and_then(|s| s.to_str())
@@ -3965,9 +3970,16 @@ pub fn rename_files(
 
         let file_date = exif_processing::get_creation_date_from_path(&original_path);
 
-        let mut name_context = FilenameContext::new(&original_path, i, paths.len(), &file_date);
-        name_context.sidecar_path = Some(&sidecar_path);
-        let new_stem = generate_filename_from_template(&name_template, &name_context);
+        let new_stem = generate_filename_from_template(
+            &name_template,
+            &FilenameContext::new(
+                &original_path,
+                Some(&sidecar_path),
+                i,
+                paths.len(),
+                &file_date,
+            ),
+        );
         let new_filename = format!("{}.{}", new_stem, extension);
         let new_path = parent.join(new_filename);
 

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import Switch from '../ui/Switch';
 import FilenameTemplateInput from '../ui/FilenameTemplateInput';
+import { withSequenceFallback } from '../ui/ExportImportProperties';
 import Text from '../ui/Text';
 import { TextVariants } from '../../types/typography';
 
@@ -37,13 +38,8 @@ export default function ImportSettingsModal({ fileCount, isOpen, onClose, onSave
   }, [isOpen]);
 
   const handleSave = useCallback(() => {
-    let finalFilenameTemplate = filenameTemplate;
-    if (fileCount > 1 && !filenameTemplate.includes('{sequence') && !filenameTemplate.includes('{original_filename}')) {
-      finalFilenameTemplate = `${filenameTemplate}_{sequence}`;
-    }
-
     onSave({
-      filenameTemplate: finalFilenameTemplate,
+      filenameTemplate: withSequenceFallback(filenameTemplate, fileCount),
       organizeByDate,
       dateFolderFormat,
       deleteAfterImport,

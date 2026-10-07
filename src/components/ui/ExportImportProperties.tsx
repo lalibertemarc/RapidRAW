@@ -118,6 +118,11 @@ export const FILENAME_SCHEMES = [
   { id: 'custom', template: null },
 ] as const satisfies ReadonlyArray<{ id: string; template: string | null }>;
 
+export const withSequenceFallback = (template: string, fileCount: number) =>
+  fileCount > 1 && !template.includes('{sequence') && !template.includes('{original_filename}')
+    ? `${template}_{sequence}`
+    : template;
+
 export enum FilenameCase {
   AsIs = 'asIs',
   Lower = 'lower',
@@ -218,7 +223,7 @@ export enum Status {
   Success = 'success',
 }
 
-export interface ExportPreset {
+export interface ExportPreset extends Omit<FilenameSettings, 'filenameTemplate'> {
   id: string;
   name: string;
   fileFormat: string;
@@ -243,10 +248,6 @@ export interface ExportPreset {
   exportMasks?: boolean;
   preserveFolders?: boolean;
   filenameTemplate: string;
-  sequenceStart?: number;
-  customText?: string;
-  filenameCase?: FilenameCase;
-  presetName?: string;
   enableWatermark: boolean;
   watermarkPath: string | null;
   watermarkAnchor: string;

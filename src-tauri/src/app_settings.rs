@@ -7,7 +7,7 @@ use serde_json::Value;
 use tauri::{AppHandle, Manager};
 
 use crate::app_state::AppState;
-use crate::filename_template::FilenameCase;
+use crate::filename_template::FilenameSettings;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -246,7 +246,6 @@ pub struct ExportPreset {
     pub dont_enlarge: bool,
     pub keep_metadata: bool,
     pub strip_gps: bool,
-    pub filename_template: String,
     pub enable_watermark: bool,
     pub watermark_path: Option<String>,
     pub watermark_anchor: Option<String>,
@@ -285,14 +284,8 @@ pub struct ExportPreset {
     pub tiff_bit_depth: Option<u8>,
     #[serde(default)]
     pub preserve_timestamps: Option<bool>,
-    #[serde(default)]
-    pub sequence_start: Option<usize>,
-    #[serde(default)]
-    pub custom_text: Option<String>,
-    #[serde(default)]
-    pub filename_case: Option<FilenameCase>,
-    #[serde(default)]
-    pub preset_name: Option<String>,
+    #[serde(flatten, default)]
+    pub naming: FilenameSettings,
 }
 
 pub fn default_export_presets() -> Vec<ExportPreset> {
@@ -308,7 +301,6 @@ pub fn default_export_presets() -> Vec<ExportPreset> {
             dont_enlarge: true,
             keep_metadata: true,
             strip_gps: false,
-            filename_template: "{original_filename}".to_string(),
             enable_watermark: false,
             watermark_path: None,
             watermark_anchor: Some("bottomRight".to_string()),
@@ -331,10 +323,10 @@ pub fn default_export_presets() -> Vec<ExportPreset> {
             subfolder: Some("".to_string()),
             tiff_bit_depth: Some(16),
             preserve_timestamps: Some(false),
-            sequence_start: None,
-            custom_text: None,
-            filename_case: None,
-            preset_name: None,
+            naming: FilenameSettings {
+                filename_template: Some("{original_filename}".to_string()),
+                ..Default::default()
+            },
         },
         ExportPreset {
             id: "default-fast".to_string(),
@@ -347,7 +339,6 @@ pub fn default_export_presets() -> Vec<ExportPreset> {
             dont_enlarge: true,
             keep_metadata: false,
             strip_gps: true,
-            filename_template: "{original_filename}_web".to_string(),
             enable_watermark: false,
             watermark_path: None,
             watermark_anchor: Some("bottomRight".to_string()),
@@ -370,10 +361,10 @@ pub fn default_export_presets() -> Vec<ExportPreset> {
             subfolder: Some("".to_string()),
             tiff_bit_depth: Some(16),
             preserve_timestamps: Some(false),
-            sequence_start: None,
-            custom_text: None,
-            filename_case: None,
-            preset_name: None,
+            naming: FilenameSettings {
+                filename_template: Some("{original_filename}_web".to_string()),
+                ..Default::default()
+            },
         },
     ]
 }

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import FilenameTemplateInput from '../ui/FilenameTemplateInput';
+import { withSequenceFallback } from '../ui/ExportImportProperties';
 import Text from '../ui/Text';
 import { TextVariants } from '../../types/typography';
 
@@ -47,14 +48,10 @@ export default function RenameFileModal({ filesToRename, isOpen, onClose, onSave
   const handleSave = useCallback(() => {
     const trimmed = nameTemplate.trim();
     if (trimmed) {
-      let finalTemplate = trimmed;
-      if (!isSingleFile && !finalTemplate.includes('{sequence') && !finalTemplate.includes('{original_filename}')) {
-        finalTemplate = `${finalTemplate}_{sequence}`;
-      }
-      onSave(finalTemplate);
+      onSave(withSequenceFallback(trimmed, fileCount));
       onClose();
     }
-  }, [nameTemplate, onSave, onClose, isSingleFile]);
+  }, [nameTemplate, onSave, onClose, fileCount]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {

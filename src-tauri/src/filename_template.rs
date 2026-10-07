@@ -1,5 +1,5 @@
 use std::cell::OnceCell;
-use std::collections::HashMap;
+use std::ffi::OsStr;
 use std::path::Path;
 
 use chrono::{DateTime, Local, Utc};
@@ -7,7 +7,7 @@ use regex::regex;
 use serde::{Deserialize, Serialize};
 
 use crate::exif_processing;
-use crate::file_management::{parse_virtual_path, read_file_mapped};
+use crate::file_management::parse_virtual_path;
 use crate::image_processing::{ImageFlag, ImageMetadata};
 use crate::tagging::COLOR_TAG_PREFIX;
 
@@ -45,8 +45,8 @@ impl FilenameSettings {
         now: DateTime<Local>,
     ) -> String {
         let capture_date = exif_processing::get_creation_date_from_path(source_path);
-        let mut context = FilenameContext::new(source_path, index, total, &capture_date);
-        context.sidecar_path = Some(sidecar_path);
+        let mut context =
+            FilenameContext::new(source_path, Some(sidecar_path), index, total, &capture_date);
         context.sequence_start = self.sequence_start.unwrap_or(1);
         context.now = now;
         context.custom_text = self.custom_text.as_deref().unwrap_or_default();
@@ -87,13 +87,14 @@ pub struct FilenameContext<'a> {
 impl<'a> FilenameContext<'a> {
     pub fn new(
         original_path: &'a Path,
+        sidecar_path: Option<&'a Path>,
         index: usize,
         total: usize,
         capture_date: &'a DateTime<Utc>,
     ) -> Self {
         Self {
             original_path,
-            sidecar_path: None,
+            sidecar_path,
             index,
             total,
             sequence_start: 1,
@@ -110,41 +111,32 @@ struct Resolver<'a> {
     ctx: &'a FilenameContext<'a>,
     capture: DateTime<Local>,
     metadata: OnceCell<ImageMetadata>,
-    exif: OnceCell<HashMap<String, String>>,
 }
 
-impl Resolver<'_> {
+impl<'a> Resolver<'a> {
+    fn new(ctx: &'a FilenameContext<'a>) -> Self {
+        Self {
+            ctx,
+            capture: ctx.capture_date.with_timezone(&Local),
+            metadata: OnceCell::new(),
+        }
+    }
+
     fn metadata(&self) -> &ImageMetadata {
         self.metadata.get_or_init(|| {
             self.ctx
                 .sidecar_path
-                .map(exif_processing::load_sidecar)
-                .unwrap_or_default()
-        })
-    }
-
-    fn exif(&self) -> &HashMap<String, String> {
-        self.exif.get_or_init(|| {
-            if let Some(exif) = &self.metadata().exif {
-                return exif.clone();
-            }
-            if let Some(exif) = exif_processing::read_rrexif_sidecar(self.ctx.original_path) {
-                return exif;
-            }
-            read_file_mapped(self.ctx.original_path)
-                .map(|mmap| {
-                    exif_processing::read_exif_data_from_bytes(
-                        &self.ctx.original_path.to_string_lossy(),
-                        &mmap,
-                    )
+                .map(|sidecar| {
+                    exif_processing::load_sidecar_with_exif(sidecar, self.ctx.original_path)
                 })
                 .unwrap_or_default()
         })
     }
 
     fn exif_value(&self, keys: &[&str]) -> String {
+        let exif = self.metadata().exif.as_ref();
         keys.iter()
-            .filter_map(|key| self.exif().get(*key))
+            .filter_map(|key| exif.and_then(|exif| exif.get(*key)))
             .map(|value| value.trim())
             .find(|value| !value.is_empty())
             .unwrap_or_default()
@@ -187,19 +179,8 @@ impl Resolver<'_> {
             ("sequence", width) => self.sequence(width),
             (_, Some(_)) => return None,
             ("original_filename", _) => file_stem(self.ctx.original_path),
-            ("original_ext", _) => self
-                .ctx
-                .original_path
-                .extension()
-                .map(|s| s.to_string_lossy().into_owned())
-                .unwrap_or_default(),
-            ("folder", _) => self
-                .ctx
-                .original_path
-                .parent()
-                .and_then(|p| p.file_name())
-                .map(|s| s.to_string_lossy().into_owned())
-                .unwrap_or_default(),
+            ("original_ext", _) => lossy(self.ctx.original_path.extension()),
+            ("folder", _) => lossy(self.ctx.original_path.parent().and_then(Path::file_name)),
             ("total", _) => self.ctx.total.to_string(),
             ("YYYY", _) => capture.format("%Y").to_string(),
             ("YY", _) => capture.format("%y").to_string(),
@@ -221,24 +202,16 @@ impl Resolver<'_> {
             ("iso", _) => {
                 self.exif_value(&["PhotographicSensitivity", "ISOSpeed", "ISOSpeedRatings"])
             }
-            ("focal", _) => {
-                let focal = self.exif_value(&["FocalLength"]);
-                let focal = focal.trim_end_matches("mm").trim();
-                if focal.is_empty() {
-                    String::new()
-                } else {
-                    format!("{}mm", focal)
-                }
-            }
-            ("aperture", _) => {
-                let aperture = self.exif_value(&["FNumber"]);
-                let aperture = aperture.trim_start_matches("f/").trim();
-                if aperture.is_empty() {
-                    String::new()
-                } else {
-                    format!("f{}", aperture)
-                }
-            }
+            ("focal", _) => affixed(
+                "",
+                self.exif_value(&["FocalLength"]).trim_end_matches("mm"),
+                "mm",
+            ),
+            ("aperture", _) => affixed(
+                "f",
+                self.exif_value(&["FNumber"]).trim_start_matches("f/"),
+                "",
+            ),
             ("shutter", _) => self.exif_value(&["ExposureTime"]).replace(' ', ""),
             ("serial", _) => self.exif_value(&["SerialNumber", "BodySerialNumber"]),
             ("title", _) => self.exif_value(&["ImageDescription"]),
@@ -274,10 +247,28 @@ impl Resolver<'_> {
     }
 }
 
-fn file_stem(path: &Path) -> String {
-    path.file_stem()
+fn lossy(value: Option<&OsStr>) -> String {
+    value
         .map(|s| s.to_string_lossy().into_owned())
-        .unwrap_or_else(|| "image".to_string())
+        .unwrap_or_default()
+}
+
+fn file_stem(path: &Path) -> String {
+    let stem = lossy(path.file_stem());
+    if stem.is_empty() {
+        "image".to_string()
+    } else {
+        stem
+    }
+}
+
+fn affixed(prefix: &str, value: &str, suffix: &str) -> String {
+    let value = value.trim();
+    if value.is_empty() {
+        String::new()
+    } else {
+        format!("{}{}{}", prefix, value, suffix)
+    }
 }
 
 fn sanitize_component(value: &str) -> String {
@@ -294,12 +285,7 @@ fn sanitize_component(value: &str) -> String {
 }
 
 pub fn generate_filename_from_template(template: &str, ctx: &FilenameContext) -> String {
-    let resolver = Resolver {
-        ctx,
-        capture: ctx.capture_date.with_timezone(&Local),
-        metadata: OnceCell::new(),
-        exif: OnceCell::new(),
-    };
+    let resolver = Resolver::new(ctx);
 
     let resolved =
         regex!(r"\{([A-Za-z_]+)(?::(\d+))?\}").replace_all(template, |caps: &regex::Captures| {
@@ -329,29 +315,24 @@ mod tests {
     use chrono::TimeZone;
 
     fn context<'a>(path: &'a Path, date: &'a DateTime<Utc>) -> FilenameContext<'a> {
-        let mut ctx = FilenameContext::new(path, 0, 1, date);
+        let mut ctx = FilenameContext::new(path, None, 0, 1, date);
         ctx.now = Local.with_ymd_and_hms(2026, 10, 7, 9, 5, 3).unwrap();
         ctx
     }
 
     fn resolver<'a>(ctx: &'a FilenameContext<'a>, exif: &[(&str, &str)]) -> Resolver<'a> {
-        let resolver = Resolver {
-            ctx,
-            capture: ctx.capture_date.with_timezone(&Local),
-            metadata: OnceCell::new(),
-            exif: OnceCell::new(),
-        };
+        let resolver = Resolver::new(ctx);
         let _ = resolver.metadata.set(ImageMetadata {
             rating: 4,
             flag: Some(ImageFlag::Pick),
             tags: Some(vec!["landscape".into(), format!("{}red", COLOR_TAG_PREFIX)]),
+            exif: Some(
+                exif.iter()
+                    .map(|(k, v)| (k.to_string(), v.to_string()))
+                    .collect(),
+            ),
             ..Default::default()
         });
-        let _ = resolver.exif.set(
-            exif.iter()
-                .map(|(k, v)| (k.to_string(), v.to_string()))
-                .collect(),
-        );
         resolver
     }
 
@@ -510,5 +491,17 @@ mod tests {
         ctx.custom_text = "";
         assert_eq!(generate_filename_from_template("{text}", &ctx), "IMG_1");
         assert_eq!(generate_filename_from_template("name. ", &ctx), "name");
+    }
+
+    #[test]
+    fn naming_settings_flatten_into_presets() {
+        let preset = crate::app_settings::default_export_presets().remove(0);
+        let mut value = serde_json::to_value(&preset).unwrap();
+        assert_eq!(value["filenameTemplate"], "{original_filename}");
+        value["sequenceStart"] = 7.into();
+        value["filenameCase"] = "upper".into();
+        let parsed: crate::app_settings::ExportPreset = serde_json::from_value(value).unwrap();
+        assert_eq!(parsed.naming.sequence_start, Some(7));
+        assert_eq!(parsed.naming.filename_case, FilenameCase::Upper);
     }
 }
