@@ -8,6 +8,7 @@ import debounce from 'lodash.debounce';
 import Switch from '../../ui/Switch';
 import Button from '../../ui/Button';
 import Dropdown from '../../ui/Dropdown';
+import Input from '../../ui/Input';
 import Slider from '../../ui/Slider';
 import ImagePicker from '../../ui/ImagePicker';
 import ColorField, { normalizeHexColor, ParsedTextField, useParsedTextField } from '../../ui/ColorField';
@@ -17,7 +18,9 @@ import {
   ExportSettings,
   FileFormat,
   FILE_FORMATS,
-  FILENAME_VARIABLES,
+  FILENAME_SCHEMES,
+  FilenameCase,
+  FilenameSettings,
   Status,
   ExportState,
   FileFormats,
@@ -26,6 +29,7 @@ import {
 } from '../../ui/ExportImportProperties';
 import { Invokes, SelectedImage, AppSettings, Panel } from '../../ui/AppProperties';
 import ExportPresetsList from '../../ui/ExportPresetsList';
+import FilenameTemplateInput from '../../ui/FilenameTemplateInput';
 import { useExportSettings } from '../../../hooks/useExportSettings';
 import { useOsPlatform } from '../../../hooks/useOsPlatform';
 import Text from '../../ui/Text';
@@ -96,6 +100,17 @@ function Section({ title, children }: SectionProps) {
         {title}
       </Text>
       <div className="space-y-2">{children}</div>
+    </div>
+  );
+}
+
+function LabeledRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-3">
+      <Text variant={TextVariants.label} className="whitespace-nowrap min-w-[90px]">
+        {label}
+      </Text>
+      {children}
     </div>
   );
 }
@@ -298,6 +313,13 @@ export default function ExportPanel({
     setExportMasks,
     filenameTemplate,
     setFilenameTemplate,
+    sequenceStart,
+    setSequenceStart,
+    customText,
+    setCustomText,
+    filenameCase,
+    setFilenameCase,
+    presetName,
     enableWatermark,
     setEnableWatermark,
     watermarkPath,
@@ -341,6 +363,7 @@ export default function ExportPanel({
         ...currentSettingsObject,
         id: '__last_used__',
         name: '__last_used__',
+        presetName,
         lastExportPath: exportPath,
       };
       const updatedPresets = [
@@ -349,7 +372,7 @@ export default function ExportPanel({
       ];
       onSettingsChange({ ...appSettings, exportPresets: updatedPresets });
     },
-    [appSettings, currentSettingsObject, onSettingsChange],
+    [appSettings, currentSettingsObject, presetName, onSettingsChange],
   );
 
   const padRatioWidthField = useParsedTextField(padRatioWidth, setPadRatioWidth, parseRatio);
@@ -385,7 +408,6 @@ export default function ExportPanel({
   const [isEstimating, setIsEstimating] = useState<boolean>(false);
   const [watermarkImageAspectRatio, setWatermarkImageAspectRatio] = useState(1);
   const [imageAspectRatio, setImageAspectRatio] = useState(16 / 9);
-  const filenameInputRef = useRef<HTMLInputElement>(null);
   const osPlatform = useOsPlatform();
   const isAndroid = osPlatform === 'android';
   const activePanels = useUIStore((state) => state.activePanels);
@@ -407,6 +429,53 @@ export default function ExportPanel({
   }, [isLibraryContext, multiSelectedPaths, selectedImage?.path]);
 
   const numImages = pathsToExport.length;
+  const shouldChooseOutputFile = numImages === 1 && !preserveFolders && destinationType !== 'originalFolder';
+  const selectedFormat = FILE_FORMATS.find((f: FileFormat) => f.id === fileFormat) ?? FILE_FORMATS[0];
+
+  const filenameSettings: FilenameSettings = useMemo(
+    () => ({ filenameTemplate, sequenceStart, customText, filenameCase, presetName }),
+    [filenameTemplate, sequenceStart, customText, filenameCase, presetName],
+  );
+
+  const resolveFilename = useCallback(
+    (total: number): Promise<string> =>
+      invoke(Invokes.PreviewExportFilename, { path: pathsToExport[0], index: 0, total, naming: filenameSettings }),
+    [pathsToExport, filenameSettings],
+  );
+
+  const [filenamePreview, setFilenamePreview] = useState('');
+
+  useEffect(() => {
+    if (!isVisible || numImages === 0 || shouldChooseOutputFile) return;
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      try {
+        const stem = await resolveFilename(numImages);
+        if (!cancelled) setFilenamePreview(stem);
+      } catch {
+        if (!cancelled) setFilenamePreview('');
+      }
+    }, 250);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [resolveFilename, numImages, isVisible, shouldChooseOutputFile]);
+
+  const schemeOptions = useMemo(
+    () => FILENAME_SCHEMES.map((scheme) => ({ label: t(`export.naming.schemes.${scheme.id}`), value: scheme.id })),
+    [t],
+  );
+  const selectedScheme = FILENAME_SCHEMES.find((scheme) => scheme.template === filenameTemplate)?.id ?? 'custom';
+
+  const caseOptions = useMemo(
+    () => [
+      { label: t('export.naming.caseOptions.asIs'), value: FilenameCase.AsIs },
+      { label: t('export.naming.caseOptions.lower'), value: FilenameCase.Lower },
+      { label: t('export.naming.caseOptions.upper'), value: FilenameCase.Upper },
+    ],
+    [t],
+  );
 
   useEffect(() => {
     const fetchDims = async () => {
@@ -567,25 +636,11 @@ export default function ExportPanel({
     isLibraryContext,
   ]);
 
-  const handleVariableClick = (variable: string) => {
-    if (!filenameInputRef.current) return;
-    const input: HTMLInputElement = filenameInputRef.current;
-    const start = Number(input.selectionStart);
-    const end = Number(input.selectionEnd);
-    const currentValue = input.value;
-    const newValue = currentValue.substring(0, start) + variable + currentValue.substring(end);
-    setFilenameTemplate(newValue);
-    setTimeout(() => {
-      input.focus();
-      input.setSelectionRange(start + variable.length, start + variable.length);
-    }, 0);
-  };
-
   const handleExport = async () => {
     if (numImages === 0 || isExporting) return;
 
     const exportSettings: ExportSettings = {
-      filenameTemplate,
+      ...filenameSettings,
       jpegQuality,
       tiffBitDepth,
       keepMetadata,
@@ -613,18 +668,13 @@ export default function ExportPanel({
     const lastExportPath = appSettings?.exportPresets?.find((p) => p.id === '__last_used__')?.lastExportPath;
 
     try {
-      const selectedFormat: any = FILE_FORMATS.find((f) => f.id === fileFormat);
-
       let outputFolderOrFile = '';
       const isOriginalFolder = destinationType === 'originalFolder';
-      const shouldChooseOutputFile = numImages === 1 && !preserveFolders && !isOriginalFolder;
 
       if (isOriginalFolder) {
         outputFolderOrFile = 'originalFolderDummy';
       } else if (shouldChooseOutputFile) {
-        const originalFilename = pathsToExport[0].split(/[\\/]/).pop() || '';
-        const stem = originalFilename.substring(0, originalFilename.lastIndexOf('.')) || originalFilename;
-        const suggestedName = (filenameTemplate || '').replace('{original_filename}', stem);
+        const suggestedName = await resolveFilename(1);
         const outputFileName = `${suggestedName}.${selectedFormat.extensions[0]}`;
 
         outputFolderOrFile = isAndroid
@@ -802,28 +852,54 @@ export default function ExportPanel({
               </div>
             </Section>
 
-            {numImages > 1 && (
+            {!shouldChooseOutputFile && (
               <Section title={t('export.sections.fileNaming')}>
-                <input
-                  className="w-full bg-surface border border-surface rounded-md p-2 text-sm text-text-primary focus:ring-accent focus:border-accent"
+                <Dropdown
+                  options={schemeOptions}
+                  value={selectedScheme}
+                  onChange={(id) => {
+                    const scheme = FILENAME_SCHEMES.find((s) => s.id === id);
+                    if (scheme?.template) setFilenameTemplate(scheme.template);
+                  }}
                   disabled={isExporting}
-                  onChange={(e) => setFilenameTemplate(e.target.value)}
-                  ref={filenameInputRef}
-                  type="text"
+                  className="w-full"
+                />
+                <FilenameTemplateInput
+                  disabled={isExporting}
+                  includeExportTokens
+                  onChange={setFilenameTemplate}
                   value={filenameTemplate}
                 />
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {FILENAME_VARIABLES.map((variable: string) => (
-                    <button
-                      className="px-2 py-1 bg-surface text-text-secondary text-xs rounded-md hover:bg-card-active transition-colors disabled:opacity-50"
+                {filenameTemplate.includes('{text}') && (
+                  <LabeledRow label={t('export.naming.customText')}>
+                    <Input disabled={isExporting} onChange={(e) => setCustomText(e.target.value)} value={customText} />
+                  </LabeledRow>
+                )}
+                {filenameTemplate.includes('{sequence') && (
+                  <LabeledRow label={t('export.naming.startNumber')}>
+                    <Input
+                      className="w-24"
                       disabled={isExporting}
-                      key={variable}
-                      onClick={() => handleVariableClick(variable)}
-                    >
-                      {variable}
-                    </button>
-                  ))}
-                </div>
+                      onChange={(e) => setSequenceStart(Math.max(0, Math.floor(Number(e.target.value) || 0)))}
+                      type="number"
+                      value={String(sequenceStart)}
+                    />
+                  </LabeledRow>
+                )}
+                <LabeledRow label={t('export.naming.case')}>
+                  <Dropdown
+                    options={caseOptions}
+                    value={filenameCase}
+                    onChange={setFilenameCase}
+                    disabled={isExporting}
+                    className="w-full"
+                  />
+                </LabeledRow>
+                {filenamePreview && (
+                  <Text variant={TextVariants.small} className="break-all">
+                    {t('export.naming.example', { name: `${filenamePreview}.${selectedFormat.extensions[0]}` })}
+                  </Text>
+                )}
               </Section>
             )}
 

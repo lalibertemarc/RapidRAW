@@ -40,6 +40,7 @@ mod denoising;
 mod exif_processing;
 mod export_processing;
 mod file_management;
+mod filename_template;
 mod focus_stacking;
 mod formats;
 mod gpu_processing;
@@ -2309,6 +2310,7 @@ pub fn run() {
             export_processing::export_images,
             export_processing::cancel_export,
             export_processing::estimate_export_sizes,
+            filename_template::preview_export_filename,
             image_processing::calculate_auto_adjustments,
             image_processing::sample_white_balance,
             auto_straighten::calculate_auto_straighten,

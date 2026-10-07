@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FILENAME_VARIABLES } from '../ui/ExportImportProperties';
+import FilenameTemplateInput from '../ui/FilenameTemplateInput';
+import { withSequenceFallback } from '../ui/ExportImportProperties';
 import Text from '../ui/Text';
 import { TextVariants } from '../../types/typography';
 
@@ -16,7 +17,6 @@ export default function RenameFileModal({ filesToRename, isOpen, onClose, onSave
   const [nameTemplate, setNameTemplate] = useState('');
   const [isMounted, setIsMounted] = useState(false);
   const [show, setShow] = useState(false);
-  const nameInputRef = useRef<HTMLInputElement>(null);
 
   const fileCount = filesToRename.length;
   const isSingleFile = fileCount === 1;
@@ -48,14 +48,10 @@ export default function RenameFileModal({ filesToRename, isOpen, onClose, onSave
   const handleSave = useCallback(() => {
     const trimmed = nameTemplate.trim();
     if (trimmed) {
-      let finalTemplate = trimmed;
-      if (!isSingleFile && !finalTemplate.includes('{sequence}') && !finalTemplate.includes('{original_filename}')) {
-        finalTemplate = `${finalTemplate}_{sequence}`;
-      }
-      onSave(finalTemplate);
+      onSave(withSequenceFallback(trimmed, fileCount));
       onClose();
     }
-  }, [nameTemplate, onSave, onClose, isSingleFile]);
+  }, [nameTemplate, onSave, onClose, fileCount]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -71,23 +67,6 @@ export default function RenameFileModal({ filesToRename, isOpen, onClose, onSave
     },
     [handleSave, onClose],
   );
-
-  const handleVariableClick = (variable: string) => {
-    if (!nameInputRef.current) {
-      return;
-    }
-    const input = nameInputRef.current;
-    const start = input?.selectionStart || 0;
-    const end = input?.selectionEnd || 0;
-    const currentValue = input.value;
-    const newValue = currentValue.substring(0, start) + variable + currentValue.substring(end);
-    setNameTemplate(newValue);
-    setTimeout(() => {
-      input.focus();
-      const newCursorPos = start + variable.length;
-      input.setSelectionRange(newCursorPos, newCursorPos);
-    }, 0);
-  };
 
   if (!isMounted) {
     return null;
@@ -120,28 +99,14 @@ export default function RenameFileModal({ filesToRename, isOpen, onClose, onSave
             <Text variant={TextVariants.heading} className="block mb-2">
               {isSingleFile ? t('modals.renameFile.newName') : t('modals.renameFile.fileNamingTemplate')}
             </Text>
-            <input
+            <FilenameTemplateInput
               autoFocus
-              className="w-full bg-bg-primary border border-surface rounded-md p-2 text-sm text-text-primary focus:ring-accent focus:border-accent"
-              onChange={(e: any) => setNameTemplate(e.target.value)}
+              inputClassName="bg-bg-primary"
+              onChange={setNameTemplate}
               onKeyDown={handleKeyDown}
-              ref={nameInputRef}
-              type="text"
+              showTokens={!isSingleFile}
               value={nameTemplate}
             />
-            {!isSingleFile && (
-              <div className="flex flex-wrap gap-2 mt-2">
-                {FILENAME_VARIABLES.map((variable: string) => (
-                  <button
-                    className="px-2 py-1 bg-surface text-text-secondary text-xs rounded-md hover:bg-card-active transition-colors"
-                    key={variable}
-                    onClick={() => handleVariableClick(variable)}
-                  >
-                    {variable}
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
         </div>
 

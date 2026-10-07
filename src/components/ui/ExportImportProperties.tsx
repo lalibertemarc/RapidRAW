@@ -20,20 +20,126 @@ export const FILE_FORMATS: Array<FileFormat> = [
   { id: FileFormats.Cube, name: 'CUBE LUT', extensions: ['cube'] },
 ];
 
-export const FILENAME_VARIABLES: Array<string> = [
-  '{original_filename}',
-  '{sequence}',
-  '{YYYY}',
-  '{MM}',
-  '{DD}',
-  '{hh}',
-  '{mm}',
-];
+export interface FilenameToken {
+  token: string;
+  key: string;
+}
+
+export interface FilenameTokenGroup {
+  id: string;
+  exportOnly?: boolean;
+  tokens: ReadonlyArray<FilenameToken>;
+}
+
+export const FILENAME_TOKEN_GROUPS = [
+  {
+    id: 'file',
+    tokens: [
+      { token: '{original_filename}', key: 'originalFilename' },
+      { token: '{original_ext}', key: 'originalExt' },
+      { token: '{folder}', key: 'folder' },
+    ],
+  },
+  {
+    id: 'sequence',
+    tokens: [
+      { token: '{sequence}', key: 'sequence' },
+      { token: '{sequence:3}', key: 'sequencePadded' },
+      { token: '{total}', key: 'total' },
+    ],
+  },
+  {
+    id: 'captureDate',
+    tokens: [
+      { token: '{date}', key: 'date' },
+      { token: '{time}', key: 'time' },
+      { token: '{YYYY}', key: 'year' },
+      { token: '{YY}', key: 'yearShort' },
+      { token: '{MM}', key: 'month' },
+      { token: '{Month}', key: 'monthName' },
+      { token: '{Mon}', key: 'monthShort' },
+      { token: '{DD}', key: 'day' },
+      { token: '{hh}', key: 'hour' },
+      { token: '{mm}', key: 'minute' },
+      { token: '{ss}', key: 'second' },
+      { token: '{subsec}', key: 'subsec' },
+    ],
+  },
+  {
+    id: 'exportDate',
+    exportOnly: true,
+    tokens: [
+      { token: '{export_date}', key: 'exportDate' },
+      { token: '{export_time}', key: 'exportTime' },
+    ],
+  },
+  {
+    id: 'camera',
+    tokens: [
+      { token: '{make}', key: 'make' },
+      { token: '{model}', key: 'model' },
+      { token: '{lens}', key: 'lens' },
+      { token: '{iso}', key: 'iso' },
+      { token: '{focal}', key: 'focal' },
+      { token: '{aperture}', key: 'aperture' },
+      { token: '{shutter}', key: 'shutter' },
+      { token: '{serial}', key: 'serial' },
+    ],
+  },
+  {
+    id: 'metadata',
+    tokens: [
+      { token: '{title}', key: 'title' },
+      { token: '{author}', key: 'author' },
+      { token: '{copyright}', key: 'copyright' },
+      { token: '{comments}', key: 'comments' },
+      { token: '{rating}', key: 'rating' },
+      { token: '{label}', key: 'label' },
+      { token: '{flag}', key: 'flag' },
+    ],
+  },
+  {
+    id: 'custom',
+    exportOnly: true,
+    tokens: [
+      { token: '{text}', key: 'text' },
+      { token: '{preset}', key: 'preset' },
+    ],
+  },
+] as const satisfies ReadonlyArray<FilenameTokenGroup>;
+
+export const FILENAME_SCHEMES = [
+  { id: 'filename', template: '{original_filename}' },
+  { id: 'filenameEdited', template: '{original_filename}_edited' },
+  { id: 'filenameSequence', template: '{original_filename}_{sequence}' },
+  { id: 'dateFilename', template: '{date}_{original_filename}' },
+  { id: 'customSequence', template: '{text}_{sequence}' },
+  { id: 'customName', template: '{text}' },
+  { id: 'custom', template: null },
+] as const satisfies ReadonlyArray<{ id: string; template: string | null }>;
+
+export const withSequenceFallback = (template: string, fileCount: number) =>
+  fileCount > 1 && !template.includes('{sequence') && !template.includes('{original_filename}')
+    ? `${template}_{sequence}`
+    : template;
+
+export enum FilenameCase {
+  AsIs = 'asIs',
+  Lower = 'lower',
+  Upper = 'upper',
+}
+
+export interface FilenameSettings {
+  filenameTemplate: string | null;
+  sequenceStart?: number;
+  customText?: string;
+  filenameCase?: FilenameCase;
+  presetName?: string;
+}
 
 export type TiffBitDepth = 8 | 16;
 
-export interface ExportSettings {
-  filenameTemplate: string | null;
+export interface ExportSettings extends FilenameSettings {
   jpegQuality: number;
   tiffBitDepth: TiffBitDepth;
   keepMetadata: boolean;
@@ -117,7 +223,7 @@ export enum Status {
   Success = 'success',
 }
 
-export interface ExportPreset {
+export interface ExportPreset extends Omit<FilenameSettings, 'filenameTemplate'> {
   id: string;
   name: string;
   fileFormat: string;

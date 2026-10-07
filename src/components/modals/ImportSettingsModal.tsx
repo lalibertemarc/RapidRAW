@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import Switch from '../ui/Switch';
-import { FILENAME_VARIABLES } from '../ui/ExportImportProperties';
+import FilenameTemplateInput from '../ui/FilenameTemplateInput';
+import { withSequenceFallback } from '../ui/ExportImportProperties';
 import Text from '../ui/Text';
 import { TextVariants } from '../../types/typography';
 
@@ -21,7 +22,6 @@ export default function ImportSettingsModal({ fileCount, isOpen, onClose, onSave
   const [organizeByDate, setOrganizeByDate] = useState(false);
   const [dateFolderFormat, setDateFolderFormat] = useState('YYYY/MM-DD');
   const [deleteAfterImport, setDeleteAfterImport] = useState(false);
-  const filenameInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -38,17 +38,8 @@ export default function ImportSettingsModal({ fileCount, isOpen, onClose, onSave
   }, [isOpen]);
 
   const handleSave = useCallback(() => {
-    let finalFilenameTemplate = filenameTemplate;
-    if (
-      fileCount > 1 &&
-      !filenameTemplate.includes('{sequence}') &&
-      !filenameTemplate.includes('{original_filename}')
-    ) {
-      finalFilenameTemplate = `${filenameTemplate}_{sequence}`;
-    }
-
     onSave({
-      filenameTemplate: finalFilenameTemplate,
+      filenameTemplate: withSequenceFallback(filenameTemplate, fileCount),
       organizeByDate,
       dateFolderFormat,
       deleteAfterImport,
@@ -66,23 +57,6 @@ export default function ImportSettingsModal({ fileCount, isOpen, onClose, onSave
     },
     [handleSave, onClose],
   );
-
-  const handleVariableClick = (variable: string) => {
-    if (!filenameInputRef.current) {
-      return;
-    }
-    const input = filenameInputRef.current;
-    const start = input.selectionStart || 0;
-    const end = input.selectionEnd || 0;
-    const currentValue = input.value;
-    const newValue = currentValue.substring(0, start) + variable + currentValue.substring(end);
-    setFilenameTemplate(newValue);
-    setTimeout(() => {
-      input.focus();
-      const newCursorPos = start + variable.length;
-      input.setSelectionRange(newCursorPos, newCursorPos);
-    }, 0);
-  };
 
   if (!isMounted) {
     return null;
@@ -113,25 +87,12 @@ export default function ImportSettingsModal({ fileCount, isOpen, onClose, onSave
             <Text variant={TextVariants.heading} className="block mb-2">
               {t('modals.importSettings.fileNaming')}
             </Text>
-            <input
+            <FilenameTemplateInput
               autoFocus
-              className="w-full bg-bg-primary border border-surface rounded-md p-2 text-sm text-text-primary focus:ring-accent focus:border-accent"
-              onChange={(e: any) => setFilenameTemplate(e.target.value)}
-              ref={filenameInputRef}
-              type="text"
+              inputClassName="bg-bg-primary"
+              onChange={setFilenameTemplate}
               value={filenameTemplate}
             />
-            <div className="flex flex-wrap gap-2 mt-2">
-              {FILENAME_VARIABLES.map((variable: string) => (
-                <button
-                  className="px-2 py-1 bg-surface text-text-secondary text-xs rounded-md hover:bg-card-active transition-colors"
-                  key={variable}
-                  onClick={() => handleVariableClick(variable)}
-                >
-                  {variable}
-                </button>
-              ))}
-            </div>
           </div>
 
           <div>
