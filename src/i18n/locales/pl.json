@@ -130,6 +130,29 @@
       "lightFlares": "Flary świetlne",
       "lut": "LUT",
       "midpoint": "Punkt środkowy",
+      "relight": "Ponowne oświetlenie",
+      "relightAddLight": "Dodaj światło",
+      "relightAmbient": "Światło otoczenia",
+      "relightAngle": "Kąt",
+      "relightColor": "Kolor światła",
+      "relightCone": "Stożek",
+      "relightDepth": "Głębia",
+      "relightElevation": "Wysokość",
+      "relightFalloff": "Spadek",
+      "relightHint": "Dodaj lub wybierz światło, a następnie kliknij lub przeciągnij na obrazie, aby je umieścić.",
+      "relightIntensity": "Intensywność",
+      "relightLight": "Światło {{index}}",
+      "relightRemoveLight": "Usuń światło",
+      "relightShadows": "Cienie",
+      "relightShadowSoftness": "Miękkość cieni",
+      "relightShine": "Połysk",
+      "relightSoftness": "Miękkość",
+      "relightType": "Typ światła",
+      "relightTypes": {
+        "directional": "Kierunkowe",
+        "point": "Punktowe",
+        "spot": "Reflektor"
+      },
       "roughness": "Szorstkość",
       "roundness": "Zaokrąglenie",
       "size": "Rozmiar",
@@ -416,6 +439,7 @@
       "editSettingsTitle": "Ustawienia edycji",
       "editsTitle": "Edycje",
       "generatingDepthMap": "Obliczanie mapy głębi AI...",
+      "generatingNormalMap": "Obliczanie mapy normalnych AI...",
       "generativeEditTitle": "Edycja generatywna",
       "inpaintingTitle": "Inpainting",
       "liquify": {
@@ -1033,6 +1057,7 @@
       "noMatch": "Nie znaleziono obrazów pasujących do twojego filtra.",
       "rating": {
         "all": "Pokaż wszystko",
+        "andDownSuffix": "i mniej",
         "andUpSuffix": "i więcej",
         "fiveOnly": "tylko 5",
         "fourAndUp": "4 i więcej",
@@ -1113,6 +1138,11 @@
         "filterByFileType": "Filtruj według Typu pliku",
         "filterByFlag": "Filtruj według Oznaczenia",
         "filterByRating": "Filtruj według Oceny",
+        "ratingOperator": {
+          "eq": "Dokładnie ta ocena",
+          "gte": "Ta ocena lub wyższa",
+          "lte": "Ta ocena lub niższa"
+        },
         "groupEditedFiles": "Include edited files in groups",
         "groupIgnoreMetadata": "Ignore mismatched EXIF dates",
         "groupOff": "Off",
@@ -1844,9 +1874,17 @@
           "feature3": "Proste zastępowanie generatywne oparte na CPU",
           "title": "Wbudowane AI (CPU)"
         },
+        "aiFree": {
+          "description": "Wyłącza wszystkie funkcje AI. Wszystkie elementy sterujące związane z AI są ukryte w interfejsie, dzięki czemu RapidRAW działa jak czysto tradycyjny edytor RAW.",
+          "feature1": "Brak masek AI, rozmycia obiektywu i edycji generatywnych w interfejsie",
+          "feature2": "Istniejące edycje AI nadal są normalnie renderowane",
+          "feature3": "Czytelniejszy, bardziej skoncentrowany interfejs",
+          "title": "Bez AI"
+        },
         "description": "AI w RapidRAW została zbudowana z myślą o elastyczności. Wybierz swój idealny przepływ pracy, od szybkich lokalnych narzędzi po potężne rozwiązania serwerowe.",
         "providers": {
           "aiConnector": "Złącze AI",
+          "aiFree": "Bez AI",
           "cloud": "Chmura",
           "cpu": "CPU"
         },

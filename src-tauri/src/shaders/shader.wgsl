@@ -220,6 +220,7 @@ const GF_LUMA_FLOOR: f32 = 1.0e-4;
 const GF_DETAIL_SIGMA: f32 = 1.5;
 const SHARPEN_EDGE_SIGMA: f32 = 0.12;
 const SHARPEN_DARK_SCALE: f32 = 0.55;
+const GF_REINJECT_SIGMA: f32 = 0.8;
 const DEHAZE_STRENGTH: f32 = 1.5;
 const GF_CLARITY_GAIN: f32 = 1.8;
 const GF_STRUCTURE_GAIN: f32 = 1.8;
@@ -407,6 +408,7 @@ fn apply_curve(val: f32, points: array<Point, 16>, count: u32) -> f32 {
 fn apply_tonal_adjustments(
     color: vec3<f32>,
     local_log_detail: f32,
+    mid_log_detail: f32,
     is_raw: u32,
     con: f32,
     sh: f32,
@@ -416,9 +418,29 @@ fn apply_tonal_adjustments(
     var rgb = color;
 
     if (wh != 0.0) {
-        let white_level = 1.0 - wh * 0.25;
-        let w_mult = 1.0 / max(white_level, 0.01);
-        rgb *= w_mult;
+        let w_luma = max(get_luma(max(rgb, vec3<f32>(0.0))), 0.0001);
+        let w_base = max(w_luma * exp2(-clamp(local_log_detail + mid_log_detail, -3.0, 3.0)), 0.0001);
+        let t_w = pow(w_base, 0.4545);
+        let w_pivot = 0.45;
+        let u = max(t_w - w_pivot, 0.0);
+
+        var t_new = t_w;
+        if (wh > 0.0) {
+            t_new = t_w + wh * 0.25 * (u * u) / (1.0 + u * u);
+        } else if (u > 0.0) {
+            t_new = w_pivot + u / (1.0 + (-wh) * 0.3 * u);
+        }
+        let w_ramp = smoothstep(0.25, 0.9, t_w);
+        t_new = mix(t_w, t_new, w_ramp);
+
+        let w_amount = abs(t_new - t_w) * w_ramp;
+        rgb *= pow(t_new, 2.2) / w_base;
+
+        let w_log_d = local_log_detail * 0.4545;
+        let w_safe_detail = exp2(w_log_d / (1.0 + abs(w_log_d) * 0.4));
+        let w_corr = pow(w_safe_detail, 1.0 + w_amount * 1.0) / w_safe_detail;
+        rgb *= pow(w_corr, 2.2);
+        rgb *= exp2(shape_detail(mid_log_detail, GF_REINJECT_SIGMA) * w_amount * 4.0);
     }
 
     let pixel_luma = get_luma(max(rgb, vec3<f32>(0.0)));
@@ -453,7 +475,7 @@ fn apply_tonal_adjustments(
 
         let noise_protection = smoothstep(0.0, 0.1, t_blurred);
 
-        let detail_amp = 1.0 + (lift_amount * detail_focus * 3.4 * noise_protection);
+        let detail_amp = 1.0 + (lift_amount * detail_focus * 1.5 * noise_protection);
 
         let enhanced_detail = pow(safe_detail, detail_amp);
         let detail_correction = enhanced_detail / safe_detail;
@@ -461,8 +483,8 @@ fn apply_tonal_adjustments(
         let linear_correction = pow(detail_correction, 2.2);
         rgb *= linear_correction;
 
-        let lift_structure = lift_amount * detail_focus * noise_protection * 7.2;
-        rgb *= exp2(shape_detail_gf(local_log_detail) * lift_structure);
+        let lift_structure = lift_amount * detail_focus * noise_protection * 6.0;
+        rgb *= exp2(shape_detail(mid_log_detail, GF_REINJECT_SIGMA) * lift_structure);
 
         if (luma_ratio > 1.0) {
             let recovered_luma = get_luma(rgb);
@@ -491,6 +513,7 @@ fn apply_tonal_adjustments(
 fn apply_highlights_adjustment(
     color_in: vec3<f32>,
     local_log_detail: f32,
+    mid_log_detail: f32,
     is_raw: u32,
     highlights_adj: f32
 ) -> vec3<f32> {
@@ -526,9 +549,9 @@ fn apply_highlights_adjustment(
         let compressed_delta = delta_base / (1.0 + compression_strength * (delta_base / (1.0 + delta_base * 0.35)));
         let target_base = l_pivot + compressed_delta;
 
-        let neg_soft_detail = local_log_detail / (1.0 + abs(local_log_detail) * 0.40);
-        let restoration_gain = 1.0 + k * 0.4;
-        let structure_gain = shape_detail_gf(local_log_detail) * k * 0.5;
+        let neg_soft_detail = local_log_detail / (1.0 + abs(local_log_detail) * 0.80);
+        let restoration_gain = 1.0 + k * 0.3;
+        let structure_gain = shape_detail(mid_log_detail, GF_REINJECT_SIGMA) * k * 0.6;
         let recovered_detail = exp2(neg_soft_detail * restoration_gain + structure_gain);
 
         let recovered_target = target_base * recovered_detail;
@@ -1536,7 +1559,7 @@ fn apply_glow_bloom(
 
     blurred_linear = apply_linear_exposure(blurred_linear, exp);
     blurred_linear = apply_filmic_exposure(blurred_linear, bright);
-    blurred_linear = apply_tonal_adjustments(blurred_linear, 0.0, is_raw, 0.0, 0.0, wh, 0.0);
+    blurred_linear = apply_tonal_adjustments(blurred_linear, 0.0, 0.0, is_raw, 0.0, 0.0, wh, 0.0);
 
     let linear_luma = get_luma(max(blurred_linear, vec3<f32>(0.0)));
 
@@ -1604,7 +1627,7 @@ fn apply_halation(
 
     blurred_linear = apply_linear_exposure(blurred_linear, exp);
     blurred_linear = apply_filmic_exposure(blurred_linear, bright);
-    blurred_linear = apply_tonal_adjustments(blurred_linear, 0.0, is_raw, 0.0, 0.0, wh, 0.0);
+    blurred_linear = apply_tonal_adjustments(blurred_linear, 0.0, 0.0, is_raw, 0.0, 0.0, wh, 0.0);
 
     let linear_luma = get_luma(max(blurred_linear, vec3<f32>(0.0)));
 
@@ -1832,11 +1855,14 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>) {
     composite_rgb_linear = apply_white_balance(composite_rgb_linear, t_wb_log_gains);
     composite_rgb_linear = apply_centre_tonal_and_color(composite_rgb_linear, adjustments.global.centre, absolute_coord_i);
     var tonal_log_detail = 0.0;
-    if (t_shadows != 0.0 || t_blacks != 0.0 || t_highlights != 0.0) {
+    var tonal_mid_detail = 0.0;
+    if (t_shadows != 0.0 || t_blacks != 0.0 || t_highlights != 0.0 || t_whites != 0.0) {
         tonal_log_detail = (gf_i - (gf.z * gf_i + gf.w)) + lc_log_gain;
+        let gf_broad = sample_gf_tex(gf_dehaze_texture, absolute_coord).xy;
+        tonal_mid_detail = (gf.z * gf_i + gf.w) - (gf_broad.x * gf_i + gf_broad.y);
     }
-    composite_rgb_linear = apply_tonal_adjustments(composite_rgb_linear, tonal_log_detail, is_raw, t_contrast, t_shadows, t_whites, t_blacks);
-    composite_rgb_linear = apply_highlights_adjustment(composite_rgb_linear, tonal_log_detail, is_raw, t_highlights);
+    composite_rgb_linear = apply_tonal_adjustments(composite_rgb_linear, tonal_log_detail, tonal_mid_detail, is_raw, t_contrast, t_shadows, t_whites, t_blacks);
+    composite_rgb_linear = apply_highlights_adjustment(composite_rgb_linear, tonal_log_detail, tonal_mid_detail, is_raw, t_highlights);
     composite_rgb_linear = apply_color_calibration(composite_rgb_linear, adjustments.global.color_calibration);
     composite_rgb_linear = apply_hsl_panel(composite_rgb_linear, final_hsl, absolute_coord_i);
     composite_rgb_linear = apply_hue_shift(composite_rgb_linear, t_hue);

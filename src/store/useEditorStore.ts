@@ -68,6 +68,8 @@ interface EditorState {
   isAutoStraightening: boolean;
   isWbPickerActive: boolean;
   mixerPickerProperty: HslMixerProperty | null;
+  isRelightPickerActive: boolean;
+  activeRelightLightId: string | null;
   isGuidedPerspectiveActive: boolean;
   liveRotation: number | null;
   cropSessionSnapshot: { path: string | null; geometry: CropGeometry } | null;
@@ -135,6 +137,8 @@ export const useEditorStore = create<EditorState>((set) => ({
   isAutoStraightening: false,
   isWbPickerActive: false,
   mixerPickerProperty: null,
+  isRelightPickerActive: false,
+  activeRelightLightId: null,
   isGuidedPerspectiveActive: false,
   liveRotation: null,
   cropSessionSnapshot: null,

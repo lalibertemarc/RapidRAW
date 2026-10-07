@@ -86,7 +86,12 @@ export default function Controls() {
   );
 
   const toggleWbPicker = useCallback(
-    () => setEditor((state) => ({ isWbPickerActive: !state.isWbPickerActive, mixerPickerProperty: null })),
+    () =>
+      setEditor((state) => ({
+        isWbPickerActive: !state.isWbPickerActive,
+        mixerPickerProperty: null,
+        isRelightPickerActive: false,
+      })),
     [setEditor],
   );
 
