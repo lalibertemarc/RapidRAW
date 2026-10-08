@@ -107,10 +107,11 @@ pub fn measure(camera: &CameraRendering, developed: &DynamicImage) -> Option<f32
         .luminance
         .iter()
         .zip(&rendered)
-        .filter(|&(&camera, &raw)| {
-            (MID_GREY_LOW..MID_GREY_HIGH).contains(&camera) && raw > MIN_RAW_LUMINANCE
+        .filter(|&(&camera_luminance, &raw_luminance)| {
+            (MID_GREY_LOW..MID_GREY_HIGH).contains(&camera_luminance)
+                && raw_luminance > MIN_RAW_LUMINANCE
         })
-        .map(|(camera, raw)| (camera / raw).log2())
+        .map(|(camera_luminance, raw_luminance)| (camera_luminance / raw_luminance).log2())
         .collect();
     if gains.len() < MIN_MID_GREY_CELLS {
         return None;
@@ -131,11 +132,7 @@ fn luminance([r, g, b]: [f32; 3]) -> f32 {
     0.2126 * r + 0.7152 * g + 0.0722 * b
 }
 
-fn luminance_grid(
-    width: u32,
-    height: u32,
-    luminance_at: impl Fn(u32, u32) -> f32 + Sync,
-) -> Vec<f32> {
+fn luminance_grid(width: u32, height: u32, luminance_at: impl Fn(u32, u32) -> f32) -> Vec<f32> {
     let samples = SAMPLES_PER_CELL_AXIS * SAMPLES_PER_CELL_AXIS;
     (0..GRID_WIDTH * GRID_HEIGHT)
         .map(|cell| {
