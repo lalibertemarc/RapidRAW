@@ -6,8 +6,8 @@ use crate::file_management::{parse_virtual_path, read_file_mapped};
 use crate::formats::is_raw_file;
 use crate::image_processing::ImageMetadata;
 use crate::image_processing::{
-    apply_orientation, apply_srgb_to_linear, awaits_measured_baseline, effective_baseline_exposure,
-    remove_raw_artifacts_and_enhance, srgb_channel_to_linear,
+    apply_orientation, apply_srgb_to_linear, effective_baseline_exposure,
+    remove_raw_artifacts_and_enhance, srgb_channel_to_linear, uses_baseline_exposure,
 };
 use crate::mask_generation::{MaskDefinition, SubMask, generate_mask_bitmap};
 use crate::white_balance::WhiteBalance;
@@ -38,7 +38,6 @@ pub struct LoadImageResult {
     pub exif: HashMap<String, String>,
     pub is_raw: bool,
     pub as_shot_white_balance: WhiteBalance,
-    pub baseline_exposure: f32,
 }
 
 #[derive(Deserialize)]
@@ -87,15 +86,18 @@ pub fn load_base_image_for_adjustments(
     let decode =
         || load_base_image_from_bytes(bytes, path, use_fast_raw_dev, settings, cancel_token);
     if !settings.enable_baseline_exposure
-        || !awaits_measured_baseline(adjustments)
+        || !uses_baseline_exposure(adjustments)
         || !crate::as_shot::needs_measured_baseline(path)
     {
         return decode();
     }
 
-    let (image, camera) = rayon::join(decode, || {
-        safe_embedded_preview_fallback(bytes, path)
-            .and_then(crate::baseline_exposure::camera_rendering)
+    let (image, camera) = std::thread::scope(|scope| {
+        let camera = scope.spawn(|| {
+            safe_embedded_preview_fallback(bytes, path)
+                .and_then(crate::baseline_exposure::camera_rendering)
+        });
+        (decode(), camera.join().ok().flatten())
     });
     let image = image?;
     crate::as_shot::record_measured_baseline(
@@ -1068,6 +1070,5 @@ pub async fn load_image(
         exif: exif_data,
         is_raw,
         as_shot_white_balance: as_shot.white_balance,
-        baseline_exposure: as_shot.baseline_exposure,
     })
 }

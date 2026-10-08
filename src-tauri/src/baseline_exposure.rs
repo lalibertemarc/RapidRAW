@@ -138,7 +138,6 @@ fn luminance_grid(
 ) -> Vec<f32> {
     let samples = SAMPLES_PER_CELL_AXIS * SAMPLES_PER_CELL_AXIS;
     (0..GRID_WIDTH * GRID_HEIGHT)
-        .into_par_iter()
         .map(|cell| {
             let (cell_x, cell_y) = (cell % GRID_WIDTH, cell / GRID_WIDTH);
             let sum: f32 = (0..samples)
