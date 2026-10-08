@@ -110,12 +110,32 @@ pub fn default_adjustments() -> Value {
 }
 
 pub fn uses_baseline_exposure(adjustments: &Value) -> bool {
-    adjustments.is_null() || adjustments.get(BASELINE_EXPOSURE_KEY) == Some(&Value::Bool(true))
+    adjustments.is_null()
+        || adjustments
+            .get(BASELINE_EXPOSURE_KEY)
+            .is_some_and(|marker| marker == &Value::Bool(true) || marker.is_number())
+}
+
+pub fn pinned_baseline_exposure(adjustments: &Value) -> Option<f32> {
+    adjustments
+        .get(BASELINE_EXPOSURE_KEY)?
+        .as_f64()
+        .map(|baseline| baseline as f32)
+}
+
+pub fn pin_baseline_exposure(adjustments: &mut Value, baseline_exposure: f32) {
+    if adjustments.is_null() {
+        *adjustments = json!({});
+    }
+    if let Some(object) = adjustments.as_object_mut() {
+        let rounded = (f64::from(baseline_exposure) * 100.0).round() / 100.0;
+        object.insert(BASELINE_EXPOSURE_KEY.to_string(), Value::from(rounded));
+    }
 }
 
 pub fn effective_baseline_exposure(adjustments: &Value, as_shot: AsShot, enabled: bool) -> f32 {
     if enabled && uses_baseline_exposure(adjustments) {
-        as_shot.baseline_exposure
+        pinned_baseline_exposure(adjustments).unwrap_or(as_shot.baseline_exposure)
     } else {
         0.0
     }

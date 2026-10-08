@@ -6,8 +6,9 @@ use crate::file_management::{parse_virtual_path, read_file_mapped};
 use crate::formats::is_raw_file;
 use crate::image_processing::ImageMetadata;
 use crate::image_processing::{
-    apply_orientation, apply_srgb_to_linear, effective_baseline_exposure,
-    remove_raw_artifacts_and_enhance, srgb_channel_to_linear, uses_baseline_exposure,
+    apply_orientation, apply_srgb_to_linear, effective_baseline_exposure, pin_baseline_exposure,
+    pinned_baseline_exposure, remove_raw_artifacts_and_enhance, srgb_channel_to_linear,
+    uses_baseline_exposure,
 };
 use crate::mask_generation::{MaskDefinition, SubMask, generate_mask_bitmap};
 use crate::white_balance::WhiteBalance;
@@ -105,6 +106,26 @@ pub fn load_base_image_for_adjustments(
         camera.and_then(|camera| crate::baseline_exposure::measure(&camera, &image)),
     );
     Ok(image)
+}
+
+fn pin_measured_baseline(sidecar_path: &Path, baseline_exposure: f32) -> Option<ImageMetadata> {
+    let mut metadata = exif_processing::load_sidecar(sidecar_path);
+    if !uses_baseline_exposure(&metadata.adjustments)
+        || pinned_baseline_exposure(&metadata.adjustments).is_some()
+    {
+        return None;
+    }
+    pin_baseline_exposure(&mut metadata.adjustments, baseline_exposure);
+    let json = serde_json::to_string_pretty(&metadata).ok()?;
+    if let Err(e) = fs::write(sidecar_path, json) {
+        log::warn!(
+            "Failed to pin the baseline exposure in '{}': {}",
+            sidecar_path.display(),
+            e
+        );
+        return None;
+    }
+    Some(metadata)
 }
 
 pub fn load_base_image_from_bytes(
@@ -938,7 +959,7 @@ pub async fn load_image(
     let (source_path, sidecar_path) = parse_virtual_path(&path);
     let source_path_str = source_path.to_string_lossy().to_string();
 
-    let metadata: ImageMetadata = crate::exif_processing::load_sidecar(&sidecar_path);
+    let mut metadata: ImageMetadata = crate::exif_processing::load_sidecar(&sidecar_path);
 
     let settings = load_settings(app_handle.clone()).unwrap_or_default();
     let baseline_exposure_enabled = settings.enable_baseline_exposure;
@@ -1042,6 +1063,10 @@ pub async fn load_image(
     let (orig_width, orig_height) = pristine_arc.dimensions();
     let as_shot = crate::as_shot::as_shot(&source_path_str);
     if is_raw {
+        if baseline_exposure_enabled && !crate::as_shot::needs_measured_baseline(&source_path_str) {
+            metadata =
+                pin_measured_baseline(&sidecar_path, as_shot.baseline_exposure).unwrap_or(metadata);
+        }
         log::info!(
             "Baseline exposure applied to '{}': {:+.2} EV",
             source_path_str,
