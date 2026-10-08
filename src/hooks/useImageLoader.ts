@@ -5,7 +5,7 @@ import { useEditorStore } from '../store/useEditorStore';
 import { useLibraryStore } from '../store/useLibraryStore';
 import { useSettingsStore } from '../store/useSettingsStore';
 import { Invokes } from '../components/ui/AppProperties';
-import { Adjustments, INITIAL_ADJUSTMENTS, normalizeLoadedAdjustments } from '../utils/adjustments';
+import { INITIAL_ADJUSTMENTS, normalizeLoadedAdjustments } from '../utils/adjustments';
 
 export function useImageLoader(cachedEditStateRef: React.RefObject<any>) {
   const selectedImage = useEditorStore((s) => s.selectedImage);
@@ -95,17 +95,12 @@ export function useImageLoader(cachedEditStateRef: React.RefObject<any>) {
           });
 
           setEditor((state) => {
-            const loadedValues: Partial<Adjustments> = {};
             if (!state.adjustments.aspectRatio && !state.adjustments.crop) {
-              loadedValues.aspectRatio = loadImageResult.width / loadImageResult.height;
+              return {
+                adjustments: { ...state.adjustments, aspectRatio: loadImageResult.width / loadImageResult.height },
+              };
             }
-            if (state.adjustments.baselineExposure === true) {
-              loadedValues.baselineExposure = loadImageResult.baseline_exposure;
-            }
-            if (Object.keys(loadedValues).length === 0) {
-              return state;
-            }
-            return { adjustments: { ...state.adjustments, ...loadedValues } };
+            return state;
           });
         } catch (err) {
           if (isEffectActive) {

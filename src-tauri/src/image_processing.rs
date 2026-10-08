@@ -109,20 +109,15 @@ pub fn default_adjustments() -> Value {
     adjustments
 }
 
-pub fn awaits_measured_baseline(adjustments: &Value) -> bool {
+pub fn uses_baseline_exposure(adjustments: &Value) -> bool {
     adjustments.is_null() || adjustments.get(BASELINE_EXPOSURE_KEY) == Some(&Value::Bool(true))
 }
 
 pub fn effective_baseline_exposure(adjustments: &Value, as_shot: AsShot, enabled: bool) -> f32 {
-    if !enabled {
-        0.0
-    } else if awaits_measured_baseline(adjustments) {
+    if enabled && uses_baseline_exposure(adjustments) {
         as_shot.baseline_exposure
     } else {
-        adjustments
-            .get(BASELINE_EXPOSURE_KEY)
-            .and_then(Value::as_f64)
-            .map_or(0.0, |baseline| baseline as f32)
+        0.0
     }
 }
 
