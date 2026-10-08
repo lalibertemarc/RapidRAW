@@ -1602,6 +1602,44 @@
     "renameGroup": {
       "placeholder": "輸入新的組名稱..."
     },
+    "themeEditor": {
+      "advanced": "所有顏色",
+      "background": "背景",
+      "basics": "基本顏色",
+      "basicsDesc": "選擇三種顏色，其餘調色盤會自動產生。修改這些顏色會覆蓋下方已編輯的顏色。",
+      "buttonContrast": "按鈕對比度",
+      "cancel": "取消",
+      "contrastRatio": "{{ratio}}:1",
+      "copied": "主題已複製到剪貼簿",
+      "copyJson": "將主題複製到剪貼簿",
+      "defaultName": "我的主題",
+      "delete": "刪除",
+      "deleteMessage": "刪除主題「{{name}}」？此動作無法復原。",
+      "deleteTitle": "刪除主題",
+      "name": "名稱",
+      "pasteError": "剪貼簿中沒有有效的 RapidRAW 主題",
+      "pasteJson": "從剪貼簿貼上主題",
+      "sample": "Aa",
+      "save": "儲存",
+      "startFrom": "基於",
+      "startFromPlaceholder": "從主題複製顏色...",
+      "text": "文字",
+      "textContrast": "文字對比度",
+      "titleEdit": "編輯主題",
+      "titleNew": "建立主題",
+      "tokens": {
+        "accent": "強調色",
+        "bgPrimary": "主背景",
+        "bgSecondary": "面板背景",
+        "border": "邊框",
+        "buttonText": "按鈕文字",
+        "cardActive": "選取項目",
+        "hover": "滑鼠懸停醒目提示",
+        "surface": "表面",
+        "textPrimary": "主要文字",
+        "textSecondary": "次要文字"
+      }
+    },
     "transform": {
       "amount": "數量",
       "apply": "應用",
@@ -2037,9 +2075,22 @@
       "title": "特別鳴謝"
     },
     "themes": {
+      "copyName": "{{name}} 副本",
+      "customize": "以此主題自訂",
       "dark": "深色",
+      "darkroom": "暗房",
+      "edit": "編輯主題",
       "grey": "灰色",
-      "light": "淺色"
+      "groups": {
+        "builtin": "RapidRAW",
+        "community": "社群",
+        "custom": "我的主題",
+        "neutral": "中性",
+        "vscode": "VS Code"
+      },
+      "light": "淺色",
+      "newTheme": "新增主題",
+      "oledBlack": "OLED 純黑"
     },
     "title": "設定",
     "tooltips": {

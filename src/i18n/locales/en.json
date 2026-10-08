@@ -1608,6 +1608,44 @@
     "renameGroup": {
       "placeholder": "Enter new group name..."
     },
+    "themeEditor": {
+      "advanced": "All Colors",
+      "background": "Background",
+      "basics": "Base Colors",
+      "basicsDesc": "Pick three colors and the rest of the palette is derived from them. Changing one of these replaces any colors edited below.",
+      "buttonContrast": "Button contrast",
+      "cancel": "Cancel",
+      "contrastRatio": "{{ratio}}:1",
+      "copied": "Theme copied to clipboard",
+      "copyJson": "Copy theme to clipboard",
+      "defaultName": "My Theme",
+      "delete": "Delete",
+      "deleteMessage": "Delete the theme \"{{name}}\"? This cannot be undone.",
+      "deleteTitle": "Delete Theme",
+      "name": "Name",
+      "pasteError": "The clipboard does not contain a valid RapidRAW theme",
+      "pasteJson": "Paste theme from clipboard",
+      "sample": "Aa",
+      "save": "Save",
+      "startFrom": "Start From",
+      "startFromPlaceholder": "Copy colors from a theme...",
+      "text": "Text",
+      "textContrast": "Text contrast",
+      "titleEdit": "Edit Theme",
+      "titleNew": "Create Theme",
+      "tokens": {
+        "accent": "Accent",
+        "bgPrimary": "Main Background",
+        "bgSecondary": "Panel Background",
+        "border": "Border",
+        "buttonText": "Button Text",
+        "cardActive": "Active Item",
+        "hover": "Hover Highlight",
+        "surface": "Surface",
+        "textPrimary": "Primary Text",
+        "textSecondary": "Secondary Text"
+      }
+    },
     "transform": {
       "amount": "Amount",
       "apply": "Apply",
@@ -2050,9 +2088,22 @@
       "title": "Special Thanks"
     },
     "themes": {
+      "copyName": "{{name}} Copy",
+      "customize": "Customize as new theme",
       "dark": "Dark",
+      "darkroom": "Darkroom",
+      "edit": "Edit theme",
       "grey": "Grey",
-      "light": "Light"
+      "groups": {
+        "builtin": "RapidRAW",
+        "community": "Community",
+        "custom": "Your Themes",
+        "neutral": "Neutral",
+        "vscode": "VS Code"
+      },
+      "light": "Light",
+      "newTheme": "New Theme",
+      "oledBlack": "OLED Black"
     },
     "title": "Settings",
     "tooltips": {

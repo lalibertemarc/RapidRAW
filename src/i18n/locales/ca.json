@@ -1607,6 +1607,44 @@
     "renameGroup": {
       "placeholder": "Introduïu el nou nom del grup..."
     },
+    "themeEditor": {
+      "advanced": "Tots els colors",
+      "background": "Fons",
+      "basics": "Colors base",
+      "basicsDesc": "Tria tres colors i la resta de la paleta se'n deriva. Canviar-ne un substitueix els colors editats a sota.",
+      "buttonContrast": "Contrast dels botons",
+      "cancel": "Cancel·la",
+      "contrastRatio": "{{ratio}}:1",
+      "copied": "Tema copiat al porta-retalls",
+      "copyJson": "Copia el tema al porta-retalls",
+      "defaultName": "El meu tema",
+      "delete": "Elimina",
+      "deleteMessage": "Vols eliminar el tema \"{{name}}\"? Aquesta acció no es pot desfer.",
+      "deleteTitle": "Elimina el tema",
+      "name": "Nom",
+      "pasteError": "El porta-retalls no conté un tema de RapidRAW vàlid",
+      "pasteJson": "Enganxa el tema del porta-retalls",
+      "sample": "Aa",
+      "save": "Desa",
+      "startFrom": "Parteix de",
+      "startFromPlaceholder": "Copia els colors d'un tema...",
+      "text": "Text",
+      "textContrast": "Contrast del text",
+      "titleEdit": "Edita el tema",
+      "titleNew": "Crea un tema",
+      "tokens": {
+        "accent": "Accent",
+        "bgPrimary": "Fons principal",
+        "bgSecondary": "Fons dels panells",
+        "border": "Vora",
+        "buttonText": "Text dels botons",
+        "cardActive": "Element actiu",
+        "hover": "Ressaltat en passar-hi",
+        "surface": "Superfície",
+        "textPrimary": "Text principal",
+        "textSecondary": "Text secundari"
+      }
+    },
     "transform": {
       "amount": "Quantitat",
       "apply": "Aplicar",
@@ -2042,9 +2080,22 @@
       "title": "Agraïments especials"
     },
     "themes": {
+      "copyName": "{{name}} (còpia)",
+      "customize": "Personalitza com a tema nou",
       "dark": "Fosc",
+      "darkroom": "Cambra fosca",
+      "edit": "Edita el tema",
       "grey": "Gris",
-      "light": "Clar"
+      "groups": {
+        "builtin": "RapidRAW",
+        "community": "Comunitat",
+        "custom": "Els teus temes",
+        "neutral": "Neutres",
+        "vscode": "VS Code"
+      },
+      "light": "Clar",
+      "newTheme": "Tema nou",
+      "oledBlack": "Negre OLED"
     },
     "title": "Configuració",
     "tooltips": {

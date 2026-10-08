@@ -6,7 +6,8 @@ import { useUIStore, reconcileWorkspace } from '../store/useUIStore';
 import { useLibraryStore } from '../store/useLibraryStore';
 import { useEditorStore } from '../store/useEditorStore';
 import { useProcessStore } from '../store/useProcessStore';
-import { THEMES, DEFAULT_THEME_ID, ThemeProps } from '../utils/themes';
+import { DEFAULT_THEME_ID } from '../utils/themes';
+import { useActiveTheme } from './useActiveTheme';
 import { COPYABLE_ADJUSTMENT_KEYS, withAdjustmentLayout } from '../utils/adjustments';
 import {
   FilterCriteria,
@@ -15,7 +16,6 @@ import {
   RawStatus,
   EditedStatus,
   FlagStatus,
-  Theme,
   ThumbnailSize,
   ThumbnailAspectRatio,
 } from '../components/ui/AppProperties';
@@ -58,28 +58,20 @@ export const useAppInitialization = ({
 }: UseAppInitializationProps) => {
   const isInitialMount = useRef(true);
   const { i18n } = useTranslation();
+  const { colors: themeColors } = useActiveTheme();
 
-  const {
-    appSettings,
-    theme,
-    osPlatform,
-    setAppSettings,
-    setTheme,
-    setSupportedTypes,
-    initPlatform,
-    handleSettingsChange,
-  } = useSettingsStore(
-    useShallow((state) => ({
-      appSettings: state.appSettings,
-      theme: state.theme,
-      osPlatform: state.osPlatform,
-      setAppSettings: state.setAppSettings,
-      setTheme: state.setTheme,
-      setSupportedTypes: state.setSupportedTypes,
-      initPlatform: state.initPlatform,
-      handleSettingsChange: state.handleSettingsChange,
-    })),
-  );
+  const { appSettings, osPlatform, setAppSettings, setTheme, setSupportedTypes, initPlatform, handleSettingsChange } =
+    useSettingsStore(
+      useShallow((state) => ({
+        appSettings: state.appSettings,
+        osPlatform: state.osPlatform,
+        setAppSettings: state.setAppSettings,
+        setTheme: state.setTheme,
+        setSupportedTypes: state.setSupportedTypes,
+        initPlatform: state.initPlatform,
+        handleSettingsChange: state.handleSettingsChange,
+      })),
+    );
 
   const { uiVisibility, collapsibleSectionsState, setUI } = useUIStore(
     useShallow((state) => ({
@@ -279,7 +271,7 @@ export const useAppInitialization = ({
         console.error('Failed to load settings:', err);
         setAppSettings({
           lastRootPath: null,
-          theme: DEFAULT_THEME_ID as Theme,
+          theme: DEFAULT_THEME_ID,
           thumbnailSize: defaultThumbnailSize,
           libraryViewMode: defaultLibraryViewMode,
         });
@@ -477,17 +469,9 @@ export const useAppInitialization = ({
 
   useEffect(() => {
     const root = document.documentElement;
-    const currentThemeId = theme || DEFAULT_THEME_ID;
 
-    const baseTheme =
-      THEMES.find((t: ThemeProps) => t.id === currentThemeId) ||
-      THEMES.find((t: ThemeProps) => t.id === DEFAULT_THEME_ID);
-    if (!baseTheme) return;
-
-    const finalCssVariables: any = { ...baseTheme.cssVariables };
-
-    Object.entries(finalCssVariables).forEach(([key, value]) => {
-      root.style.setProperty(key, value as string);
+    Object.entries(themeColors).forEach(([key, value]) => {
+      root.style.setProperty(key, value);
     });
 
     const fontFamily = appSettings?.fontFamily || 'poppins';
@@ -496,5 +480,5 @@ export const useAppInitialization = ({
         ? '-apple-system, BlinkMacSystemFont, system-ui, sans-serif'
         : "'Poppins', system-ui, sans-serif";
     root.style.setProperty('--font-family', fontStack);
-  }, [theme, appSettings?.fontFamily]);
+  }, [themeColors, appSettings?.fontFamily]);
 };

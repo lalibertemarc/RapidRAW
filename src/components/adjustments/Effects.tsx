@@ -680,8 +680,8 @@ export default function EffectsPanel({
 
                                       <Slider
                                         label={t('adjustments.effects.relightElevation')}
-                                        max={90}
-                                        min={0}
+                                        max={180}
+                                        min={-180}
                                         defaultValue={60}
                                         onChange={(e: any) =>
                                           handleLightChange('elevation', parseInt(e.target.value, 10))
@@ -690,7 +690,6 @@ export default function EffectsPanel({
                                         suffix="°"
                                         value={activeLight.elevation}
                                         onDragStateChange={onDragStateChange}
-                                        fillOrigin="min"
                                       />
                                     </>
                                   )}

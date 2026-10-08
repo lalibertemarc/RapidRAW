@@ -1638,6 +1638,44 @@
     "renameGroup": {
       "placeholder": "Digite o novo nome do grupo..."
     },
+    "themeEditor": {
+      "advanced": "Todas as cores",
+      "background": "Fundo",
+      "basics": "Cores base",
+      "basicsDesc": "Escolha três cores e o resto da paleta é derivado delas. Alterar uma delas substitui as cores editadas abaixo.",
+      "buttonContrast": "Contraste dos botões",
+      "cancel": "Cancelar",
+      "contrastRatio": "{{ratio}}:1",
+      "copied": "Tema copiado para a área de transferência",
+      "copyJson": "Copiar tema para a área de transferência",
+      "defaultName": "Meu tema",
+      "delete": "Excluir",
+      "deleteMessage": "Excluir o tema \"{{name}}\"? Esta ação não pode ser desfeita.",
+      "deleteTitle": "Excluir tema",
+      "name": "Nome",
+      "pasteError": "A área de transferência não contém um tema do RapidRAW válido",
+      "pasteJson": "Colar tema da área de transferência",
+      "sample": "Aa",
+      "save": "Salvar",
+      "startFrom": "Partir de",
+      "startFromPlaceholder": "Copiar cores de um tema...",
+      "text": "Texto",
+      "textContrast": "Contraste do texto",
+      "titleEdit": "Editar tema",
+      "titleNew": "Criar tema",
+      "tokens": {
+        "accent": "Destaque",
+        "bgPrimary": "Fundo principal",
+        "bgSecondary": "Fundo dos painéis",
+        "border": "Borda",
+        "buttonText": "Texto dos botões",
+        "cardActive": "Item ativo",
+        "hover": "Realce ao passar o mouse",
+        "surface": "Superfície",
+        "textPrimary": "Texto principal",
+        "textSecondary": "Texto secundário"
+      }
+    },
     "transform": {
       "amount": "Quantidade",
       "apply": "Aplicar",
@@ -2076,9 +2114,22 @@
       "title": "Agradecimentos Especiais"
     },
     "themes": {
+      "copyName": "{{name}} (cópia)",
+      "customize": "Personalizar como novo tema",
       "dark": "Escuro",
+      "darkroom": "Câmara escura",
+      "edit": "Editar tema",
       "grey": "Cinza",
-      "light": "Claro"
+      "groups": {
+        "builtin": "RapidRAW",
+        "community": "Comunidade",
+        "custom": "Seus temas",
+        "neutral": "Neutros",
+        "vscode": "VS Code"
+      },
+      "light": "Claro",
+      "newTheme": "Novo tema",
+      "oledBlack": "Preto OLED"
     },
     "title": "Configurações",
     "tooltips": {

@@ -21,7 +21,7 @@ import CullingView from './library/CullingView';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import Button from '../ui/Button';
-import { ThemeProps, THEMES, DEFAULT_THEME_ID } from '../../utils/themes';
+import { useActiveTheme } from '../../hooks/useActiveTheme';
 import {
   AppSettings,
   ImageFile,
@@ -89,7 +89,6 @@ interface MainLibraryProps {
   onRequestThumbnails?(paths: string[]): void;
   rootPaths: string[];
   setLibraryViewMode(mode: LibraryViewMode): void;
-  theme: string;
   thumbnailAspectRatio: ThumbnailAspectRatio;
   thumbnailProgress: Progress;
   thumbnailSize: ThumbnailSize;
@@ -163,6 +162,7 @@ function DisplayModeSwitch({ displayMode, setDisplayMode, t }: DisplayModeSwitch
 
 export default function MainLibrary(props: MainLibraryProps) {
   const { t } = useTranslation();
+  const { splashImage } = useActiveTheme();
   const setUI = useUIStore((state) => state.setUI);
   const [appVersion, setAppVersion] = useState('');
   const [isUpdateAvailable, setIsUpdateAvailable] = useState(false);
@@ -329,11 +329,6 @@ export default function MainLibrary(props: MainLibraryProps) {
       return null;
     }
     const hasLastPath = !!props.appSettings.lastRootPath || !!props.appSettings.rootFolders?.length;
-    const currentThemeId = props.theme || DEFAULT_THEME_ID;
-    const selectedTheme: ThemeProps | undefined =
-      THEMES.find((t: ThemeProps) => t.id === currentThemeId) ||
-      THEMES.find((t: ThemeProps) => t.id === DEFAULT_THEME_ID);
-    const splashImage = selectedTheme?.splashImage;
 
     return (
       <div className="flex-1 flex h-full p-2 bg-transparent">

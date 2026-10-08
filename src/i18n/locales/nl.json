@@ -1575,6 +1575,44 @@
     "renameGroup": {
       "placeholder": "Nieuwe groepsnaam invoeren..."
     },
+    "themeEditor": {
+      "advanced": "Alle kleuren",
+      "background": "Achtergrond",
+      "basics": "Basiskleuren",
+      "basicsDesc": "Kies drie kleuren en de rest van het palet wordt daarvan afgeleid. Een wijziging hier vervangt de kleuren die je hieronder hebt bewerkt.",
+      "buttonContrast": "Knopcontrast",
+      "cancel": "Annuleren",
+      "contrastRatio": "{{ratio}}:1",
+      "copied": "Thema naar klembord gekopieerd",
+      "copyJson": "Thema naar klembord kopiëren",
+      "defaultName": "Mijn thema",
+      "delete": "Verwijderen",
+      "deleteMessage": "Het thema \"{{name}}\" verwijderen? Dit kan niet ongedaan worden gemaakt.",
+      "deleteTitle": "Thema verwijderen",
+      "name": "Naam",
+      "pasteError": "Het klembord bevat geen geldig RapidRAW-thema",
+      "pasteJson": "Thema van klembord plakken",
+      "sample": "Aa",
+      "save": "Opslaan",
+      "startFrom": "Uitgaan van",
+      "startFromPlaceholder": "Kleuren van een thema overnemen...",
+      "text": "Tekst",
+      "textContrast": "Tekstcontrast",
+      "titleEdit": "Thema bewerken",
+      "titleNew": "Thema maken",
+      "tokens": {
+        "accent": "Accent",
+        "bgPrimary": "Hoofdachtergrond",
+        "bgSecondary": "Paneelachtergrond",
+        "border": "Rand",
+        "buttonText": "Knoptekst",
+        "cardActive": "Actief item",
+        "hover": "Hovermarkering",
+        "surface": "Oppervlak",
+        "textPrimary": "Primaire tekst",
+        "textSecondary": "Secundaire tekst"
+      }
+    },
     "transform": {
       "amount": "Hoeveelheid",
       "apply": "Toepassen",
@@ -2006,9 +2044,22 @@
       "title": "Speciale dank"
     },
     "themes": {
+      "copyName": "{{name}} (kopie)",
+      "customize": "Aanpassen als nieuw thema",
       "dark": "Donker",
+      "darkroom": "Doka",
+      "edit": "Thema bewerken",
       "grey": "Grijs",
-      "light": "Licht"
+      "groups": {
+        "builtin": "RapidRAW",
+        "community": "Community",
+        "custom": "Jouw thema’s",
+        "neutral": "Neutraal",
+        "vscode": "VS Code"
+      },
+      "light": "Licht",
+      "newTheme": "Nieuw thema",
+      "oledBlack": "OLED-zwart"
     },
     "title": "Instellingen",
     "tooltips": {

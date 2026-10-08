@@ -1604,6 +1604,44 @@
     "renameGroup": {
       "placeholder": "Neuen Gruppennamen eingeben..."
     },
+    "themeEditor": {
+      "advanced": "Alle Farben",
+      "background": "Hintergrund",
+      "basics": "Grundfarben",
+      "basicsDesc": "Wähle drei Farben, der Rest der Palette wird daraus abgeleitet. Eine Änderung hier überschreibt unten bearbeitete Farben.",
+      "buttonContrast": "Button-Kontrast",
+      "cancel": "Abbrechen",
+      "contrastRatio": "{{ratio}}:1",
+      "copied": "Theme in die Zwischenablage kopiert",
+      "copyJson": "Theme in die Zwischenablage kopieren",
+      "defaultName": "Mein Theme",
+      "delete": "Löschen",
+      "deleteMessage": "Theme „{{name}}“ löschen? Dies kann nicht rückgängig gemacht werden.",
+      "deleteTitle": "Theme löschen",
+      "name": "Name",
+      "pasteError": "Die Zwischenablage enthält kein gültiges RapidRAW-Theme",
+      "pasteJson": "Theme aus der Zwischenablage einfügen",
+      "sample": "Aa",
+      "save": "Speichern",
+      "startFrom": "Ausgehend von",
+      "startFromPlaceholder": "Farben eines Themes übernehmen...",
+      "text": "Text",
+      "textContrast": "Textkontrast",
+      "titleEdit": "Theme bearbeiten",
+      "titleNew": "Theme erstellen",
+      "tokens": {
+        "accent": "Akzent",
+        "bgPrimary": "Haupthintergrund",
+        "bgSecondary": "Panel-Hintergrund",
+        "border": "Rahmen",
+        "buttonText": "Button-Text",
+        "cardActive": "Aktives Element",
+        "hover": "Hover-Hervorhebung",
+        "surface": "Oberfläche",
+        "textPrimary": "Primärer Text",
+        "textSecondary": "Sekundärer Text"
+      }
+    },
     "transform": {
       "amount": "Betrag",
       "apply": "Anwenden",
@@ -2039,9 +2077,22 @@
       "title": "Besonderer Dank"
     },
     "themes": {
+      "copyName": "{{name}} (Kopie)",
+      "customize": "Als neues Theme anpassen",
       "dark": "Dunkel",
+      "darkroom": "Dunkelkammer",
+      "edit": "Theme bearbeiten",
       "grey": "Grau",
-      "light": "Hell"
+      "groups": {
+        "builtin": "RapidRAW",
+        "community": "Community",
+        "custom": "Eigene Themes",
+        "neutral": "Neutral",
+        "vscode": "VS Code"
+      },
+      "light": "Hell",
+      "newTheme": "Neues Theme",
+      "oledBlack": "OLED-Schwarz"
     },
     "title": "Einstellungen",
     "tooltips": {
