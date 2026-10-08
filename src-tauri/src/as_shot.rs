@@ -78,8 +78,20 @@ pub fn record_measured_baseline(path: &str, measured: Option<f32>) {
         return;
     };
     let mut cached = cached_as_shot(&source_path);
-    if let Some(baseline_exposure) = measured {
-        cached.as_shot.baseline_exposure = baseline_exposure;
+    match measured {
+        Some(baseline_exposure) => {
+            cached.as_shot.baseline_exposure = baseline_exposure;
+            log::info!(
+                "Baseline exposure measured for '{}': {:+.2} EV from the camera JPEG",
+                source_path,
+                baseline_exposure
+            );
+        }
+        None => log::info!(
+            "Baseline exposure for '{}': no usable camera JPEG, using the {:+.2} EV fallback",
+            source_path,
+            cached.as_shot.baseline_exposure
+        ),
     }
     cached.baseline_measured = true;
     as_shot_cache().lock().unwrap().insert(source_path, cached);
