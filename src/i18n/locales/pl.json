@@ -2005,7 +2005,7 @@
         "applyPreprocessing": "Zastosuj wstępne przetwarzanie do formatów innych niż RAW",
         "applyPreprocessingDesc": "Jeśli włączone, redukcja szumu kolorów i wstępne wyostrzanie powyżej zostaną również zastosowane do standardowych formatów.",
         "baselineExposure": "Ekspozycja bazowa",
-        "baselineExposureDesc": "Rozjaśnia pliki RAW, aby odpowiadały obrazowi z aparatu: dodaje bazę +0,7 EV oraz ekspozycję, którą aparat ograniczył w trybach ochrony świateł (np. Fujifilm DR200/DR400, Canon Priorytet jasnych partii obrazu, Nikon Aktywna funkcja D-Lighting). Nie wpływa na zdjęcia edytowane przed wprowadzeniem tej opcji.",
+        "baselineExposureDesc": "Rozjaśnia pliki RAW, aby odpowiadały plikowi JPEG z aparatu; pomiar opiera się na podglądzie osadzonym w każdym pliku. Pliki bez użytecznego podglądu otrzymują +0,7 EV. Nie wpływa na zdjęcia edytowane przed wprowadzeniem tej opcji.",
         "colorNr": "Bazowa redukcja szumu koloru",
         "colorNrDesc": "Stosuje filtr na wczesnym etapie w celu usunięcia szumu koloru (Chroma). Wyższa wartość = Silniejsza redukcja szumów.",
         "defaultNonRawTonemapper": "Domyślne mapowanie tonów (Non-RAW)",

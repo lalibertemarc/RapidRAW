@@ -27,7 +27,7 @@ use crate::file_management::{parse_virtual_path, read_file_mapped};
 use crate::filename_template::FilenameSettings;
 use crate::formats::is_raw_file;
 use crate::image_loader::{
-    composite_patches_on_image, load_and_composite, load_base_image_from_bytes,
+    composite_patches_on_image, load_and_composite, load_base_image_for_adjustments,
 };
 use crate::image_processing::{
     AllAdjustments, Crop, GpuContext, RenderOptions, RenderOutputPrecision, RenderRequest,
@@ -2232,9 +2232,15 @@ pub async fn estimate_export_sizes(
             }
         };
 
-        let original_image =
-            load_base_image_from_bytes(file_data, &source_path_str, true, &settings, None)
-                .map_err(|e| e.to_string())?;
+        let original_image = load_base_image_for_adjustments(
+            file_data,
+            &source_path_str,
+            &js_adjustments,
+            true,
+            &settings,
+            None,
+        )
+        .map_err(|e| e.to_string())?;
 
         let raw_scale_factor = if is_raw {
             crate::raw_processing::get_fast_demosaic_scale_factor(

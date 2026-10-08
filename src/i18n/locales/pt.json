@@ -1968,7 +1968,7 @@
         "applyPreprocessing": "Aplicar Pré-processamento em Não-RAWs",
         "applyPreprocessingDesc": "Se ativado, a redução de ruído de cor base e a pré-nitidez acima também serão aplicadas a formatos padrão.",
         "baselineExposure": "Exposição base",
-        "baselineExposureDesc": "Clareia os arquivos RAW para corresponder à renderização da câmera: adiciona uma base de +0,7 EV mais a exposição que a câmera reservou nos modos de preservação de realces (ex.: Fujifilm DR200/DR400, Prioridade de tom de destaque da Canon, D-Lighting ativo da Nikon). Imagens editadas antes desta opção existir não são afetadas.",
+        "baselineExposureDesc": "Clareia os arquivos RAW para corresponder ao JPEG da câmera, medido a partir da pré-visualização incorporada em cada arquivo. Arquivos sem uma pré-visualização utilizável recebem +0,7 EV. Imagens editadas antes desta opção existir não são afetadas.",
         "colorNr": "Redução Base de Ruído de Cor",
         "colorNrDesc": "Aplica um filtro bilateral cruzado no início do pipeline para remover o ruído de croma. Valor mais alto = Redução mais forte.",
         "defaultNonRawTonemapper": "Mapeador de Tons Padrão Não-RAW",

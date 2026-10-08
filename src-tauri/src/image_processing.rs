@@ -109,19 +109,20 @@ pub fn default_adjustments() -> Value {
     adjustments
 }
 
-fn uses_baseline_exposure(adjustments: &Value) -> bool {
-    adjustments.is_null()
-        || adjustments
-            .get(BASELINE_EXPOSURE_KEY)
-            .and_then(Value::as_bool)
-            .unwrap_or(false)
+pub fn awaits_measured_baseline(adjustments: &Value) -> bool {
+    adjustments.is_null() || adjustments.get(BASELINE_EXPOSURE_KEY) == Some(&Value::Bool(true))
 }
 
 pub fn effective_baseline_exposure(adjustments: &Value, as_shot: AsShot, enabled: bool) -> f32 {
-    if enabled && uses_baseline_exposure(adjustments) {
+    if !enabled {
+        0.0
+    } else if awaits_measured_baseline(adjustments) {
         as_shot.baseline_exposure
     } else {
-        0.0
+        adjustments
+            .get(BASELINE_EXPOSURE_KEY)
+            .and_then(Value::as_f64)
+            .map_or(0.0, |baseline| baseline as f32)
     }
 }
 
@@ -1235,14 +1236,6 @@ pub fn apply_cpu_default_raw_processing(image: &mut DynamicImage) {
     *image = DynamicImage::ImageRgb32F(f32_image);
 }
 
-fn srgb_channel_to_linear(c: f32) -> f32 {
-    if c <= 0.04045 {
-        c / 12.92
-    } else {
-        ((c + 0.055) / 1.055).powf(2.4)
-    }
-}
-
 fn map_color_channels(
     mut image: DynamicImage,
     map: impl Fn(f32) -> f32 + Send + Sync,
@@ -1269,6 +1262,14 @@ pub fn apply_exposure(image: DynamicImage, exposure: f32) -> DynamicImage {
     }
     let gain = exposure.exp2();
     map_color_channels(image, |x| x * gain)
+}
+
+pub fn srgb_channel_to_linear(c: f32) -> f32 {
+    if c <= 0.04045 {
+        c / 12.92
+    } else {
+        ((c + 0.055) / 1.055).powf(2.4)
+    }
 }
 
 pub fn apply_srgb_to_linear(image: DynamicImage) -> DynamicImage {

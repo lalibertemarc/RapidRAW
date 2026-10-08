@@ -1934,7 +1934,7 @@
         "applyPreprocessing": "Aplicar preprocessament als No-RAW",
         "applyPreprocessingDesc": "Si està activat, la reducció del soroll de color base i la pre-nitidesa esmentades abans també s'aplicaran als formats estàndard.",
         "baselineExposure": "Exposició base",
-        "baselineExposureDesc": "Aclareix els fitxers RAW perquè s'assemblin a la representació de la càmera: afegeix una base de +0,7 EV i l'exposició que la càmera ha reservat en els modes de preservació de les llums (p. ex. Fujifilm DR200/DR400, Prioritat de to de les llums de Canon, D-Lighting actiu de Nikon). Les imatges editades abans que existís aquesta opció no es veuen afectades.",
+        "baselineExposureDesc": "Aclareix els fitxers RAW perquè coincideixin amb el JPEG de la càmera, mesurat a partir de la previsualització incrustada a cada fitxer. Els fitxers sense una previsualització utilitzable reben +0,7 EV. Les imatges editades abans que existís aquesta opció no es veuen afectades.",
         "colorNr": "Reducció de soroll de color base",
         "colorNrDesc": "Aplica un filtre bilateral creuat d'hora a la canonada per eliminar el soroll de croma. Valor més alt = Més reducció.",
         "defaultNonRawTonemapper": "Mapejador de tons predeterminat No-RAW",

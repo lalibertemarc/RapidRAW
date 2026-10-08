@@ -1209,9 +1209,10 @@ async fn generate_all_community_previews(
         let (source_path, _) = parse_virtual_path(image_path);
         let source_path_str = source_path.to_string_lossy().to_string();
         let image_bytes = fs::read(&source_path).map_err(|e| e.to_string())?;
-        let original_image = crate::image_loader::load_base_image_from_bytes(
+        let original_image = crate::image_loader::load_base_image_for_adjustments(
             &image_bytes,
             &source_path_str,
+            &serde_json::Value::Null,
             true,
             &settings,
             None,

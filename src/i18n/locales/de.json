@@ -1931,7 +1931,7 @@
         "applyPreprocessing": "Vorverarbeitung auf Nicht-RAWs anwenden",
         "applyPreprocessingDesc": "Wenn aktiviert, wird die Rauschreduzierung und Vorschärfung auch auf Standardformate angewendet.",
         "baselineExposure": "Basisbelichtung",
-        "baselineExposureDesc": "Hellt RAW-Dateien auf, damit sie der Kamerawiedergabe entsprechen: fügt eine Basis von +0,7 LW hinzu, dazu die Belichtung, die die Kamera in Modi zum Schutz der Lichter zurückhält (z. B. Fujifilm DR200/DR400, Canon Tonwert Priorität, Nikon Active D-Lighting). Bilder, die vor Einführung dieser Option bearbeitet wurden, sind nicht betroffen.",
+        "baselineExposureDesc": "Hellt RAW-Dateien auf, damit sie dem JPEG der Kamera entsprechen; gemessen anhand der in jeder Datei eingebetteten Vorschau. Dateien ohne brauchbare Vorschau erhalten +0,7 LW. Bilder, die vor Einführung dieser Option bearbeitet wurden, sind nicht betroffen.",
         "colorNr": "Basis-Farbrauschreduzierung",
         "colorNrDesc": "Wendet früh in der Pipeline einen Filter an, um Farbrauschen zu entfernen. Höherer Wert = Stärkere Reduzierung.",
         "defaultNonRawTonemapper": "Standard-Tonemapper (Nicht-RAW)",
