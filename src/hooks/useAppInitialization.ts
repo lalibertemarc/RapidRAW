@@ -60,25 +60,18 @@ export const useAppInitialization = ({
   const { i18n } = useTranslation();
   const { colors: themeColors } = useActiveTheme();
 
-  const {
-    appSettings,
-    osPlatform,
-    setAppSettings,
-    setTheme,
-    setSupportedTypes,
-    initPlatform,
-    handleSettingsChange,
-  } = useSettingsStore(
-    useShallow((state) => ({
-      appSettings: state.appSettings,
-      osPlatform: state.osPlatform,
-      setAppSettings: state.setAppSettings,
-      setTheme: state.setTheme,
-      setSupportedTypes: state.setSupportedTypes,
-      initPlatform: state.initPlatform,
-      handleSettingsChange: state.handleSettingsChange,
-    })),
-  );
+  const { appSettings, osPlatform, setAppSettings, setTheme, setSupportedTypes, initPlatform, handleSettingsChange } =
+    useSettingsStore(
+      useShallow((state) => ({
+        appSettings: state.appSettings,
+        osPlatform: state.osPlatform,
+        setAppSettings: state.setAppSettings,
+        setTheme: state.setTheme,
+        setSupportedTypes: state.setSupportedTypes,
+        initPlatform: state.initPlatform,
+        handleSettingsChange: state.handleSettingsChange,
+      })),
+    );
 
   const { uiVisibility, collapsibleSectionsState, setUI } = useUIStore(
     useShallow((state) => ({

@@ -12,6 +12,7 @@ import { useCollapsibleHeight } from '../../hooks/useCollapsibleHeight';
 import {
   CustomTheme,
   DEFAULT_THEME_ID,
+  findTheme,
   getAllThemes,
   ThemeColors,
   ThemeGroup,
@@ -52,8 +53,7 @@ export default function ThemePicker({ appSettings, onSettingsChange }: ThemePick
   const selectedId = appSettings.theme || DEFAULT_THEME_ID;
 
   const allThemes = useMemo(() => getAllThemes(customThemes), [customThemes]);
-  const selectedTheme =
-    allThemes.find((theme) => theme.id === selectedId) ?? allThemes.find((theme) => theme.id === DEFAULT_THEME_ID);
+  const selectedTheme = findTheme(selectedId, customThemes);
 
   const groups = useMemo(
     () =>
@@ -101,11 +101,9 @@ export default function ThemePicker({ appSettings, onSettingsChange }: ThemePick
         className="flex items-center gap-3 w-full p-2 rounded-lg border border-border-color bg-bg-primary text-left hover:border-text-secondary/50 transition-colors"
         onClick={() => setIsExpanded((expanded) => !expanded)}
       >
-        {selectedTheme && (
-          <ThemeSwatch className="h-10 w-20 shrink-0 rounded-md overflow-hidden" colors={selectedTheme.colors} />
-        )}
+        <ThemeSwatch className="h-10 w-20 shrink-0 rounded-md overflow-hidden" colors={selectedTheme.colors} />
         <Text as="span" className="flex-1 truncate">
-          {selectedTheme && getThemeName(selectedTheme)}
+          {getThemeName(selectedTheme)}
         </Text>
         <ChevronDown
           size={18}
