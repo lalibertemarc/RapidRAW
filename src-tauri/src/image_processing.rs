@@ -1256,14 +1256,6 @@ fn map_color_channels(
     image
 }
 
-pub fn apply_exposure(image: DynamicImage, exposure: f32) -> DynamicImage {
-    if exposure == 0.0 {
-        return image;
-    }
-    let gain = exposure.exp2();
-    map_color_channels(image, |x| x * gain)
-}
-
 pub fn srgb_channel_to_linear(c: f32) -> f32 {
     if c <= 0.04045 {
         c / 12.92
@@ -1536,8 +1528,8 @@ pub struct GlobalAdjustments {
     pub wb_log_gain_l: f32,
     pub wb_log_gain_m: f32,
     pub wb_log_gain_s: f32,
-    _pad_color1: f32,
-    _pad_color2: f32,
+    pub baseline_exposure: f32,
+    pub baseline_shoulder_knee: f32,
 
     pub sharpness: f32,
     pub luma_noise_reduction: f32,
@@ -2293,7 +2285,7 @@ fn get_global_adjustments_from_json(
     };
 
     GlobalAdjustments {
-        exposure: get_val("basic", "exposure", SCALES.exposure, None) + baseline_exposure,
+        exposure: get_val("basic", "exposure", SCALES.exposure, None),
         brightness: get_val("basic", "brightness", SCALES.brightness, None),
         contrast: get_val("basic", "contrast", SCALES.contrast, None),
         highlights: get_val("basic", "highlights", SCALES.highlights, None),
@@ -2307,8 +2299,8 @@ fn get_global_adjustments_from_json(
         wb_log_gain_l: white_balance_gains[0],
         wb_log_gain_m: white_balance_gains[1],
         wb_log_gain_s: white_balance_gains[2],
-        _pad_color1: 0.0,
-        _pad_color2: 0.0,
+        baseline_exposure,
+        baseline_shoulder_knee: crate::baseline_exposure::SHOULDER_KNEE,
 
         sharpness: get_val("details", "sharpness", SCALES.sharpness, None),
         luma_noise_reduction: get_val(
@@ -3379,7 +3371,7 @@ pub fn perform_auto_analysis(image: &DynamicImage, exposure: f32) -> AutoAdjustm
     const EXPOSURE_OUTPUT_SCALE: f64 = 20.0;
     const BRIGHTNESS_SCALE: f64 = 0.007;
 
-    let analysis_preview = apply_exposure(
+    let analysis_preview = crate::baseline_exposure::apply(
         downscale_f32_image(image, ANALYSIS_MAX_DIM, ANALYSIS_MAX_DIM),
         exposure,
     );
