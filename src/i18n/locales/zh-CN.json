@@ -1798,7 +1798,7 @@
         "applyPreprocessing": "对非 RAW 图像应用预处理",
         "applyPreprocessingDesc": "如果启用，上述基础颜色降噪和预锐化也将应用于标准格式。",
         "baselineExposure": "基础曝光",
-        "baselineExposureDesc": "提亮 RAW 文件以接近相机的成像效果：增加 +0.7 EV 的基础曝光，并补偿相机在高光保护模式下保留的曝光（例如富士 DR200/DR400、佳能高光色调优先、尼康动态 D-Lighting）。在此选项推出之前编辑的图像不受影响。",
+        "baselineExposureDesc": "根据每个文件内嵌的预览图进行测量，提亮 RAW 文件以匹配相机自身的 JPEG。没有可用预览图的文件使用 +0.7 EV。在此选项推出之前编辑的图像不受影响。",
         "colorNr": "基础颜色降噪",
         "colorNrDesc": "在管线早期应用交叉双边滤波器以去除彩色噪点。值越高 = 降噪越强。",
         "defaultNonRawTonemapper": "默认非 RAW 色调映射",

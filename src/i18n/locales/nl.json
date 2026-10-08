@@ -1773,7 +1773,7 @@
         "applyPreprocessing": "Voorverwerking toepassen op niet-RAW-bestanden",
         "applyPreprocessingDesc": "Als ingeschakeld, wordt de basiskleurruisonderdrukking en voorverscherping hierboven ook toegepast op standaardformaten.",
         "baselineExposure": "Basisbelichting",
-        "baselineExposureDesc": "Maakt RAW-bestanden lichter zodat ze overeenkomen met de weergave van de camera: voegt een basis van +0,7 EV toe, plus de belichting die de camera inhoudt in modi die de hoge lichten beschermen (bijv. Fujifilm DR200/DR400, Canon Prioriteit hoge lichten, Nikon Actieve D-Lighting). Afbeeldingen die vóór deze optie zijn bewerkt, veranderen niet.",
+        "baselineExposureDesc": "Maakt RAW-bestanden lichter zodat ze overeenkomen met de JPEG van de camera, gemeten aan de hand van de voorvertoning in elk bestand. Bestanden zonder bruikbare voorvertoning krijgen +0,7 EV. Afbeeldingen die vóór deze optie zijn bewerkt, veranderen niet.",
         "colorNr": "Basis kleurruisonderdrukking",
         "colorNrDesc": "Past een cross-bilateraal filter vroeg in de pijplijn toe om chroominantieruis te verwijderen. Hogere waarde = Sterkere ruisonderdrukking.",
         "defaultNonRawTonemapper": "Standaard niet-RAW-toonmapping",

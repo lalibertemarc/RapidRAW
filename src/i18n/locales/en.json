@@ -1800,7 +1800,7 @@
         "applyPreprocessing": "Apply Preprocessing to Non-RAWs",
         "applyPreprocessingDesc": "If enabled, the base color noise reduction and pre-sharpening above will also be applied to standard formats.",
         "baselineExposure": "Baseline Exposure",
-        "baselineExposureDesc": "Brightens RAW files to match the camera's rendering: adds a +0.7 EV baseline plus the exposure the camera held back in highlight-preserving modes (e.g. Fujifilm DR200/DR400, Canon Highlight Tone Priority, Nikon Active D-Lighting). Images edited before this option existed are not affected.",
+        "baselineExposureDesc": "Brightens RAW files to match the camera's own JPEG, measured from the preview embedded in each file. Files without a usable preview get +0.7 EV. Images edited before this option existed are not affected.",
         "colorNr": "Base Color Noise Reduction",
         "colorNrDesc": "Applies a cross-bilateral filter early in the pipeline to remove chroma noise. Higher value = Stronger NR.",
         "defaultNonRawTonemapper": "Default Non-RAW Tonemapper",

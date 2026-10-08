@@ -1835,7 +1835,7 @@
         "applyPreprocessing": "Applica Pre-elaborazione a File non RAW",
         "applyPreprocessingDesc": "Se abilitato, la riduzione del rumore cromatico di base e la pre-nitidezza indicate sopra verranno applicate anche ai formati standard.",
         "baselineExposure": "Esposizione di base",
-        "baselineExposureDesc": "Schiarisce i file RAW per avvicinarli alla resa della fotocamera: aggiunge una base di +0,7 EV più l'esposizione trattenuta dalla fotocamera nelle modalità di protezione delle alte luci (ad es. Fujifilm DR200/DR400, Priorità tonalità chiare Canon, D-Lighting attivo Nikon). Le immagini modificate prima dell'introduzione di questa opzione non cambiano.",
+        "baselineExposureDesc": "Schiarisce i file RAW per farli corrispondere al JPEG della fotocamera, misurato dall'anteprima incorporata in ogni file. I file senza un'anteprima utilizzabile ricevono +0,7 EV. Le immagini modificate prima dell'introduzione di questa opzione non cambiano.",
         "colorNr": "Riduzione Rumore Cromatico di Base",
         "colorNrDesc": "Applica un filtro bilaterale incrociato all'inizio del processo per rimuovere il rumore cromatico. Valore più alto = Riduzione Rumore (NR) più forte.",
         "defaultNonRawTonemapper": "Tonemapper Predefinito per Non-RAW",

@@ -6,7 +6,8 @@ use crate::file_management::{parse_virtual_path, read_file_mapped};
 use crate::formats::is_raw_file;
 use crate::image_processing::ImageMetadata;
 use crate::image_processing::{
-    apply_orientation, apply_srgb_to_linear, remove_raw_artifacts_and_enhance,
+    apply_orientation, apply_srgb_to_linear, awaits_measured_baseline,
+    remove_raw_artifacts_and_enhance, srgb_channel_to_linear,
 };
 use crate::mask_generation::{MaskDefinition, SubMask, generate_mask_bitmap};
 use crate::white_balance::WhiteBalance;
@@ -37,6 +38,7 @@ pub struct LoadImageResult {
     pub exif: HashMap<String, String>,
     pub is_raw: bool,
     pub as_shot_white_balance: WhiteBalance,
+    pub baseline_exposure: f32,
 }
 
 #[derive(Deserialize)]
@@ -50,20 +52,9 @@ struct PatchMaskInfo {
     sub_masks: Vec<SubMask>,
 }
 
-fn srgb_to_linear_lut() -> &'static [f32; 256] {
+pub fn srgb_to_linear_lut() -> &'static [f32; 256] {
     static LUT: OnceLock<[f32; 256]> = OnceLock::new();
-    LUT.get_or_init(|| {
-        let mut lut = [0.0f32; 256];
-        for (i, v) in lut.iter_mut().enumerate() {
-            let x = i as f32 / 255.0;
-            *v = if x <= 0.04045 {
-                x / 12.92
-            } else {
-                ((x + 0.055) / 1.055).powf(2.4)
-            };
-        }
-        lut
-    })
+    LUT.get_or_init(|| std::array::from_fn(|i| srgb_channel_to_linear(i as f32 / 255.0)))
 }
 
 pub fn load_and_composite(
@@ -74,9 +65,44 @@ pub fn load_and_composite(
     settings: &AppSettings,
     cancel_token: Option<(Arc<AtomicUsize>, usize)>,
 ) -> Result<DynamicImage> {
-    let base_image =
-        load_base_image_from_bytes(base_image, path, use_fast_raw_dev, settings, cancel_token)?;
+    let base_image = load_base_image_for_adjustments(
+        base_image,
+        path,
+        adjustments,
+        use_fast_raw_dev,
+        settings,
+        cancel_token,
+    )?;
     composite_patches_on_image(&base_image, adjustments)
+}
+
+pub fn load_base_image_for_adjustments(
+    bytes: &[u8],
+    path: &str,
+    adjustments: &Value,
+    use_fast_raw_dev: bool,
+    settings: &AppSettings,
+    cancel_token: Option<(Arc<AtomicUsize>, usize)>,
+) -> Result<DynamicImage> {
+    let decode =
+        || load_base_image_from_bytes(bytes, path, use_fast_raw_dev, settings, cancel_token);
+    if !settings.enable_baseline_exposure
+        || !awaits_measured_baseline(adjustments)
+        || !crate::as_shot::needs_measured_baseline(path)
+    {
+        return decode();
+    }
+
+    let (image, camera) = rayon::join(decode, || {
+        safe_embedded_preview_fallback(bytes, path)
+            .and_then(crate::baseline_exposure::camera_rendering)
+    });
+    let image = image?;
+    crate::as_shot::record_measured_baseline(
+        path,
+        camera.and_then(|camera| crate::baseline_exposure::measure(&camera, &image)),
+    );
+    Ok(image)
 }
 
 pub fn load_base_image_from_bytes(
@@ -922,6 +948,7 @@ pub async fn load_image(
     let settings = load_settings(app_handle.clone()).unwrap_or_default();
 
     let path_clone = source_path_str.clone();
+    let adjustments_clone = metadata.adjustments.clone();
 
     let cached_data = state
         .decoded_image_cache
@@ -951,9 +978,10 @@ pub async fn load_image(
                             return Err("Load cancelled".to_string());
                         }
 
-                        let img = load_base_image_from_bytes(
+                        let img = load_base_image_for_adjustments(
                             &mmap,
                             &path_clone,
+                            &adjustments_clone,
                             false,
                             &settings,
                             cancel_token.clone(),
@@ -976,9 +1004,10 @@ pub async fn load_image(
                             return Err("Load cancelled".to_string());
                         }
 
-                        let img = load_base_image_from_bytes(
+                        let img = load_base_image_for_adjustments(
                             &bytes,
                             &path_clone,
+                            &adjustments_clone,
                             false,
                             &settings,
                             cancel_token.clone(),
@@ -1031,5 +1060,6 @@ pub async fn load_image(
         exif: exif_data,
         is_raw,
         as_shot_white_balance: as_shot.white_balance,
+        baseline_exposure: as_shot.baseline_exposure,
     })
 }

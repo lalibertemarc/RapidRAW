@@ -1799,7 +1799,7 @@
         "applyPreprocessing": "Použít předběžné zpracování na jiné než RAW",
         "applyPreprocessingDesc": "Je-li povoleno, výše uvedené snížení základního barevného šumu a předostření se použije také na standardní formáty.",
         "baselineExposure": "Základní expozice",
-        "baselineExposureDesc": "Zesvětlí soubory RAW tak, aby odpovídaly zpracování ve fotoaparátu: přidá základ +0,7 EV a expozici, kterou fotoaparát ubral v režimech ochrany světel (např. Fujifilm DR200/DR400, Canon Priorita jasných tónů, Nikon Active D-Lighting). Snímky upravené před zavedením této volby nejsou ovlivněny.",
+        "baselineExposureDesc": "Zesvětlí soubory RAW tak, aby odpovídaly JPEGu z fotoaparátu; měří se podle náhledu vloženého v každém souboru. Soubory bez použitelného náhledu dostanou +0,7 EV. Snímky upravené před zavedením této volby nejsou ovlivněny.",
         "colorNr": "Redukce šumu základní barvy",
         "colorNrDesc": "Aplikuje křížový bilaterální filtr na začátku procesu k odstranění barevného šumu. Vyšší hodnota = silnější redukce šumu.",
         "defaultNonRawTonemapper": "Výchozí Non-RAW Tonemapper",

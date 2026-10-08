@@ -2947,21 +2947,22 @@ pub async fn apply_auto_adjustments_to_paths(
                 let (source_path, sidecar_path) = parse_virtual_path(path);
                 let source_path_str = source_path.to_string_lossy().to_string();
 
-                let file_bytes = fs::read(&source_path).map_err(|e| e.to_string())?;
-                let image = image_loader::load_base_image_from_bytes(
-                    &file_bytes,
-                    &source_path_str,
-                    true,
-                    &settings,
-                    None,
-                )
-                .map_err(|e| e.to_string())?;
-
                 let mut existing_metadata = crate::exif_processing::load_sidecar(&sidecar_path);
 
                 if existing_metadata.adjustments.is_null() {
                     existing_metadata.adjustments = default_adjustments();
                 }
+
+                let file_bytes = fs::read(&source_path).map_err(|e| e.to_string())?;
+                let image = image_loader::load_base_image_for_adjustments(
+                    &file_bytes,
+                    &source_path_str,
+                    &existing_metadata.adjustments,
+                    true,
+                    &settings,
+                    None,
+                )
+                .map_err(|e| e.to_string())?;
 
                 let auto_results = perform_auto_analysis(
                     &image,
