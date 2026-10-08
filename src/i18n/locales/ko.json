@@ -1521,6 +1521,44 @@
     "renameGroup": {
       "placeholder": "새 그룹 이름 입력..."
     },
+    "themeEditor": {
+      "advanced": "모든 색상",
+      "background": "배경",
+      "basics": "기본 색상",
+      "basicsDesc": "세 가지 색상을 고르면 나머지 팔레트가 자동으로 만들어집니다. 이 값을 바꾸면 아래에서 편집한 색상이 대체됩니다.",
+      "buttonContrast": "버튼 대비",
+      "cancel": "취소",
+      "contrastRatio": "{{ratio}}:1",
+      "copied": "테마를 클립보드에 복사했습니다",
+      "copyJson": "테마를 클립보드에 복사",
+      "defaultName": "내 테마",
+      "delete": "삭제",
+      "deleteMessage": "\"{{name}}\" 테마를 삭제할까요? 이 작업은 되돌릴 수 없습니다.",
+      "deleteTitle": "테마 삭제",
+      "name": "이름",
+      "pasteError": "클립보드에 유효한 RapidRAW 테마가 없습니다",
+      "pasteJson": "클립보드에서 테마 붙여넣기",
+      "sample": "Aa",
+      "save": "저장",
+      "startFrom": "기반 테마",
+      "startFromPlaceholder": "테마에서 색상 복사...",
+      "text": "텍스트",
+      "textContrast": "텍스트 대비",
+      "titleEdit": "테마 편집",
+      "titleNew": "테마 만들기",
+      "tokens": {
+        "accent": "강조",
+        "bgPrimary": "기본 배경",
+        "bgSecondary": "패널 배경",
+        "border": "테두리",
+        "buttonText": "버튼 텍스트",
+        "cardActive": "활성 항목",
+        "hover": "마우스 오버 강조",
+        "surface": "표면",
+        "textPrimary": "기본 텍스트",
+        "textSecondary": "보조 텍스트"
+      }
+    },
     "transform": {
       "amount": "양",
       "apply": "적용",
@@ -1952,9 +1990,22 @@
       "title": "특별한 감사"
     },
     "themes": {
+      "copyName": "{{name}} 사본",
+      "customize": "새 테마로 사용자 지정",
       "dark": "다크",
+      "darkroom": "암실",
+      "edit": "테마 편집",
       "grey": "그레이",
-      "light": "라이트"
+      "groups": {
+        "builtin": "RapidRAW",
+        "community": "커뮤니티",
+        "custom": "내 테마",
+        "neutral": "뉴트럴",
+        "vscode": "VS Code"
+      },
+      "light": "라이트",
+      "newTheme": "새 테마",
+      "oledBlack": "OLED 블랙"
     },
     "title": "설정",
     "tooltips": {

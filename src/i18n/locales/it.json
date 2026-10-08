@@ -1555,6 +1555,44 @@
     "renameGroup": {
       "placeholder": "Inserisci nuovo nome gruppo..."
     },
+    "themeEditor": {
+      "advanced": "Tutti i colori",
+      "background": "Sfondo",
+      "basics": "Colori di base",
+      "basicsDesc": "Scegli tre colori e il resto della tavolozza viene ricavato da questi. Modificarne uno sostituisce i colori modificati qui sotto.",
+      "buttonContrast": "Contrasto pulsanti",
+      "cancel": "Annulla",
+      "contrastRatio": "{{ratio}}:1",
+      "copied": "Tema copiato negli appunti",
+      "copyJson": "Copia il tema negli appunti",
+      "defaultName": "Il mio tema",
+      "delete": "Elimina",
+      "deleteMessage": "Eliminare il tema \"{{name}}\"? L’operazione non può essere annullata.",
+      "deleteTitle": "Elimina tema",
+      "name": "Nome",
+      "pasteError": "Gli appunti non contengono un tema RapidRAW valido",
+      "pasteJson": "Incolla il tema dagli appunti",
+      "sample": "Aa",
+      "save": "Salva",
+      "startFrom": "Parti da",
+      "startFromPlaceholder": "Copia i colori da un tema...",
+      "text": "Testo",
+      "textContrast": "Contrasto testo",
+      "titleEdit": "Modifica tema",
+      "titleNew": "Crea tema",
+      "tokens": {
+        "accent": "Accento",
+        "bgPrimary": "Sfondo principale",
+        "bgSecondary": "Sfondo pannelli",
+        "border": "Bordo",
+        "buttonText": "Testo pulsanti",
+        "cardActive": "Elemento attivo",
+        "hover": "Evidenziazione al passaggio",
+        "surface": "Superficie",
+        "textPrimary": "Testo principale",
+        "textSecondary": "Testo secondario"
+      }
+    },
     "transform": {
       "amount": "Quantità",
       "apply": "Applica",
@@ -1989,9 +2027,22 @@
       "title": "Ringraziamenti Speciali"
     },
     "themes": {
+      "copyName": "{{name}} (copia)",
+      "customize": "Personalizza come nuovo tema",
       "dark": "Scuro",
+      "darkroom": "Camera oscura",
+      "edit": "Modifica tema",
       "grey": "Grigio",
-      "light": "Chiaro"
+      "groups": {
+        "builtin": "RapidRAW",
+        "community": "Community",
+        "custom": "I tuoi temi",
+        "neutral": "Neutri",
+        "vscode": "VS Code"
+      },
+      "light": "Chiaro",
+      "newTheme": "Nuovo tema",
+      "oledBlack": "Nero OLED"
     },
     "title": "Impostazioni",
     "tooltips": {

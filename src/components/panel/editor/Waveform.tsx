@@ -4,6 +4,7 @@ import { AlertOctagon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { WaveformData } from '../../ui/AppProperties';
 import { DisplayMode } from '../../../utils/adjustments';
+import { useActiveTheme } from '../../../hooks/useActiveTheme';
 
 interface WaveformProps {
   waveformData: WaveformData | null;
@@ -12,7 +13,6 @@ interface WaveformProps {
   setDisplayMode: (mode: string) => void;
   showClipping?: boolean;
   onToggleClipping?: () => void;
-  theme?: string;
 }
 
 const modeButtons = [
@@ -455,13 +455,12 @@ export default function Waveform({
   setDisplayMode,
   showClipping,
   onToggleClipping,
-  theme,
 }: WaveformProps) {
   const { t } = useTranslation();
   const [isHovered, setIsHovered] = useState(false);
   const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const isLightTheme = theme ? ['light', 'snow', 'arctic'].includes(theme) : false;
+  const { isLight: isLightTheme } = useActiveTheme();
   const isHistogram = displayMode === DisplayMode.Histogram;
   const isVectorscope = displayMode === DisplayMode.Vectorscope;
   const isReady = isHistogram ? !!(histogram && histogram.red) : !!waveformData;

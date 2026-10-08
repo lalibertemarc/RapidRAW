@@ -1589,6 +1589,44 @@
     "renameGroup": {
       "placeholder": "Введите новое название группы..."
     },
+    "themeEditor": {
+      "advanced": "Все цвета",
+      "background": "Фон",
+      "basics": "Основные цвета",
+      "basicsDesc": "Выберите три цвета, остальная палитра будет рассчитана по ним. Изменение одного из них заменяет цвета, отредактированные ниже.",
+      "buttonContrast": "Контраст кнопок",
+      "cancel": "Отмена",
+      "contrastRatio": "{{ratio}}:1",
+      "copied": "Тема скопирована в буфер обмена",
+      "copyJson": "Копировать тему в буфер обмена",
+      "defaultName": "Моя тема",
+      "delete": "Удалить",
+      "deleteMessage": "Удалить тему «{{name}}»? Это действие нельзя отменить.",
+      "deleteTitle": "Удалить тему",
+      "name": "Название",
+      "pasteError": "Буфер обмена не содержит корректной темы RapidRAW",
+      "pasteJson": "Вставить тему из буфера обмена",
+      "sample": "Aa",
+      "save": "Сохранить",
+      "startFrom": "На основе",
+      "startFromPlaceholder": "Взять цвета из темы...",
+      "text": "Текст",
+      "textContrast": "Контраст текста",
+      "titleEdit": "Изменить тему",
+      "titleNew": "Создать тему",
+      "tokens": {
+        "accent": "Акцент",
+        "bgPrimary": "Основной фон",
+        "bgSecondary": "Фон панелей",
+        "border": "Граница",
+        "buttonText": "Текст кнопок",
+        "cardActive": "Активный элемент",
+        "hover": "Подсветка при наведении",
+        "surface": "Поверхность",
+        "textPrimary": "Основной текст",
+        "textSecondary": "Дополнительный текст"
+      }
+    },
     "transform": {
       "amount": "Величина",
       "apply": "Применить",
@@ -2026,9 +2064,22 @@
       "title": "Выражение благодарности"
     },
     "themes": {
+      "copyName": "{{name}} (копия)",
+      "customize": "Настроить как новую тему",
       "dark": "Темная",
+      "darkroom": "Фотолаборатория",
+      "edit": "Изменить тему",
       "grey": "Серая",
-      "light": "Светлая"
+      "groups": {
+        "builtin": "RapidRAW",
+        "community": "Сообщество",
+        "custom": "Ваши темы",
+        "neutral": "Нейтральные",
+        "vscode": "VS Code"
+      },
+      "light": "Светлая",
+      "newTheme": "Новая тема",
+      "oledBlack": "Чёрная OLED"
     },
     "title": "Настройки",
     "tooltips": {

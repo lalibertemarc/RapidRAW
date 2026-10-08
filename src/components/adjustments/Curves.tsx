@@ -11,7 +11,8 @@ import {
   ParametricCurveSettings,
   getDefaultCurves,
 } from '../../utils/adjustments';
-import { Theme, OPTION_SEPARATOR } from '../ui/AppProperties';
+import { OPTION_SEPARATOR } from '../ui/AppProperties';
+import { useActiveTheme } from '../../hooks/useActiveTheme';
 import { useContextMenu } from '../../context/ContextMenuContext';
 import Text from '../ui/Text';
 import Slider from '../ui/Slider';
@@ -38,7 +39,6 @@ interface CurveGraphProps {
   histogram: ChannelConfig | null;
   isForMask?: boolean;
   setAdjustments(updater: (prev: any) => any): void;
-  theme: string;
   onDragStateChange?: (isDragging: boolean) => void;
 }
 
@@ -245,7 +245,6 @@ export default function CurveGraph({
   adjustments,
   setAdjustments,
   histogram,
-  theme,
   onDragStateChange,
 }: CurveGraphProps) {
   const { t } = useTranslation();
@@ -474,8 +473,8 @@ export default function CurveGraph({
     };
   }, [draggingPointIndex, draggingSplitKey, isParametricMode]);
 
-  const isLightTheme = theme === Theme.Light || theme === Theme.Arctic;
-  const histogramOpacity = isLightTheme ? 0.6 : 0.15;
+  const { isLight } = useActiveTheme();
+  const histogramOpacity = isLight ? 0.6 : 0.15;
 
   const channelConfig: ChannelConfig = useMemo(
     () => ({

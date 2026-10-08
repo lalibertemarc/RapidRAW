@@ -1521,6 +1521,44 @@
     "renameGroup": {
       "placeholder": "输入新的组名称..."
     },
+    "themeEditor": {
+      "advanced": "全部颜色",
+      "background": "背景",
+      "basics": "基础颜色",
+      "basicsDesc": "选择三种颜色，其余调色板会自动生成。修改这些颜色会覆盖下方已编辑的颜色。",
+      "buttonContrast": "按钮对比度",
+      "cancel": "取消",
+      "contrastRatio": "{{ratio}}:1",
+      "copied": "主题已复制到剪贴板",
+      "copyJson": "将主题复制到剪贴板",
+      "defaultName": "我的主题",
+      "delete": "删除",
+      "deleteMessage": "删除主题“{{name}}”？此操作无法撤销。",
+      "deleteTitle": "删除主题",
+      "name": "名称",
+      "pasteError": "剪贴板中没有有效的 RapidRAW 主题",
+      "pasteJson": "从剪贴板粘贴主题",
+      "sample": "Aa",
+      "save": "保存",
+      "startFrom": "基于",
+      "startFromPlaceholder": "从主题复制颜色...",
+      "text": "文字",
+      "textContrast": "文字对比度",
+      "titleEdit": "编辑主题",
+      "titleNew": "创建主题",
+      "tokens": {
+        "accent": "强调色",
+        "bgPrimary": "主背景",
+        "bgSecondary": "面板背景",
+        "border": "边框",
+        "buttonText": "按钮文字",
+        "cardActive": "选中项",
+        "hover": "悬停高亮",
+        "surface": "表面",
+        "textPrimary": "主要文字",
+        "textSecondary": "次要文字"
+      }
+    },
     "transform": {
       "amount": "数量",
       "apply": "应用",
@@ -1952,9 +1990,22 @@
       "title": "特别鸣谢"
     },
     "themes": {
+      "copyName": "{{name}} 副本",
+      "customize": "基于此主题自定义",
       "dark": "深色",
+      "darkroom": "暗房",
+      "edit": "编辑主题",
       "grey": "灰色",
-      "light": "浅色"
+      "groups": {
+        "builtin": "RapidRAW",
+        "community": "社区",
+        "custom": "我的主题",
+        "neutral": "中性",
+        "vscode": "VS Code"
+      },
+      "light": "浅色",
+      "newTheme": "新建主题",
+      "oledBlack": "OLED 纯黑"
     },
     "title": "设置",
     "tooltips": {

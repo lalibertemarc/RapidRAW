@@ -85,6 +85,13 @@ pub struct CustomAspectRatio {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub struct CustomTheme {
+    pub id: String,
+    pub name: String,
+    pub colors: BTreeMap<String, String>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub enum PasteMode {
     Merge,
@@ -600,6 +607,8 @@ pub struct AppSettings {
     #[serde(default)]
     pub custom_aspect_ratios: Vec<CustomAspectRatio>,
     #[serde(default)]
+    pub custom_themes: Vec<CustomTheme>,
+    #[serde(default)]
     pub adjustment_layout: AdjustmentLayout,
     #[serde(default)]
     pub workspace: WorkspaceState,
@@ -700,6 +709,7 @@ impl Default for AppSettings {
             group_preferred_type: Some("raw".to_string()),
             always_decode_raw_thumbnails: Some(false),
             custom_aspect_ratios: Vec::new(),
+            custom_themes: Vec::new(),
             adjustment_layout: AdjustmentLayout::default(),
             workspace: WorkspaceState::default(),
         }

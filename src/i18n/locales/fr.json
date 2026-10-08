@@ -1555,6 +1555,44 @@
     "renameGroup": {
       "placeholder": "Saisir le nouveau nom du groupe..."
     },
+    "themeEditor": {
+      "advanced": "Toutes les couleurs",
+      "background": "Arrière-plan",
+      "basics": "Couleurs de base",
+      "basicsDesc": "Choisissez trois couleurs, le reste de la palette en est dérivé. Modifier l’une d’elles remplace les couleurs modifiées plus bas.",
+      "buttonContrast": "Contraste des boutons",
+      "cancel": "Annuler",
+      "contrastRatio": "{{ratio}}:1",
+      "copied": "Thème copié dans le presse-papiers",
+      "copyJson": "Copier le thème dans le presse-papiers",
+      "defaultName": "Mon thème",
+      "delete": "Supprimer",
+      "deleteMessage": "Supprimer le thème « {{name}} » ? Cette action est irréversible.",
+      "deleteTitle": "Supprimer le thème",
+      "name": "Nom",
+      "pasteError": "Le presse-papiers ne contient pas de thème RapidRAW valide",
+      "pasteJson": "Coller le thème depuis le presse-papiers",
+      "sample": "Aa",
+      "save": "Enregistrer",
+      "startFrom": "Partir de",
+      "startFromPlaceholder": "Copier les couleurs d’un thème...",
+      "text": "Texte",
+      "textContrast": "Contraste du texte",
+      "titleEdit": "Modifier le thème",
+      "titleNew": "Créer un thème",
+      "tokens": {
+        "accent": "Accent",
+        "bgPrimary": "Arrière-plan principal",
+        "bgSecondary": "Arrière-plan des panneaux",
+        "border": "Bordure",
+        "buttonText": "Texte des boutons",
+        "cardActive": "Élément actif",
+        "hover": "Surbrillance au survol",
+        "surface": "Surface",
+        "textPrimary": "Texte principal",
+        "textSecondary": "Texte secondaire"
+      }
+    },
     "transform": {
       "amount": "Quantité",
       "apply": "Appliquer",
@@ -1989,9 +2027,22 @@
       "title": "Remerciements spéciaux"
     },
     "themes": {
+      "copyName": "{{name}} (copie)",
+      "customize": "Personnaliser comme nouveau thème",
       "dark": "Sombre",
+      "darkroom": "Chambre noire",
+      "edit": "Modifier le thème",
       "grey": "Gris",
-      "light": "Clair"
+      "groups": {
+        "builtin": "RapidRAW",
+        "community": "Communauté",
+        "custom": "Vos thèmes",
+        "neutral": "Neutres",
+        "vscode": "VS Code"
+      },
+      "light": "Clair",
+      "newTheme": "Nouveau thème",
+      "oledBlack": "Noir OLED"
     },
     "title": "Paramètres",
     "tooltips": {

@@ -34,7 +34,7 @@ import Dropdown, { OptionItem } from '../ui/Dropdown';
 import Switch from '../ui/Switch';
 import Input from '../ui/Input';
 import Slider from '../ui/Slider';
-import { ThemeProps, THEMES, DEFAULT_THEME_ID } from '../../utils/themes';
+import ThemePicker from '../ui/ThemePicker';
 import { useTranslation } from 'react-i18next';
 import { Invokes } from '../ui/AppProperties';
 import {
@@ -1147,15 +1147,7 @@ export default function SettingsPanel({
                     </Text>
                     <div className="space-y-8">
                       <SettingItem label={t('settings.general.theme')} description={t('settings.general.themeDesc')}>
-                        <Dropdown
-                          onChange={(value: any) => onSettingsChange({ ...appSettings, theme: value })}
-                          options={THEMES.map((theme: ThemeProps) => ({
-                            value: theme.id,
-                            label: t(theme.name as any),
-                          }))}
-                          value={appSettings?.theme || DEFAULT_THEME_ID}
-                          triggerClassName="bg-bg-primary"
-                        />
+                        <ThemePicker appSettings={appSettings} onSettingsChange={onSettingsChange} />
                       </SettingItem>
 
                       <SettingItem label={t('settings.language')} description={t('settings.languageDesc')}>

@@ -1589,6 +1589,44 @@
     "renameGroup": {
       "placeholder": "Wpisz nową nazwę grupy..."
     },
+    "themeEditor": {
+      "advanced": "Wszystkie kolory",
+      "background": "Tło",
+      "basics": "Kolory bazowe",
+      "basicsDesc": "Wybierz trzy kolory, a reszta palety zostanie z nich wyliczona. Zmiana któregoś z nich zastępuje kolory edytowane poniżej.",
+      "buttonContrast": "Kontrast przycisków",
+      "cancel": "Anuluj",
+      "contrastRatio": "{{ratio}}:1",
+      "copied": "Skopiowano motyw do schowka",
+      "copyJson": "Kopiuj motyw do schowka",
+      "defaultName": "Mój motyw",
+      "delete": "Usuń",
+      "deleteMessage": "Usunąć motyw „{{name}}”? Tej operacji nie można cofnąć.",
+      "deleteTitle": "Usuń motyw",
+      "name": "Nazwa",
+      "pasteError": "Schowek nie zawiera prawidłowego motywu RapidRAW",
+      "pasteJson": "Wklej motyw ze schowka",
+      "sample": "Aa",
+      "save": "Zapisz",
+      "startFrom": "Na podstawie",
+      "startFromPlaceholder": "Skopiuj kolory z motywu...",
+      "text": "Tekst",
+      "textContrast": "Kontrast tekstu",
+      "titleEdit": "Edytuj motyw",
+      "titleNew": "Utwórz motyw",
+      "tokens": {
+        "accent": "Akcent",
+        "bgPrimary": "Tło główne",
+        "bgSecondary": "Tło paneli",
+        "border": "Obramowanie",
+        "buttonText": "Tekst przycisków",
+        "cardActive": "Aktywny element",
+        "hover": "Podświetlenie po najechaniu",
+        "surface": "Powierzchnia",
+        "textPrimary": "Tekst główny",
+        "textSecondary": "Tekst pomocniczy"
+      }
+    },
     "transform": {
       "amount": "Ilość",
       "apply": "Zastosuj",
@@ -2026,9 +2064,22 @@
       "title": "Szczególne podziękowania"
     },
     "themes": {
+      "copyName": "{{name}} (kopia)",
+      "customize": "Dostosuj jako nowy motyw",
       "dark": "Ciemny",
+      "darkroom": "Ciemnia",
+      "edit": "Edytuj motyw",
       "grey": "Szary",
-      "light": "Jasny"
+      "groups": {
+        "builtin": "RapidRAW",
+        "community": "Społeczność",
+        "custom": "Twoje motywy",
+        "neutral": "Neutralne",
+        "vscode": "VS Code"
+      },
+      "light": "Jasny",
+      "newTheme": "Nowy motyw",
+      "oledBlack": "Czerń OLED"
     },
     "title": "Ustawienia",
     "tooltips": {

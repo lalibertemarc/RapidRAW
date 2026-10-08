@@ -1521,6 +1521,44 @@
     "renameGroup": {
       "placeholder": "新しいグループ名を入力..."
     },
+    "themeEditor": {
+      "advanced": "すべての色",
+      "background": "背景",
+      "basics": "基本色",
+      "basicsDesc": "3 つの色を選ぶと、残りのパレットが自動で作られます。ここを変更すると、下で編集した色は置き換えられます。",
+      "buttonContrast": "ボタンのコントラスト",
+      "cancel": "キャンセル",
+      "contrastRatio": "{{ratio}}:1",
+      "copied": "テーマをクリップボードにコピーしました",
+      "copyJson": "テーマをクリップボードにコピー",
+      "defaultName": "マイテーマ",
+      "delete": "削除",
+      "deleteMessage": "テーマ「{{name}}」を削除しますか？この操作は元に戻せません。",
+      "deleteTitle": "テーマを削除",
+      "name": "名前",
+      "pasteError": "クリップボードに有効な RapidRAW テーマがありません",
+      "pasteJson": "クリップボードからテーマを貼り付け",
+      "sample": "Aa",
+      "save": "保存",
+      "startFrom": "元にするテーマ",
+      "startFromPlaceholder": "テーマから色をコピー...",
+      "text": "テキスト",
+      "textContrast": "テキストのコントラスト",
+      "titleEdit": "テーマを編集",
+      "titleNew": "テーマを作成",
+      "tokens": {
+        "accent": "アクセント",
+        "bgPrimary": "メイン背景",
+        "bgSecondary": "パネル背景",
+        "border": "境界線",
+        "buttonText": "ボタンのテキスト",
+        "cardActive": "アクティブな項目",
+        "hover": "ホバー時のハイライト",
+        "surface": "サーフェス",
+        "textPrimary": "メインテキスト",
+        "textSecondary": "サブテキスト"
+      }
+    },
     "transform": {
       "amount": "適用量",
       "apply": "適用",
@@ -1952,9 +1990,22 @@
       "title": "特別な謝辞"
     },
     "themes": {
+      "copyName": "{{name}} のコピー",
+      "customize": "新しいテーマとしてカスタマイズ",
       "dark": "ダーク",
+      "darkroom": "暗室",
+      "edit": "テーマを編集",
       "grey": "グレー",
-      "light": "ライト"
+      "groups": {
+        "builtin": "RapidRAW",
+        "community": "コミュニティ",
+        "custom": "マイテーマ",
+        "neutral": "ニュートラル",
+        "vscode": "VS Code"
+      },
+      "light": "ライト",
+      "newTheme": "新しいテーマ",
+      "oledBlack": "OLED ブラック"
     },
     "title": "設定",
     "tooltips": {

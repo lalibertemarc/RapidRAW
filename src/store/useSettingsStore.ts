@@ -2,11 +2,12 @@ import { create } from 'zustand';
 import { invoke } from '@tauri-apps/api/core';
 import { platform } from '@tauri-apps/plugin-os';
 import { AppSettings, SupportedTypes, Invokes } from '../components/ui/AppProperties';
-import { DEFAULT_THEME_ID } from '../utils/themes';
+import { DEFAULT_THEME_ID, ThemeColors } from '../utils/themes';
 
 interface SettingsState {
   appSettings: AppSettings | null;
   theme: string;
+  themePreview: ThemeColors | null;
   supportedTypes: SupportedTypes | null;
   osPlatform: string;
 
@@ -14,6 +15,7 @@ interface SettingsState {
   initPlatform: () => void;
   setAppSettings: (settings: AppSettings | null) => void;
   setTheme: (theme: string) => void;
+  setThemePreview: (colors: ThemeColors | null) => void;
   setSupportedTypes: (types: SupportedTypes | null) => void;
   handleSettingsChange: (newSettings: AppSettings) => Promise<void>;
 }
@@ -21,6 +23,7 @@ interface SettingsState {
 export const useSettingsStore = create<SettingsState>((set, get) => ({
   appSettings: null,
   theme: DEFAULT_THEME_ID,
+  themePreview: null,
   supportedTypes: null,
   osPlatform: '',
 
@@ -35,6 +38,8 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   setAppSettings: (settings) => set({ appSettings: settings }),
 
   setTheme: (theme) => set({ theme }),
+
+  setThemePreview: (colors) => set({ themePreview: colors }),
 
   setSupportedTypes: (types) => set({ supportedTypes: types }),
 

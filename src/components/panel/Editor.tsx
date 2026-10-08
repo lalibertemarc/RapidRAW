@@ -27,6 +27,7 @@ import { useUIStore } from '../../store/useUIStore';
 import { useLibraryStore } from '../../store/useLibraryStore';
 import { useAiMasking } from '../../hooks/useAiMasking';
 import { useEditorActions } from '../../hooks/useEditorActions';
+import { useActiveTheme } from '../../hooks/useActiveTheme';
 
 const parseRgb = (rgbStr: string): [number, number, number, number] => {
   const match = rgbStr.match(/[\d.]+/g);
@@ -1392,6 +1393,7 @@ export default function Editor({ onBackToLibrary, onContextMenu, onImageSelect, 
     croppedDimensionsRef.current = croppedDimensions;
   }, [croppedDimensions]);
 
+  const { colors: themeColors } = useActiveTheme();
   const wgpuStateRef = useRef<WgpuRenderState>({
     useWgpuRenderer: appSettings?.useWgpuRenderer,
     isReady: selectedImage?.isReady ?? false,
@@ -1405,9 +1407,6 @@ export default function Editor({ onBackToLibrary, onContextMenu, onImageSelect, 
   const syncWgpuRef = useRef<() => void>(() => {});
 
   useEffect(() => {
-    const rootStyle = getComputedStyle(document.documentElement);
-    const bgPrimaryStr = rootStyle.getPropertyValue('--app-bg-primary') || 'rgb(24, 24, 24)';
-    const bgSecondaryStr = rootStyle.getPropertyValue('--app-bg-secondary') || 'rgb(35, 35, 35)';
     const isNeutralGrey = appSettings?.editorNeutralGreyBg ?? false;
 
     wgpuStateRef.current = {
@@ -1417,8 +1416,8 @@ export default function Editor({ onBackToLibrary, onContextMenu, onImageSelect, 
       isCropping,
       uncroppedAdjustedPreviewUrl,
       showOriginal,
-      bgPrimary: parseRgb(bgPrimaryStr),
-      bgSecondary: isNeutralGrey ? NEUTRAL_GREY_RGB : parseRgb(bgSecondaryStr),
+      bgPrimary: parseRgb(themeColors['--app-bg-primary']),
+      bgSecondary: isNeutralGrey ? NEUTRAL_GREY_RGB : parseRgb(themeColors['--app-bg-secondary']),
     };
   }, [
     appSettings?.useWgpuRenderer,
@@ -1428,7 +1427,7 @@ export default function Editor({ onBackToLibrary, onContextMenu, onImageSelect, 
     isCropping,
     uncroppedAdjustedPreviewUrl,
     showOriginal,
-    appSettings?.theme,
+    themeColors,
     finalPreviewUrl,
   ]);
 
@@ -1442,7 +1441,7 @@ export default function Editor({ onBackToLibrary, onContextMenu, onImageSelect, 
     isCropping,
     uncroppedAdjustedPreviewUrl,
     showOriginal,
-    appSettings?.theme,
+    themeColors,
     finalPreviewUrl,
     transformState,
     imageRenderSize,

@@ -1522,6 +1522,44 @@
     "renameGroup": {
       "placeholder": "Zadejte nový název skupiny..."
     },
+    "themeEditor": {
+      "advanced": "Všechny barvy",
+      "background": "Pozadí",
+      "basics": "Základní barvy",
+      "basicsDesc": "Vyberte tři barvy a zbytek palety se z nich odvodí. Změna některé z nich přepíše barvy upravené níže.",
+      "buttonContrast": "Kontrast tlačítek",
+      "cancel": "Zrušit",
+      "contrastRatio": "{{ratio}}:1",
+      "copied": "Motiv zkopírován do schránky",
+      "copyJson": "Kopírovat motiv do schránky",
+      "defaultName": "Můj motiv",
+      "delete": "Smazat",
+      "deleteMessage": "Smazat motiv „{{name}}“? Tuto akci nelze vrátit.",
+      "deleteTitle": "Smazat motiv",
+      "name": "Název",
+      "pasteError": "Schránka neobsahuje platný motiv RapidRAW",
+      "pasteJson": "Vložit motiv ze schránky",
+      "sample": "Aa",
+      "save": "Uložit",
+      "startFrom": "Vycházet z",
+      "startFromPlaceholder": "Převzít barvy z motivu...",
+      "text": "Text",
+      "textContrast": "Kontrast textu",
+      "titleEdit": "Upravit motiv",
+      "titleNew": "Vytvořit motiv",
+      "tokens": {
+        "accent": "Zvýraznění",
+        "bgPrimary": "Hlavní pozadí",
+        "bgSecondary": "Pozadí panelů",
+        "border": "Okraj",
+        "buttonText": "Text tlačítek",
+        "cardActive": "Aktivní položka",
+        "hover": "Zvýraznění při najetí",
+        "surface": "Povrch",
+        "textPrimary": "Hlavní text",
+        "textSecondary": "Vedlejší text"
+      }
+    },
     "transform": {
       "amount": "Míra",
       "apply": "Použít",
@@ -1953,9 +1991,22 @@
       "title": "Zvláštní poděkování"
     },
     "themes": {
+      "copyName": "{{name}} (kopie)",
+      "customize": "Upravit jako nový motiv",
       "dark": "Tmavý",
+      "darkroom": "Temná komora",
+      "edit": "Upravit motiv",
       "grey": "Šedý",
-      "light": "Světlý"
+      "groups": {
+        "builtin": "RapidRAW",
+        "community": "Komunita",
+        "custom": "Vaše motivy",
+        "neutral": "Neutrální",
+        "vscode": "VS Code"
+      },
+      "light": "Světlý",
+      "newTheme": "Nový motiv",
+      "oledBlack": "OLED černý"
     },
     "title": "Nastavení",
     "tooltips": {

@@ -37,12 +37,7 @@ export default function Controls() {
     useWaveformControls();
   const { setAdjustments, handleAutoAdjustments, handleLutSelect, setLutPreviewOverride } = useEditorActions();
 
-  const { appSettings, theme } = useSettingsStore(
-    useShallow((state) => ({
-      appSettings: state.appSettings,
-      theme: state.theme,
-    })),
-  );
+  const appSettings = useSettingsStore((state) => state.appSettings);
 
   const visibleSections = getVisibleAdjustmentSections(appSettings?.adjustmentLayout);
 
@@ -278,7 +273,6 @@ export default function Controls() {
                     showClipping: !prev.showClipping,
                   }));
                 }}
-                theme={theme}
               />
             </div>
             <Resizer direction={Orientation.Horizontal} onMouseDown={handleWaveformResize} />
@@ -314,7 +308,6 @@ export default function Controls() {
                     adjustments={adjustments}
                     setAdjustments={setAdjustments}
                     histogram={histogram}
-                    theme={theme}
                     handleLutSelect={handleLutSelect}
                     onLutHover={setLutPreviewOverride}
                     appSettings={appSettings}

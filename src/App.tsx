@@ -62,6 +62,7 @@ import { useProductivityActions } from './hooks/useProductivityActions';
 
 import { useAppInitialization } from './hooks/useAppInitialization';
 import { useAndroidBackHandler } from './hooks/useAndroidBackHandler';
+import { useActiveTheme } from './hooks/useActiveTheme';
 import './i18n';
 
 import {
@@ -70,7 +71,6 @@ import {
   LibraryViewMode,
   Panel,
   PanelRegion,
-  Theme,
   ThumbnailSize,
   ThumbnailAspectRatio,
 } from './components/ui/AppProperties';
@@ -141,10 +141,9 @@ function ImageDragOverlayNode({ activeItem }: { activeItem: { path: string; path
 function App() {
   const [activeImageDragItem, setActiveImageDragItem] = useState<{ path: string; paths: string[] } | null>(null);
 
-  const { appSettings, theme, osPlatform, handleSettingsChange } = useSettingsStore(
+  const { appSettings, osPlatform, handleSettingsChange } = useSettingsStore(
     useShallow((state) => ({
       appSettings: state.appSettings,
-      theme: state.theme,
       osPlatform: state.osPlatform,
       handleSettingsChange: state.handleSettingsChange,
     })),
@@ -512,7 +511,7 @@ function App() {
     return () => window.removeEventListener('contextmenu', handleGlobalContextMenu);
   }, []);
 
-  const isLightTheme = useMemo(() => [Theme.Light, Theme.Snow, Theme.Arctic].includes(theme as Theme), [theme]);
+  const { isLight: isLightTheme } = useActiveTheme();
 
   useEffect(() => {
     if (
