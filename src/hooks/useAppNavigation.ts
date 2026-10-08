@@ -239,6 +239,7 @@ export function useAppNavigation({ clearThumbnailQueue, refs }: AppNavigationPro
             isBackendReadyRef.current = true;
             currentResRef.current = 0;
             setEditor({ originalSize: { width: _result.width, height: _result.height } });
+            useEditorStore.getState().pinBaselineExposure(_result.metadata?.adjustments?.baselineExposure);
           })
           .catch((err: any) => {
             if (String(err).includes('cancelled')) return;

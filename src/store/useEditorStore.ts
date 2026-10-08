@@ -86,6 +86,7 @@ interface EditorState {
   redo: () => void;
   resetHistory: (initialState: Adjustments) => void;
   goToHistoryIndex: (index: number) => void;
+  pinBaselineExposure: (baselineExposure?: boolean | number) => void;
 }
 
 export const useEditorStore = create<EditorState>((set) => ({
@@ -178,5 +179,13 @@ export const useEditorStore = create<EditorState>((set) => ({
         return { historyIndex: index, adjustments: state.history[index] };
       }
       return state;
+    }),
+
+  pinBaselineExposure: (baselineExposure) =>
+    set((state) => {
+      if (typeof baselineExposure !== 'number') return state;
+      const pin = (adjustments: Adjustments) =>
+        adjustments.baselineExposure === true ? { ...adjustments, baselineExposure } : adjustments;
+      return { adjustments: pin(state.adjustments), history: state.history.map(pin) };
     }),
 }));

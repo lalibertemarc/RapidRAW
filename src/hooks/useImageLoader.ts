@@ -102,6 +102,8 @@ export function useImageLoader(cachedEditStateRef: React.RefObject<any>) {
             }
             return state;
           });
+
+          useEditorStore.getState().pinBaselineExposure(loadImageResult.metadata?.adjustments?.baselineExposure);
         } catch (err) {
           if (isEffectActive) {
             console.error('Failed to load image:', err);

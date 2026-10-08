@@ -178,7 +178,7 @@ export interface Adjustments {
   [index: string]: any;
   aiPatches: Array<AiPatch>;
   aspectRatio: number | null;
-  baselineExposure: boolean;
+  baselineExposure: boolean | number;
   blacks: number;
   brightness: number;
   centré: number;
