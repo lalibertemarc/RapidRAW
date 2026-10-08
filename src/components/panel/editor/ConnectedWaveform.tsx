@@ -7,10 +7,9 @@ import { useEditorStore } from '../../../store/useEditorStore';
 interface ConnectedWaveformProps {
   setDisplayMode(mode: string): void;
   setAdjustments(value: (prev: Adjustments) => Adjustments): void;
-  theme?: string;
 }
 
-export default function ConnectedWaveform({ setDisplayMode, setAdjustments, theme }: ConnectedWaveformProps) {
+export default function ConnectedWaveform({ setDisplayMode, setAdjustments }: ConnectedWaveformProps) {
   const { hasWaveform, hasHistogram, activeWaveformChannel, showClipping } = useEditorStore(
     useShallow((state) => ({
       hasWaveform: !!state.waveform,
@@ -35,7 +34,6 @@ export default function ConnectedWaveform({ setDisplayMode, setAdjustments, them
       setDisplayMode={setDisplayMode}
       showClipping={showClipping}
       onToggleClipping={onToggleClipping}
-      theme={theme}
     />
   );
 }

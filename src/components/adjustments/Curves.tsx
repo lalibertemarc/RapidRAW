@@ -11,7 +11,8 @@ import {
   ParametricCurveSettings,
   getDefaultCurves,
 } from '../../utils/adjustments';
-import { Theme, OPTION_SEPARATOR } from '../ui/AppProperties';
+import { OPTION_SEPARATOR } from '../ui/AppProperties';
+import { useActiveTheme } from '../../hooks/useActiveTheme';
 import { useContextMenu } from '../../context/ContextMenuContext';
 import Text from '../ui/Text';
 import Slider from '../ui/Slider';
@@ -39,7 +40,6 @@ interface CurveGraphProps {
   adjustments: Adjustments | any;
   isForMask?: boolean;
   setAdjustments(updater: (prev: any) => any): void;
-  theme: string;
   onDragStateChange?: (isDragging: boolean) => void;
 }
 
@@ -277,7 +277,7 @@ const MIN_POINT_GAP_X = 1;
 const hasFineAdjustmentModifier = (event: MouseEvent | TouchEvent | React.MouseEvent | React.TouchEvent) =>
   'shiftKey' in event && (event.shiftKey || event.altKey);
 
-function CurveGraph({ adjustments, setAdjustments, theme, onDragStateChange }: CurveGraphProps) {
+function CurveGraph({ adjustments, setAdjustments, onDragStateChange }: CurveGraphProps) {
   const { t } = useTranslation();
   const { showContextMenu } = useContextMenu();
   const [curveMode, setCurveMode] = useState<'point' | 'parametric'>(adjustments.curveMode || 'point');
@@ -504,8 +504,8 @@ function CurveGraph({ adjustments, setAdjustments, theme, onDragStateChange }: C
     };
   }, [draggingPointIndex, draggingSplitKey, isParametricMode]);
 
-  const isLightTheme = theme === Theme.Light || theme === Theme.Arctic;
-  const histogramOpacity = isLightTheme ? 0.6 : 0.15;
+  const { isLight } = useActiveTheme();
+  const histogramOpacity = isLight ? 0.6 : 0.15;
 
   const inactiveChannels = (Object.keys(CHANNEL_COLORS) as Array<ActiveChannel>).filter(
     (channel) => channel !== activeChannel,

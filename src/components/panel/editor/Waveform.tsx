@@ -3,6 +3,7 @@ import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import { AlertOctagon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { DisplayMode } from '../../../utils/adjustments';
+import { useActiveTheme } from '../../../hooks/useActiveTheme';
 import { useEditorStore } from '../../../store/useEditorStore';
 
 interface WaveformProps {
@@ -12,7 +13,6 @@ interface WaveformProps {
   setDisplayMode: (mode: string) => void;
   showClipping?: boolean;
   onToggleClipping?: () => void;
-  theme?: string;
 }
 
 const modeButtons = [
@@ -445,13 +445,12 @@ function Waveform({
   setDisplayMode,
   showClipping,
   onToggleClipping,
-  theme,
 }: WaveformProps) {
   const { t } = useTranslation();
   const [isHovered, setIsHovered] = useState(false);
   const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const isLightTheme = theme ? ['light', 'snow', 'arctic'].includes(theme) : false;
+  const { isLight: isLightTheme } = useActiveTheme();
   const isHistogram = displayMode === DisplayMode.Histogram;
   const isVectorscope = displayMode === DisplayMode.Vectorscope;
   const isReady = isHistogram ? hasHistogram : hasWaveform;

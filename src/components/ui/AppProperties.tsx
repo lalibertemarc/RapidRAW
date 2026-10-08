@@ -3,6 +3,7 @@ import { Adjustments, CopyPasteSettings } from '../../utils/adjustments';
 import { ToolType } from '../panel/right/Masks';
 import type { WhiteBalance, WhiteBalanceMode } from '../../utils/whiteBalance';
 import type { ImmichSettings } from '../immich/immichApi';
+import type { CustomTheme } from '../../utils/themes';
 
 export const GLOBAL_KEYS = [
   ' ',
@@ -188,14 +189,9 @@ export interface FolderTreeSort {
 }
 
 export enum Theme {
-  Arctic = 'arctic',
-  Blue = 'blue',
   Dark = 'dark',
   Grey = 'grey',
   Light = 'light',
-  MutedGreen = 'muted-green',
-  Sepia = 'sepia',
-  Snow = 'snow',
 }
 
 export enum ThumbnailAspectRatio {
@@ -264,7 +260,8 @@ export interface AppSettings {
   rootFolders?: string[];
   libraryViewMode?: LibraryViewMode;
   sortCriteria?: SortCriteria;
-  theme: Theme;
+  theme: string;
+  customThemes?: CustomTheme[];
   thumbnailSize?: ThumbnailSize;
   thumbnailAspectRatio?: ThumbnailAspectRatio;
   uiVisibility?: UiVisibility;

@@ -105,6 +105,13 @@ pub struct EditInApp {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub struct CustomTheme {
+    pub id: String,
+    pub name: String,
+    pub colors: BTreeMap<String, String>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub enum PasteMode {
     Merge,
@@ -714,6 +721,8 @@ pub struct AppSettings {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub edit_in_apps: Vec<EditInApp>,
     #[serde(default)]
+    pub custom_themes: Vec<CustomTheme>,
+    #[serde(default)]
     pub adjustment_layout: AdjustmentLayout,
     #[serde(default)]
     pub workspace: WorkspaceState,
@@ -863,6 +872,7 @@ impl Default for AppSettings {
             always_decode_raw_thumbnails: Some(false),
             custom_aspect_ratios: Vec::new(),
             edit_in_apps: Vec::new(),
+            custom_themes: Vec::new(),
             adjustment_layout: AdjustmentLayout::default(),
             workspace: WorkspaceState::default(),
             immich: crate::immich::ImmichSettings::default(),

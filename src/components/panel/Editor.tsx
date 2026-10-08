@@ -38,6 +38,7 @@ import { useAiMasking } from '../../hooks/useAiMasking';
 import { useEditorActions, withRotation } from '../../hooks/useEditorActions';
 import { clickZoomTarget, interpretWheel, movedBeyondClick } from '../../utils/canvasControls';
 import { getVisibleImageRegion } from '../../utils/previewResolution';
+import { useActiveTheme } from '../../hooks/useActiveTheme';
 
 const parseRgb = (rgbStr: string): [number, number, number, number] => {
   const match = rgbStr.match(/[\d.]+/g);
@@ -1608,6 +1609,7 @@ export default function Editor({ onBackToLibrary, onContextMenu, onImageSelect, 
 
   useLayoutEffect(syncSplitOverlay, [syncSplitOverlay, activeCompareView, splitPosition, imageRenderSize]);
 
+  const { colors: themeColors } = useActiveTheme();
   const wgpuStateRef = useRef<WgpuRenderState>({
     useWgpuRenderer: appSettings?.useWgpuRenderer,
     isReady: selectedImage?.isReady ?? false,
@@ -1623,9 +1625,6 @@ export default function Editor({ onBackToLibrary, onContextMenu, onImageSelect, 
   const syncWgpuRef = useRef<() => void>(() => {});
 
   useEffect(() => {
-    const rootStyle = getComputedStyle(document.documentElement);
-    const bgPrimaryStr = rootStyle.getPropertyValue('--app-bg-primary') || 'rgb(24, 24, 24)';
-    const bgSecondaryStr = rootStyle.getPropertyValue('--app-bg-secondary') || 'rgb(35, 35, 35)';
     const isNeutralGrey = appSettings?.editorNeutralGreyBg ?? false;
 
     wgpuStateRef.current = {
@@ -1637,8 +1636,8 @@ export default function Editor({ onBackToLibrary, onContextMenu, onImageSelect, 
       showOriginal,
       compareView: activeCompareView,
       splitPosition,
-      bgPrimary: parseRgb(bgPrimaryStr),
-      bgSecondary: isNeutralGrey ? NEUTRAL_GREY_RGB : parseRgb(bgSecondaryStr),
+      bgPrimary: parseRgb(themeColors['--app-bg-primary']),
+      bgSecondary: isNeutralGrey ? NEUTRAL_GREY_RGB : parseRgb(themeColors['--app-bg-secondary']),
     };
   }, [
     appSettings?.useWgpuRenderer,
@@ -1650,7 +1649,7 @@ export default function Editor({ onBackToLibrary, onContextMenu, onImageSelect, 
     showOriginal,
     activeCompareView,
     splitPosition,
-    appSettings?.theme,
+    themeColors,
     finalPreviewUrl,
   ]);
 
@@ -1666,7 +1665,7 @@ export default function Editor({ onBackToLibrary, onContextMenu, onImageSelect, 
     showOriginal,
     activeCompareView,
     splitPosition,
-    appSettings?.theme,
+    themeColors,
     finalPreviewUrl,
     imageRenderSize,
   ]);

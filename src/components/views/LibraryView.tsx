@@ -101,11 +101,10 @@ export default function LibraryView({
     })),
   );
 
-  const { appSettings, supportedTypes, theme, handleSettingsChange } = useSettingsStore(
+  const { appSettings, supportedTypes, handleSettingsChange } = useSettingsStore(
     useShallow((state) => ({
       appSettings: state.appSettings,
       supportedTypes: state.supportedTypes,
-      theme: state.theme,
       handleSettingsChange: state.handleSettingsChange,
     })),
   );
@@ -169,7 +168,6 @@ export default function LibraryView({
             onRequestThumbnails={requestThumbnails}
             rootPaths={rootPaths}
             setLibraryViewMode={setLibraryViewMode}
-            theme={theme}
             thumbnailAspectRatio={thumbnailAspectRatio}
             thumbnailSize={thumbnailSize}
             onNavigateToCommunity={handleNavigateToCommunity}
