@@ -24,7 +24,7 @@ import {
   ThemeSeed,
   ThemeToken,
   THEME_TOKENS,
-  toHexColor,
+  toHexColors,
 } from '../../utils/themes';
 
 interface ThemeEditorModalProps {
@@ -41,9 +41,6 @@ interface ThemeColorFieldProps {
   onChange(color: string): void;
   value: string;
 }
-
-const toHexColors = (colors: ThemeColors) =>
-  Object.fromEntries(THEME_TOKENS.map((token) => [token, toHexColor(colors[token])])) as ThemeColors;
 
 const MIN_TEXT_CONTRAST = 4.5;
 

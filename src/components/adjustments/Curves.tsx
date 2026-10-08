@@ -241,12 +241,7 @@ const MIN_POINT_GAP_X = 1;
 const hasFineAdjustmentModifier = (event: MouseEvent | TouchEvent | React.MouseEvent | React.TouchEvent) =>
   'shiftKey' in event && (event.shiftKey || event.altKey);
 
-export default function CurveGraph({
-  adjustments,
-  setAdjustments,
-  histogram,
-  onDragStateChange,
-}: CurveGraphProps) {
+export default function CurveGraph({ adjustments, setAdjustments, histogram, onDragStateChange }: CurveGraphProps) {
   const { t } = useTranslation();
   const { showContextMenu } = useContextMenu();
   const [curveMode, setCurveMode] = useState<'point' | 'parametric'>(adjustments.curveMode || 'point');

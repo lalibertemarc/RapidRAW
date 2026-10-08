@@ -1,5 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { ParseKeys } from 'i18next';
 import { useShallow } from 'zustand/react/shallow';
 import { useSettingsStore } from '../store/useSettingsStore';
 import { resolveTheme, ThemeGroup, ThemeProps } from '../utils/themes';
@@ -21,7 +22,7 @@ export function useActiveTheme() {
 export function useThemeName() {
   const { t } = useTranslation();
   return useCallback(
-    (theme: ThemeProps) => (TRANSLATED_GROUPS.includes(theme.group) ? t(theme.name as any) : theme.name),
+    (theme: ThemeProps) => (TRANSLATED_GROUPS.includes(theme.group) ? t(theme.name as ParseKeys) : theme.name),
     [t],
   );
 }

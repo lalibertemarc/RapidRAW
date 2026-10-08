@@ -1,3 +1,4 @@
+import { hexToRgba, rgbToHex, validHex } from '@uiw/color-convert';
 import { Theme } from '../components/ui/AppProperties';
 
 export const THEME_TOKENS = [
@@ -43,7 +44,7 @@ export interface ThemeSeed {
   text: string;
 }
 
-export interface ResolvedTheme {
+interface ResolvedTheme {
   colors: ThemeColors;
   isLight: boolean;
   splashImage: string;
@@ -53,32 +54,38 @@ type Rgb = [number, number, number];
 
 export const parseColor = (value: string): Rgb | null => {
   const trimmed = value.trim();
-  const hex = trimmed.match(/^#?([0-9a-f]{6})$/i);
-  if (hex) {
-    const n = parseInt(hex[1], 16);
-    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  if (validHex(trimmed)) {
+    const { r, g, b } = hexToRgba(trimmed);
+    return [r, g, b];
   }
   const rgb = trimmed.match(/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i);
   return rgb ? [Number(rgb[1]), Number(rgb[2]), Number(rgb[3])] : null;
 };
 
+const toRgb = (value: string): Rgb => parseColor(value) ?? [0, 0, 0];
+
 const toRgbString = ([r, g, b]: Rgb) => `rgb(${r}, ${g}, ${b})`;
 
-const toCssColor = (value: string) => toRgbString(parseColor(value) ?? [0, 0, 0]);
+const toCssColor = (value: string) => toRgbString(toRgb(value));
 
-export const toHexColor = (value: string): string => {
-  const rgb = parseColor(value) ?? [0, 0, 0];
-  return `#${rgb.map((c) => c.toString(16).padStart(2, '0')).join('')}`;
+const toHexColor = (value: string) => {
+  const [r, g, b] = toRgb(value);
+  return rgbToHex({ r, g, b });
 };
 
+const mapThemeColors = (colors: ThemeColors, convert: (value: string) => string) =>
+  Object.fromEntries(THEME_TOKENS.map((token) => [token, convert(colors[token] ?? '')])) as ThemeColors;
+
+export const toHexColors = (colors: ThemeColors) => mapThemeColors(colors, toHexColor);
+
 const mix = (from: string, to: string, amount: number): string => {
-  const a = parseColor(from) ?? [0, 0, 0];
-  const b = parseColor(to) ?? [0, 0, 0];
+  const a = toRgb(from);
+  const b = toRgb(to);
   return toRgbString(a.map((c, i) => Math.round(c + (b[i] - c) * amount)) as Rgb);
 };
 
 const relativeLuminance = (value: string): number => {
-  const [r, g, b] = (parseColor(value) ?? [0, 0, 0]).map((c) => {
+  const [r, g, b] = toRgb(value).map((c) => {
     const s = c / 255;
     return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
   });
@@ -122,7 +129,7 @@ const preset = (
   overrides: Partial<ThemeColors> = {},
 ): ThemeProps => ({ id, group, name, colors: { ...deriveThemeColors(seed), ...overrides } });
 
-export const THEMES: Array<ThemeProps> = [
+const THEMES: Array<ThemeProps> = [
   {
     id: Theme.Dark,
     group: ThemeGroup.Builtin,
@@ -338,15 +345,15 @@ export const THEME_GROUP_ORDER = [
   ThemeGroup.Custom,
 ];
 
-export const customThemeToProps = (theme: CustomTheme): ThemeProps => ({ ...theme, group: ThemeGroup.Custom });
-
 export const getAllThemes = (customThemes: Array<CustomTheme> = []): Array<ThemeProps> => [
   ...THEMES,
-  ...customThemes.map(customThemeToProps),
+  ...customThemes.map((theme) => ({ ...theme, group: ThemeGroup.Custom })),
 ];
 
-const normalizeColors = (colors: ThemeColors): ThemeColors =>
-  Object.fromEntries(THEME_TOKENS.map((token) => [token, toCssColor(colors[token] ?? '')])) as ThemeColors;
+export const findTheme = (id: string, customThemes: Array<CustomTheme> = []): ThemeProps => {
+  const themes = getAllThemes(customThemes);
+  return themes.find((t) => t.id === id) ?? themes.find((t) => t.id === DEFAULT_THEME_ID) ?? THEMES[0];
+};
 
 const getSplashTone = (colors: ThemeColors) => {
   const luminance = relativeLuminance(colors['--app-bg-primary']);
@@ -360,9 +367,7 @@ export const resolveTheme = (
   customThemes: Array<CustomTheme> = [],
   preview: ThemeColors | null = null,
 ): ResolvedTheme => {
-  const themes = getAllThemes(customThemes);
-  const theme = themes.find((t) => t.id === id) || themes.find((t) => t.id === DEFAULT_THEME_ID) || THEMES[0];
-  const colors = normalizeColors(preview ?? theme.colors);
+  const colors = mapThemeColors(preview ?? findTheme(id, customThemes).colors, toCssColor);
   const tone = getSplashTone(colors);
   return { colors, isLight: tone === 'light', splashImage: `/splash-${tone}.jpg` };
 };
@@ -370,9 +375,9 @@ export const resolveTheme = (
 export const parseThemeColors = (value: unknown): ThemeColors | null => {
   if (!value || typeof value !== 'object') return null;
   const source = value as Record<string, unknown>;
-  const entries = THEME_TOKENS.map((token) => {
+  const isValid = THEME_TOKENS.every((token) => {
     const color = source[token];
-    return typeof color === 'string' && parseColor(color) ? [token, toHexColor(color)] : null;
+    return typeof color === 'string' && parseColor(color) !== null;
   });
-  return entries.every(Boolean) ? (Object.fromEntries(entries as Array<[string, string]>) as ThemeColors) : null;
+  return isValid ? toHexColors(source as ThemeColors) : null;
 };

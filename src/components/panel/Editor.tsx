@@ -28,13 +28,11 @@ import { useLibraryStore } from '../../store/useLibraryStore';
 import { useAiMasking } from '../../hooks/useAiMasking';
 import { useEditorActions } from '../../hooks/useEditorActions';
 import { useActiveTheme } from '../../hooks/useActiveTheme';
+import { parseColor } from '../../utils/themes';
 
-const parseRgb = (rgbStr: string): [number, number, number, number] => {
-  const match = rgbStr.match(/[\d.]+/g);
-  if (match && match.length >= 3) {
-    return [parseFloat(match[0]) / 255, parseFloat(match[1]) / 255, parseFloat(match[2]) / 255, 1.0];
-  }
-  return [0, 0, 0, 1.0];
+const parseRgb = (color: string): [number, number, number, number] => {
+  const [r, g, b] = parseColor(color) ?? [0, 0, 0];
+  return [r / 255, g / 255, b / 255, 1.0];
 };
 
 const NEUTRAL_GREY_RGB: [number, number, number, number] = [128 / 255, 128 / 255, 128 / 255, 1.0];
