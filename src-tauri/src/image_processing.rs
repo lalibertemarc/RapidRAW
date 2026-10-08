@@ -1930,7 +1930,7 @@ pub fn resolve_tonemapper_override(settings: &crate::AppSettings, is_raw: bool) 
     Some(if tm == "agx" { 1 } else { 0 })
 }
 
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Copy, Debug)]
 pub struct RenderOptions {
     pub tonemapper_override: Option<u32>,
     pub baseline_exposure: bool,
@@ -3316,7 +3316,10 @@ pub fn calculate_waveform_from_image(
     })
 }
 
-pub fn perform_auto_analysis(image: &DynamicImage, exposure: f32) -> AutoAdjustmentResults {
+pub fn perform_auto_analysis(
+    image: &DynamicImage,
+    baseline_exposure: f32,
+) -> AutoAdjustmentResults {
     const ANALYSIS_MAX_DIM: u32 = 1024;
 
     const LUMA_R: f32 = 0.2126;
@@ -3368,7 +3371,7 @@ pub fn perform_auto_analysis(image: &DynamicImage, exposure: f32) -> AutoAdjustm
 
     let analysis_preview = crate::baseline_exposure::apply(
         downscale_f32_image(image, ANALYSIS_MAX_DIM, ANALYSIS_MAX_DIM),
-        exposure,
+        baseline_exposure,
     );
     let rgb_image = analysis_preview.to_rgb8();
     let total_pixels = (rgb_image.width() * rgb_image.height()) as f64;
@@ -3579,12 +3582,12 @@ pub fn calculate_auto_adjustments(
         .ok_or("No image loaded for auto adjustments")?;
 
     let render = resolve_render_options_from_handle(&app_handle, loaded_image.is_raw);
-    let exposure = effective_baseline_exposure(
+    let baseline_exposure = effective_baseline_exposure(
         &js_adjustments,
         loaded_image.as_shot,
         render.baseline_exposure,
     );
-    let results = perform_auto_analysis(&loaded_image.image, exposure);
+    let results = perform_auto_analysis(&loaded_image.image, baseline_exposure);
 
     Ok(auto_results_to_json(&results))
 }
