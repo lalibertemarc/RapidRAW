@@ -4,6 +4,8 @@ use rawler::decoders::{Decoder, WellKnownIFD};
 use rawler::tags::DngTag;
 use rayon::prelude::*;
 
+pub const SHOULDER_KNEE: f32 = 0.25;
+
 const SCENE_REFERRED_BASELINE: f32 = 0.7;
 const BASIC_TONEMAPPER_MID_GREY_GAIN: f32 = 0.16;
 const MEASURED_BASELINE_MIN: f32 = -1.0;
@@ -41,6 +43,35 @@ fn dng_baseline(decoder: &dyn Decoder) -> f32 {
         .into_iter()
         .filter_map(|tag| tags.get_entry(tag)?.value.get_f32(0).ok().flatten())
         .sum()
+}
+
+pub fn apply(mut image: DynamicImage, baseline_exposure: f32) -> DynamicImage {
+    if baseline_exposure == 0.0 {
+        return image;
+    }
+    let gain = baseline_exposure.exp2();
+    let shoulder = |pixel: &mut [f32]| {
+        let scale = shouldered_scale(pixel[0].max(pixel[1]).max(pixel[2]), gain);
+        pixel[..3].iter_mut().for_each(|channel| *channel *= scale);
+    };
+    match &mut image {
+        DynamicImage::ImageRgb32F(img) => img.par_chunks_mut(3).for_each(shoulder),
+        DynamicImage::ImageRgba32F(img) => img.par_chunks_mut(4).for_each(shoulder),
+        _ => {}
+    }
+    image
+}
+
+fn shouldered_scale(peak: f32, gain: f32) -> f32 {
+    let boosted = peak * gain;
+    if gain <= 1.0 || boosted <= SHOULDER_KNEE {
+        return gain;
+    }
+    let input_span = gain - SHOULDER_KNEE;
+    let output_span = 1.0 - SHOULDER_KNEE;
+    let compression = (input_span - output_span) / (input_span * output_span);
+    let excess = boosted - SHOULDER_KNEE;
+    (SHOULDER_KNEE + excess / (1.0 + compression * excess)) / peak
 }
 
 pub fn camera_rendering(preview: DynamicImage) -> Option<CameraRendering> {

@@ -44,8 +44,8 @@ struct GlobalAdjustments {
     wb_log_gain_l: f32,
     wb_log_gain_m: f32,
     wb_log_gain_s: f32,
-    _pad_color1: f32,
-    _pad_color2: f32,
+    baseline_exposure: f32,
+    baseline_shoulder_knee: f32,
 
     sharpness: f32,
     luma_noise_reduction: f32,
@@ -596,6 +596,25 @@ fn apply_highlights_adjustment(
     }
 
     return final_color;
+}
+
+fn apply_baseline_exposure(color_in: vec3<f32>) -> vec3<f32> {
+    let baseline = adjustments.global.baseline_exposure;
+    if (baseline == 0.0) {
+        return color_in;
+    }
+    let gain = pow(2.0, baseline);
+    let knee = adjustments.global.baseline_shoulder_knee;
+    let peak = max(max(color_in.r, color_in.g), color_in.b);
+    let boosted = peak * gain;
+    if (gain <= 1.0 || boosted <= knee) {
+        return color_in * gain;
+    }
+    let input_span = gain - knee;
+    let output_span = 1.0 - knee;
+    let compression = (input_span - output_span) / (input_span * output_span);
+    let excess = boosted - knee;
+    return color_in * ((knee + excess / (1.0 + compression * excess)) / peak);
 }
 
 fn apply_linear_exposure(color_in: vec3<f32>, exposure_adj: f32) -> vec3<f32> {
@@ -1595,7 +1614,7 @@ fn apply_glow_bloom(
         blurred_linear = srgb_to_linear(blurred_color_input_space);
     }
 
-    blurred_linear = apply_linear_exposure(blurred_linear, exp);
+    blurred_linear = apply_linear_exposure(apply_baseline_exposure(blurred_linear), exp);
     blurred_linear = apply_filmic_exposure(blurred_linear, bright);
     blurred_linear = apply_tonal_adjustments(blurred_linear, blurred_color_input_space, is_raw, 0.0, 0.0, wh, 0.0);
 
@@ -1663,7 +1682,7 @@ fn apply_halation(
         blurred_linear = srgb_to_linear(blurred_color_input_space);
     }
 
-    blurred_linear = apply_linear_exposure(blurred_linear, exp);
+    blurred_linear = apply_linear_exposure(apply_baseline_exposure(blurred_linear), exp);
     blurred_linear = apply_filmic_exposure(blurred_linear, bright);
     blurred_linear = apply_tonal_adjustments(blurred_linear, blurred_color_input_space, is_raw, 0.0, 0.0, wh, 0.0);
 
@@ -1831,7 +1850,7 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>) {
     locally_contrasted_rgb = apply_local_contrast(locally_contrasted_rgb, structure_blurred, t_structure, is_raw, 1u, 0.0);
     locally_contrasted_rgb = apply_centre_local_contrast(locally_contrasted_rgb, adjustments.global.centre, absolute_coord_i, clarity_blurred, is_raw);
 
-    var processed_rgb = apply_linear_exposure(locally_contrasted_rgb, t_exposure);
+    var processed_rgb = apply_linear_exposure(apply_baseline_exposure(locally_contrasted_rgb), t_exposure);
 
     if (t_glow > 0.0) {
         processed_rgb = apply_glow_bloom(

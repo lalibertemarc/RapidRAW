@@ -38,9 +38,9 @@ use crate::image_loader;
 use crate::image_processing::GpuContext;
 use crate::image_processing::{
     Crop, ImageFlag, ImageMetadata, apply_coarse_rotation, apply_cpu_default_raw_processing,
-    apply_crop, apply_exposure, apply_flip, apply_geometry_warp, apply_rotation,
-    auto_results_to_json, default_adjustments, effective_baseline_exposure,
-    get_all_adjustments_from_json, perform_auto_analysis, resolve_render_options,
+    apply_crop, apply_flip, apply_geometry_warp, apply_rotation, auto_results_to_json,
+    default_adjustments, effective_baseline_exposure, get_all_adjustments_from_json,
+    perform_auto_analysis, resolve_render_options,
 };
 use crate::mask_generation::MaskDefinition;
 use crate::preset_converter;
@@ -1778,7 +1778,7 @@ pub fn generate_thumbnail_data(
 
     if adjustments.is_null() {
         let render = resolve_render_options(&settings, is_raw);
-        final_image = apply_exposure(
+        final_image = crate::baseline_exposure::apply(
             final_image,
             effective_baseline_exposure(
                 &adjustments,
