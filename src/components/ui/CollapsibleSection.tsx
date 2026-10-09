@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { MouseEvent, ReactNode, useRef, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import clsx from 'clsx';
 import Text from './Text';
@@ -8,12 +8,12 @@ import { useCollapsibleHeight } from '../../hooks/useCollapsibleHeight';
 
 interface CollapsibleSectionProps {
   canToggleVisibility?: boolean;
-  children: any;
+  children: ReactNode;
   isContentVisible: boolean;
   isOpen: boolean;
-  onContextMenu?: any;
-  onToggle: any;
-  onToggleVisibility?: any;
+  onContextMenu?(event: MouseEvent): void;
+  onToggle(): void;
+  onToggleVisibility?(): void;
   title: string;
 }
 
@@ -29,7 +29,7 @@ export default function CollapsibleSection({
 }: CollapsibleSectionProps) {
   const { contentRef, wrapperRef } = useCollapsibleHeight(isOpen);
   const [isHovering, setIsHovering] = useState(false);
-  const hoverTimeoutRef = useRef<any>(null);
+  const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleMouseEnter = () => {
     if (!canToggleVisibility) {
