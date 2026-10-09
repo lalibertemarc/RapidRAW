@@ -5,7 +5,7 @@ import { toast } from 'react-toastify';
 import { Loader2, Circle, Hexagon, Octagon, Aperture, Plus, X } from 'lucide-react';
 import { motion } from 'framer-motion';
 import clsx from 'clsx';
-import Slider from '../ui/Slider';
+import Slider, { SliderChangeEvent } from '../ui/Slider';
 import Switch from '../ui/Switch';
 import VisibilityToggle, { HIDDEN_CONTENT_CLASS } from '../ui/VisibilityToggle';
 import {
@@ -35,7 +35,7 @@ import { useToolVisibility } from '../../context/ToolVisibilityContext';
 interface EffectsPanelProps {
   adjustments: Adjustments;
   isForMask?: boolean;
-  setAdjustments(adjustments: Partial<Adjustments> | ((prev: Adjustments) => Adjustments)): any;
+  setAdjustments(adjustments: Partial<Adjustments> | ((prev: Adjustments) => Adjustments)): void;
   handleLutSelect(path: string, isSceneReferred: boolean): void;
   onLutHover?: (path: string | null) => void;
   appSettings: AppSettings | null;
@@ -220,7 +220,7 @@ export default function EffectsPanel({
         ...prev,
         lensBlurDepthMap: b64,
       }));
-    } catch (e: any) {
+    } catch (e) {
       toast.error(`Failed to generate depth map: ${e}`);
       setAdjustments((prev: Partial<Adjustments>) => ({ ...prev, lensBlurEnabled: false }));
     } finally {
@@ -236,7 +236,7 @@ export default function EffectsPanel({
         ...prev,
         relightNormalMap: b64,
       }));
-    } catch (e: any) {
+    } catch (e) {
       toast.error(`Failed to generate normal map: ${e}`);
       setAdjustments((prev: Partial<Adjustments>) => ({ ...prev, relightEnabled: false }));
     } finally {
@@ -252,7 +252,7 @@ export default function EffectsPanel({
         ...prev,
         fogDepthMap: b64,
       }));
-    } catch (e: any) {
+    } catch (e) {
       toast.error(`Failed to generate depth map: ${e}`);
       setAdjustments((prev: Partial<Adjustments>) => ({ ...prev, fogEnabled: false }));
     } finally {
@@ -260,8 +260,8 @@ export default function EffectsPanel({
     }
   };
 
-  const handleAdjustmentChange = (key: string, value: any) => {
-    const numericValue = typeof value === 'boolean' ? value : parseInt(value, 10);
+  const handleAdjustmentChange = (key: string, value: boolean | number | string) => {
+    const numericValue = typeof value === 'boolean' ? value : parseInt(String(value), 10);
     setAdjustments((prev: Partial<Adjustments>) => ({ ...prev, [key]: numericValue }));
   };
 
@@ -344,6 +344,9 @@ export default function EffectsPanel({
     }));
   };
 
+  const handleLightSliderChange = (key: keyof RelightLight) => (e: SliderChangeEvent) =>
+    handleLightChange(key, parseInt(String(e.target.value), 10));
+
   const lightColorField = useParsedTextField(
     activeLight?.color ?? '#ffffff',
     (color) => handleLightChange('color', color),
@@ -376,7 +379,7 @@ export default function EffectsPanel({
             label={t('adjustments.effects.glow')}
             max={100}
             min={0}
-            onChange={(e: any) => handleAdjustmentChange(CreativeAdjustment.GlowAmount, e.target.value)}
+            onChange={(e: SliderChangeEvent) => handleAdjustmentChange(CreativeAdjustment.GlowAmount, e.target.value)}
             step={1}
             value={adjustments.glowAmount}
             onDragStateChange={onDragStateChange}
@@ -386,7 +389,9 @@ export default function EffectsPanel({
             label={t('adjustments.effects.halation')}
             max={100}
             min={0}
-            onChange={(e: any) => handleAdjustmentChange(CreativeAdjustment.HalationAmount, e.target.value)}
+            onChange={(e: SliderChangeEvent) =>
+              handleAdjustmentChange(CreativeAdjustment.HalationAmount, e.target.value)
+            }
             step={1}
             value={adjustments.halationAmount}
             onDragStateChange={onDragStateChange}
@@ -397,7 +402,9 @@ export default function EffectsPanel({
               label={t('adjustments.effects.lightFlares')}
               max={100}
               min={0}
-              onChange={(e: any) => handleAdjustmentChange(CreativeAdjustment.FlareAmount, e.target.value)}
+              onChange={(e: SliderChangeEvent) =>
+                handleAdjustmentChange(CreativeAdjustment.FlareAmount, e.target.value)
+              }
               step={1}
               value={adjustments.flareAmount}
               onDragStateChange={onDragStateChange}
@@ -444,7 +451,9 @@ export default function EffectsPanel({
                         max={100}
                         min={0}
                         defaultValue={40}
-                        onChange={(e: any) => handleAdjustmentChange(Effect.LensBlurAmount, e.target.value)}
+                        onChange={(e: SliderChangeEvent) =>
+                          handleAdjustmentChange(Effect.LensBlurAmount, e.target.value)
+                        }
                         step={1}
                         value={adjustments.lensBlurAmount ?? 50}
                         onDragStateChange={onDragStateChange}
@@ -456,7 +465,9 @@ export default function EffectsPanel({
                         max={100}
                         min={0}
                         defaultValue={0}
-                        onChange={(e: any) => handleAdjustmentChange(Effect.lensBlurDiffusion, e.target.value)}
+                        onChange={(e: SliderChangeEvent) =>
+                          handleAdjustmentChange(Effect.lensBlurDiffusion, e.target.value)
+                        }
                         step={1}
                         value={adjustments.lensBlurDiffusion ?? 0}
                         onDragStateChange={onDragStateChange}
@@ -529,7 +540,9 @@ export default function EffectsPanel({
                           label={t('adjustments.effects.relightAmbient')}
                           max={100}
                           min={-100}
-                          onChange={(e: any) => handleAdjustmentChange(Effect.RelightAmbient, e.target.value)}
+                          onChange={(e: SliderChangeEvent) =>
+                            handleAdjustmentChange(Effect.RelightAmbient, e.target.value)
+                          }
                           step={1}
                           value={adjustments.relightAmbient ?? 0}
                           onDragStateChange={onDragStateChange}
@@ -540,7 +553,9 @@ export default function EffectsPanel({
                           max={100}
                           min={0}
                           defaultValue={25}
-                          onChange={(e: any) => handleAdjustmentChange(Effect.RelightSoftness, e.target.value)}
+                          onChange={(e: SliderChangeEvent) =>
+                            handleAdjustmentChange(Effect.RelightSoftness, e.target.value)
+                          }
                           step={1}
                           value={adjustments.relightSoftness ?? 25}
                           onDragStateChange={onDragStateChange}
@@ -551,7 +566,9 @@ export default function EffectsPanel({
                           label={t('adjustments.effects.relightShine')}
                           max={100}
                           min={0}
-                          onChange={(e: any) => handleAdjustmentChange(Effect.RelightShine, e.target.value)}
+                          onChange={(e: SliderChangeEvent) =>
+                            handleAdjustmentChange(Effect.RelightShine, e.target.value)
+                          }
                           step={1}
                           value={adjustments.relightShine ?? 0}
                           onDragStateChange={onDragStateChange}
@@ -569,7 +586,9 @@ export default function EffectsPanel({
                             max={100}
                             min={0}
                             defaultValue={15}
-                            onChange={(e: any) => handleAdjustmentChange(Effect.RelightShadowSoftness, e.target.value)}
+                            onChange={(e: SliderChangeEvent) =>
+                              handleAdjustmentChange(Effect.RelightShadowSoftness, e.target.value)
+                            }
                             step={1}
                             value={adjustments.relightShadowSoftness ?? 15}
                             onDragStateChange={onDragStateChange}
@@ -650,7 +669,7 @@ export default function EffectsPanel({
                                 max={100}
                                 min={0}
                                 defaultValue={60}
-                                onChange={(e: any) => handleLightChange('intensity', parseInt(e.target.value, 10))}
+                                onChange={handleLightSliderChange('intensity')}
                                 step={1}
                                 value={activeLight.intensity}
                                 onDragStateChange={onDragStateChange}
@@ -664,7 +683,7 @@ export default function EffectsPanel({
                                     max={100}
                                     min={0}
                                     defaultValue={0}
-                                    onChange={(e: any) => handleLightChange('depth', parseInt(e.target.value, 10))}
+                                    onChange={handleLightSliderChange('depth')}
                                     step={1}
                                     value={activeLight.depth}
                                     onDragStateChange={onDragStateChange}
@@ -676,7 +695,7 @@ export default function EffectsPanel({
                                     max={100}
                                     min={0}
                                     defaultValue={30}
-                                    onChange={(e: any) => handleLightChange('radius', parseInt(e.target.value, 10))}
+                                    onChange={handleLightSliderChange('radius')}
                                     step={1}
                                     value={activeLight.radius}
                                     onDragStateChange={onDragStateChange}
@@ -692,7 +711,7 @@ export default function EffectsPanel({
                                     max={360}
                                     min={0}
                                     defaultValue={135}
-                                    onChange={(e: any) => handleLightChange('angle', parseInt(e.target.value, 10))}
+                                    onChange={handleLightSliderChange('angle')}
                                     step={1}
                                     suffix="°"
                                     value={activeLight.angle}
@@ -705,7 +724,7 @@ export default function EffectsPanel({
                                     max={180}
                                     min={-180}
                                     defaultValue={60}
-                                    onChange={(e: any) => handleLightChange('elevation', parseInt(e.target.value, 10))}
+                                    onChange={handleLightSliderChange('elevation')}
                                     step={1}
                                     suffix="°"
                                     value={activeLight.elevation}
@@ -721,7 +740,7 @@ export default function EffectsPanel({
                                     max={100}
                                     min={0}
                                     defaultValue={40}
-                                    onChange={(e: any) => handleLightChange('cone', parseInt(e.target.value, 10))}
+                                    onChange={handleLightSliderChange('cone')}
                                     step={1}
                                     value={activeLight.cone}
                                     onDragStateChange={onDragStateChange}
@@ -733,7 +752,7 @@ export default function EffectsPanel({
                                     max={100}
                                     min={0}
                                     defaultValue={50}
-                                    onChange={(e: any) => handleLightChange('feather', parseInt(e.target.value, 10))}
+                                    onChange={handleLightSliderChange('feather')}
                                     step={1}
                                     value={activeLight.feather}
                                     onDragStateChange={onDragStateChange}
@@ -746,7 +765,7 @@ export default function EffectsPanel({
                                 label={t('adjustments.color.temperature')}
                                 max={100}
                                 min={-100}
-                                onChange={(e: any) => handleLightChange('temperature', parseInt(e.target.value, 10))}
+                                onChange={handleLightSliderChange('temperature')}
                                 step={1}
                                 value={activeLight.temperature}
                                 trackClassName="temperature-gradient-track"
@@ -757,7 +776,7 @@ export default function EffectsPanel({
                                 label={t('adjustments.color.tint')}
                                 max={100}
                                 min={-100}
-                                onChange={(e: any) => handleLightChange('tint', parseInt(e.target.value, 10))}
+                                onChange={handleLightSliderChange('tint')}
                                 step={1}
                                 value={activeLight.tint}
                                 trackClassName="tint-gradient-track"
@@ -803,7 +822,7 @@ export default function EffectsPanel({
                         max={100}
                         min={0}
                         defaultValue={50}
-                        onChange={(e: any) => handleAdjustmentChange(Effect.FogAmount, e.target.value)}
+                        onChange={(e: SliderChangeEvent) => handleAdjustmentChange(Effect.FogAmount, e.target.value)}
                         step={1}
                         value={adjustments.fogAmount ?? 50}
                         onDragStateChange={onDragStateChange}
@@ -815,7 +834,7 @@ export default function EffectsPanel({
                         max={100}
                         min={0}
                         defaultValue={0}
-                        onChange={(e: any) => handleAdjustmentChange(Effect.FogStart, e.target.value)}
+                        onChange={(e: SliderChangeEvent) => handleAdjustmentChange(Effect.FogStart, e.target.value)}
                         step={1}
                         value={adjustments.fogStart ?? 0}
                         onDragStateChange={onDragStateChange}
@@ -827,7 +846,7 @@ export default function EffectsPanel({
                         max={100}
                         min={0}
                         defaultValue={50}
-                        onChange={(e: any) => handleAdjustmentChange(Effect.FogDensity, e.target.value)}
+                        onChange={(e: SliderChangeEvent) => handleAdjustmentChange(Effect.FogDensity, e.target.value)}
                         step={1}
                         value={adjustments.fogDensity ?? 50}
                         onDragStateChange={onDragStateChange}
@@ -839,7 +858,7 @@ export default function EffectsPanel({
                         max={100}
                         min={0}
                         defaultValue={0}
-                        onChange={(e: any) => handleAdjustmentChange(Effect.FogHeight, e.target.value)}
+                        onChange={(e: SliderChangeEvent) => handleAdjustmentChange(Effect.FogHeight, e.target.value)}
                         step={1}
                         value={adjustments.fogHeight ?? 0}
                         onDragStateChange={onDragStateChange}
@@ -851,7 +870,7 @@ export default function EffectsPanel({
                         max={100}
                         min={0}
                         defaultValue={25}
-                        onChange={(e: any) => handleAdjustmentChange(Effect.FogVariation, e.target.value)}
+                        onChange={(e: SliderChangeEvent) => handleAdjustmentChange(Effect.FogVariation, e.target.value)}
                         step={1}
                         value={adjustments.fogVariation ?? 25}
                         onDragStateChange={onDragStateChange}
@@ -863,7 +882,7 @@ export default function EffectsPanel({
                         max={100}
                         min={0}
                         defaultValue={25}
-                        onChange={(e: any) => handleAdjustmentChange(Effect.FogGlow, e.target.value)}
+                        onChange={(e: SliderChangeEvent) => handleAdjustmentChange(Effect.FogGlow, e.target.value)}
                         step={1}
                         value={adjustments.fogGlow ?? 25}
                         onDragStateChange={onDragStateChange}
@@ -874,7 +893,9 @@ export default function EffectsPanel({
                         label={t('adjustments.color.temperature')}
                         max={100}
                         min={-100}
-                        onChange={(e: any) => handleAdjustmentChange(Effect.FogTemperature, e.target.value)}
+                        onChange={(e: SliderChangeEvent) =>
+                          handleAdjustmentChange(Effect.FogTemperature, e.target.value)
+                        }
                         step={1}
                         value={adjustments.fogTemperature ?? 0}
                         trackClassName="temperature-gradient-track"
@@ -885,7 +906,7 @@ export default function EffectsPanel({
                         label={t('adjustments.color.tint')}
                         max={100}
                         min={-100}
-                        onChange={(e: any) => handleAdjustmentChange(Effect.FogTint, e.target.value)}
+                        onChange={(e: SliderChangeEvent) => handleAdjustmentChange(Effect.FogTint, e.target.value)}
                         step={1}
                         value={adjustments.fogTint ?? 0}
                         trackClassName="tint-gradient-track"
@@ -923,7 +944,7 @@ export default function EffectsPanel({
                 label={t('adjustments.effects.amount')}
                 max={100}
                 min={-100}
-                onChange={(e: any) => handleAdjustmentChange(Effect.VignetteAmount, e.target.value)}
+                onChange={(e: SliderChangeEvent) => handleAdjustmentChange(Effect.VignetteAmount, e.target.value)}
                 step={1}
                 value={adjustments.vignetteAmount}
                 onDragStateChange={onDragStateChange}
@@ -933,7 +954,7 @@ export default function EffectsPanel({
                 label={t('adjustments.effects.midpoint')}
                 max={100}
                 min={0}
-                onChange={(e: any) => handleAdjustmentChange(Effect.VignetteMidpoint, e.target.value)}
+                onChange={(e: SliderChangeEvent) => handleAdjustmentChange(Effect.VignetteMidpoint, e.target.value)}
                 step={1}
                 value={adjustments.vignetteMidpoint}
                 onDragStateChange={onDragStateChange}
@@ -943,7 +964,7 @@ export default function EffectsPanel({
                 label={t('adjustments.effects.roundness')}
                 max={100}
                 min={-100}
-                onChange={(e: any) => handleAdjustmentChange(Effect.VignetteRoundness, e.target.value)}
+                onChange={(e: SliderChangeEvent) => handleAdjustmentChange(Effect.VignetteRoundness, e.target.value)}
                 step={1}
                 value={adjustments.vignetteRoundness}
                 onDragStateChange={onDragStateChange}
@@ -953,7 +974,7 @@ export default function EffectsPanel({
                 label={t('adjustments.effects.feather')}
                 max={100}
                 min={0}
-                onChange={(e: any) => handleAdjustmentChange(Effect.VignetteFeather, e.target.value)}
+                onChange={(e: SliderChangeEvent) => handleAdjustmentChange(Effect.VignetteFeather, e.target.value)}
                 step={1}
                 value={adjustments.vignetteFeather}
                 onDragStateChange={onDragStateChange}
@@ -968,7 +989,7 @@ export default function EffectsPanel({
                 label={t('adjustments.effects.amount')}
                 max={100}
                 min={0}
-                onChange={(e: any) => handleAdjustmentChange(Effect.GrainAmount, e.target.value)}
+                onChange={(e: SliderChangeEvent) => handleAdjustmentChange(Effect.GrainAmount, e.target.value)}
                 step={1}
                 value={adjustments.grainAmount}
                 onDragStateChange={onDragStateChange}
@@ -978,7 +999,7 @@ export default function EffectsPanel({
                 label={t('adjustments.effects.size')}
                 max={100}
                 min={0}
-                onChange={(e: any) => handleAdjustmentChange(Effect.GrainSize, e.target.value)}
+                onChange={(e: SliderChangeEvent) => handleAdjustmentChange(Effect.GrainSize, e.target.value)}
                 step={1}
                 value={adjustments.grainSize}
                 onDragStateChange={onDragStateChange}
@@ -989,7 +1010,7 @@ export default function EffectsPanel({
                 label={t('adjustments.effects.roughness')}
                 max={100}
                 min={0}
-                onChange={(e: any) => handleAdjustmentChange(Effect.GrainRoughness, e.target.value)}
+                onChange={(e: SliderChangeEvent) => handleAdjustmentChange(Effect.GrainRoughness, e.target.value)}
                 step={1}
                 value={adjustments.grainRoughness}
                 onDragStateChange={onDragStateChange}
