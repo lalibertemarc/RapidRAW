@@ -426,9 +426,9 @@ fn apply_tonal_adjustments(
 
         var t_new = t_w;
         if (wh > 0.0) {
-            t_new = t_w + wh * 0.25 * (u * u) / (1.0 + u * u);
+            t_new = t_w + wh * 1.25 * (u * u) / (1.0 + u * u);
         } else if (u > 0.0) {
-            t_new = w_pivot + u / (1.0 + (-wh) * 0.3 * u);
+            t_new = w_pivot + u / (1.0 + (-wh) * 1.5 * u);
         }
         let w_ramp = smoothstep(0.25, 0.9, t_w);
         t_new = mix(t_w, t_new, w_ramp);

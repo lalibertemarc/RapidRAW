@@ -3320,7 +3320,7 @@ pub fn perform_auto_analysis(image: &DynamicImage) -> AutoAdjustmentResults {
 
     const MID_GRAY: f64 = 128.0;
     const BLACKS_SCALE: f64 = 0.5;
-    const WHITES_SCALE: f64 = 0.2;
+    const WHITES_SCALE: f64 = 0.04;
     const EXPOSURE_OUTPUT_SCALE: f64 = 20.0;
     const BRIGHTNESS_SCALE: f64 = 0.007;
 
