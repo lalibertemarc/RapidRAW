@@ -1109,7 +1109,7 @@ fn apply_dehaze(
         let safe_dark = max(regional_dark - 0.02, 0.0);
         let mapped_depth = safe_dark / (safe_dark + 0.2);
         let depth_factor = mix(0.4, 1.0, mapped_depth);
-        return mix(color, atmospheric_light, abs(amount) * 1.75 * depth_factor);
+        return mix(color, atmospheric_light, abs(amount) * 0.7 * depth_factor);
     }
 }
 
