@@ -426,9 +426,9 @@ fn apply_tonal_adjustments(
 
         var t_new = t_w;
         if (wh > 0.0) {
-            t_new = t_w + wh * 0.25 * (u * u) / (1.0 + u * u);
+            t_new = t_w + wh * 1.25 * (u * u) / (1.0 + u * u);
         } else if (u > 0.0) {
-            t_new = w_pivot + u / (1.0 + (-wh) * 0.3 * u);
+            t_new = w_pivot + u / (1.0 + (-wh) * 1.5 * u);
         }
         let w_ramp = smoothstep(0.25, 0.9, t_w);
         t_new = mix(t_w, t_new, w_ramp);
@@ -1109,7 +1109,7 @@ fn apply_dehaze(
         let safe_dark = max(regional_dark - 0.02, 0.0);
         let mapped_depth = safe_dark / (safe_dark + 0.2);
         let depth_factor = mix(0.4, 1.0, mapped_depth);
-        return mix(color, atmospheric_light, abs(amount) * 0.7 * depth_factor);
+        return mix(color, atmospheric_light, abs(amount) * 1.75 * depth_factor);
     }
 }
 
