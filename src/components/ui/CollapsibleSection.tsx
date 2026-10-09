@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import clsx from 'clsx';
 import Text from './Text';
-import VisibilityToggle from './VisibilityToggle';
+import VisibilityToggle, { HIDDEN_CONTENT_CLASS } from './VisibilityToggle';
 import { TextVariants, TextWeights } from '../../types/typography';
 import { useCollapsibleHeight } from '../../hooks/useCollapsibleHeight';
 
@@ -80,10 +80,7 @@ export default function CollapsibleSection({
       </div>
       <div ref={wrapperRef} className="overflow-hidden transition-all duration-300 ease-in-out">
         <div
-          className={clsx(
-            'px-4 pb-4 transition-opacity duration-300',
-            !isContentVisible && 'opacity-30 pointer-events-none',
-          )}
+          className={clsx('px-4 pb-4 transition-opacity duration-300', !isContentVisible && HIDDEN_CONTENT_CLASS)}
           ref={contentRef}
         >
           {children}

@@ -81,7 +81,9 @@ import {
   ADJUSTMENT_SECTIONS,
   getVisibleAdjustmentSections,
   showSectionAndTools,
+  toggleAdjustmentVisibility,
 } from '../../../utils/adjustments';
+import { ToolVisibilityContext } from '../../../context/ToolVisibilityContext';
 import { useContextMenu } from '../../../context/ContextMenuContext';
 import { OPTION_SEPARATOR, Orientation, Panel } from '../../ui/AppProperties';
 import { createSubMask } from '../../../utils/maskUtils';
@@ -2035,7 +2037,7 @@ function SettingsPanel({
     const cur = container.adjustments;
     const vis = cur.sectionVisibility || INITIAL_MASK_ADJUSTMENTS.sectionVisibility;
     updateContainer(container.id, {
-      adjustments: { ...cur, sectionVisibility: { ...vis, [sectionName]: !vis[sectionName] } },
+      adjustments: { ...cur, sectionVisibility: toggleAdjustmentVisibility(vis, sectionName) },
     });
   };
 
@@ -2289,16 +2291,16 @@ function SettingsPanel({
               onToggleVisibility={() => handleToggleVisibility(sectionName)}
               onContextMenu={(e: any) => handleSectionContextMenu(e, sectionName)}
             >
-              <SectionComponent
-                adjustments={displayContainer.adjustments}
-                setAdjustments={setMaskContainerAdjustments}
-                histogram={histogram}
-                isForMask={true}
-                appSettings={appSettings}
-                onDragStateChange={onDragStateChange}
-                onToggleVisibility={handleToggleVisibility}
-                sectionVisibility={sectionVisibility}
-              />
+              <ToolVisibilityContext.Provider value={{ sectionVisibility, onToggleVisibility: handleToggleVisibility }}>
+                <SectionComponent
+                  adjustments={displayContainer.adjustments}
+                  setAdjustments={setMaskContainerAdjustments}
+                  histogram={histogram}
+                  isForMask={true}
+                  appSettings={appSettings}
+                  onDragStateChange={onDragStateChange}
+                />
+              </ToolVisibilityContext.Provider>
             </CollapsibleSection>
           );
         })}

@@ -252,6 +252,7 @@ export function useEditorActions() {
           sectionVisibility: {
             ...(prev.sectionVisibility || INITIAL_ADJUSTMENTS.sectionVisibility),
             effects: true,
+            lut: true,
           },
         }));
       } catch (err) {

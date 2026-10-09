@@ -472,8 +472,6 @@ export interface SectionVisibility {
   basic: boolean;
   curves: boolean;
   color: boolean;
-  colorGrading: boolean;
-  colorMixer: boolean;
   details: boolean;
   effects: boolean;
 }
@@ -579,8 +577,6 @@ export const INITIAL_MASK_ADJUSTMENTS: MaskAdjustments = {
     basic: true,
     curves: true,
     color: true,
-    colorGrading: true,
-    colorMixer: true,
     details: true,
     effects: true,
   },
@@ -697,8 +693,6 @@ export const INITIAL_ADJUSTMENTS: Adjustments = {
     basic: true,
     curves: true,
     color: true,
-    colorGrading: true,
-    colorMixer: true,
     details: true,
     effects: true,
   },
@@ -1149,6 +1143,7 @@ export const withAdjustmentLayout = (settings: AppSettings, changes: Partial<Adj
 export interface AdjustmentSectionTool {
   id: string;
   label: string;
+  subTools?: Array<string>;
 }
 
 export const ADJUSTMENT_SECTION_TOOLS: Record<string, Array<AdjustmentSectionTool>> = {
@@ -1168,7 +1163,7 @@ export const ADJUSTMENT_SECTION_TOOLS: Record<string, Array<AdjustmentSectionToo
   ],
   effects: [
     { id: 'creative', label: 'adjustments.effects.creative' },
-    { id: 'spatial', label: 'adjustments.effects.spatial' },
+    { id: 'spatial', label: 'adjustments.effects.spatial', subTools: ['lensBlur', 'relight', 'fog'] },
     { id: 'lut', label: 'adjustments.effects.lut' },
     { id: 'vignette', label: 'adjustments.effects.vignette' },
     { id: 'grain', label: 'adjustments.effects.grain' },
@@ -1178,11 +1173,18 @@ export const ADJUSTMENT_SECTION_TOOLS: Record<string, Array<AdjustmentSectionToo
 export const getAdjustmentSectionToolIds = (section: string): string[] =>
   (ADJUSTMENT_SECTION_TOOLS[section] ?? []).map((tool) => tool.id);
 
+export const isAdjustmentVisible = (visibility: SectionVisibility, id: string): boolean => visibility[id] !== false;
+
+export const toggleAdjustmentVisibility = (visibility: SectionVisibility, id: string): SectionVisibility => ({
+  ...visibility,
+  [id]: !isAdjustmentVisible(visibility, id),
+});
+
 export const showSectionAndTools = (visibility: SectionVisibility, section: string): SectionVisibility => ({
   ...visibility,
   ...Object.fromEntries(
-    getAdjustmentSectionToolIds(section)
-      .filter((id) => id in visibility)
+    (ADJUSTMENT_SECTION_TOOLS[section] ?? [])
+      .flatMap((tool) => [tool.id, ...(tool.subTools ?? [])])
       .map((id) => [id, true]),
   ),
   [section]: true,
