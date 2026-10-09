@@ -2167,37 +2167,66 @@ fn is_section_visible(adjustments: &serde_json::Value, section: &str) -> bool {
         .unwrap_or(true)
 }
 
-const ADJUSTMENT_PARENTS: &[(&str, &str)] = &[
-    ("whiteBalance", "color"),
-    ("colorPresence", "color"),
-    ("hue", "color"),
-    ("colorGrading", "color"),
-    ("colorMixer", "color"),
-    ("colorCalibration", "color"),
-    ("sharpening", "details"),
-    ("presence", "details"),
-    ("noiseReduction", "details"),
-    ("chromaticAberration", "details"),
-    ("creative", "effects"),
-    ("spatial", "effects"),
-    ("lut", "effects"),
-    ("vignette", "effects"),
-    ("grain", "effects"),
-    ("lensBlur", "spatial"),
-    ("relight", "spatial"),
-    ("fog", "spatial"),
+const LEGACY_SECTION_TOOLS: &[(&str, &[&str])] = &[
+    ("basic", &["basic"]),
+    ("curves", &["curves"]),
+    (
+        "color",
+        &[
+            "whiteBalance",
+            "colorPresence",
+            "hue",
+            "colorGrading",
+            "colorMixer",
+            "colorCalibration",
+        ],
+    ),
+    (
+        "details",
+        &[
+            "sharpening",
+            "presence",
+            "noiseReduction",
+            "chromaticAberration",
+        ],
+    ),
+    (
+        "effects",
+        &[
+            "creative", "lensBlur", "relight", "fog", "lut", "vignette", "grain",
+        ],
+    ),
 ];
 
-pub fn is_adjustment_visible(adjustments: &serde_json::Value, id: &str) -> bool {
-    is_section_visible(adjustments, id)
-        && ADJUSTMENT_PARENTS
+pub fn is_tool_active(adjustments: &serde_json::Value, tool: &str) -> bool {
+    match adjustments.get("activeTools") {
+        Some(active_tools) => active_tools
+            .get(tool)
+            .and_then(|active| active.as_bool())
+            .unwrap_or(true),
+        None => LEGACY_SECTION_TOOLS
             .iter()
-            .find(|(child, _)| *child == id)
-            .is_none_or(|(_, parent)| is_adjustment_visible(adjustments, parent))
+            .find(|(_, tools)| tools.contains(&tool))
+            .is_none_or(|(section, _)| is_section_visible(adjustments, section)),
+    }
 }
 
-pub fn is_effect_enabled(adjustments: &serde_json::Value, id: &str, enabled_key: &str) -> bool {
-    adjustments[enabled_key].as_bool().unwrap_or(false) && is_adjustment_visible(adjustments, id)
+pub fn active_tools(adjustments: &serde_json::Value) -> serde_json::Map<String, serde_json::Value> {
+    match adjustments
+        .get("activeTools")
+        .and_then(|tools| tools.as_object())
+    {
+        Some(active_tools) => active_tools.clone(),
+        None => LEGACY_SECTION_TOOLS
+            .iter()
+            .flat_map(|(_, tools)| tools.iter())
+            .map(|tool| (tool.to_string(), json!(is_tool_active(adjustments, tool))))
+            .collect(),
+    }
+}
+
+pub fn is_effect_enabled(adjustments: &serde_json::Value, tool: &str, enabled_key: &str) -> bool {
+    adjustments[enabled_key].as_bool().unwrap_or(false) && is_tool_active(adjustments, tool)
 }
 
 fn get_global_adjustments_from_json(
@@ -2207,10 +2236,10 @@ fn get_global_adjustments_from_json(
     baseline_exposure: f32,
     tonemapper_override: Option<u32>,
 ) -> GlobalAdjustments {
-    let is_visible = |id: &str| is_adjustment_visible(js_adjustments, id);
+    let is_visible = |tool: &str| is_tool_active(js_adjustments, tool);
 
-    let get_val = |id: &str, key: &str, scale: f32, default: Option<f64>| -> f32 {
-        if is_visible(id) {
+    let get_val = |tool: &str, key: &str, scale: f32, default: Option<f64>| -> f32 {
+        if is_visible(tool) {
             js_adjustments[key]
                 .as_f64()
                 .unwrap_or(default.unwrap_or(0.0)) as f32
@@ -2507,10 +2536,10 @@ fn get_mask_adjustments_from_json(
         return MaskAdjustments::default();
     }
 
-    let is_visible = |id: &str| is_adjustment_visible(adj, id);
+    let is_visible = |tool: &str| is_tool_active(adj, tool);
 
-    let get_val = |id: &str, key: &str, scale: f32| -> f32 {
-        if is_visible(id) {
+    let get_val = |tool: &str, key: &str, scale: f32| -> f32 {
+        if is_visible(tool) {
             adj[key].as_f64().unwrap_or(0.0) as f32 / scale
         } else {
             0.0
@@ -2655,7 +2684,7 @@ pub fn get_all_adjustments_from_json(
     as_shot: AsShot,
     render: RenderOptions,
 ) -> AllAdjustments {
-    let target_white_balance = if is_adjustment_visible(js_adjustments, "whiteBalance") {
+    let target_white_balance = if is_tool_active(js_adjustments, "whiteBalance") {
         white_balance::from_adjustments(js_adjustments, as_shot.white_balance)
     } else {
         as_shot.white_balance
@@ -3615,11 +3644,10 @@ pub fn auto_results_to_json(results: &AutoAdjustmentResults) -> serde_json::Valu
         "centré": results.centre,
 
         "dehaze": results.dehaze,
-        "sectionVisibility": {
+        "activeTools": {
             "basic": true,
-            "color": true,
             "colorPresence": true,
-            "effects": true,
+            "presence": true,
             "vignette": true
         },
         "whites": results.whites,

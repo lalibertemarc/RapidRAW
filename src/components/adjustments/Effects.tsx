@@ -162,7 +162,7 @@ interface SpatialEffectProps {
 }
 
 const SpatialEffect = ({ children, enabled, id, label, onToggle }: SpatialEffectProps) => {
-  const visibility = useToolVisibility(id);
+  const visibility = useToolVisibility(id, 'spatial');
 
   return (
     <div>
@@ -182,7 +182,7 @@ const SpatialEffect = ({ children, enabled, id, label, onToggle }: SpatialEffect
           <div
             className={clsx(
               'space-y-4 mt-4 mb-1 pl-2 border-l-2 border-card-active transition-opacity duration-300',
-              visibility && !visibility.isVisible && HIDDEN_CONTENT_CLASS,
+              visibility?.isDimmed && HIDDEN_CONTENT_CLASS,
             )}
           >
             {children}

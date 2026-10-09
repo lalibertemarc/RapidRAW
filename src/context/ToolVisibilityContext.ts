@@ -1,19 +1,23 @@
 import { createContext, useContext } from 'react';
-import { isAdjustmentVisible, SectionVisibility } from '../utils/adjustments';
+import { ActiveTools, isToolActive } from '../utils/adjustments';
 
 interface ToolVisibilityContextValue {
-  onToggleVisibility(id: string): void;
-  sectionVisibility: SectionVisibility;
+  activeTools: ActiveTools;
+  onToggleTool(id: string): void;
+  section: string;
 }
 
 export const ToolVisibilityContext = createContext<ToolVisibilityContextValue | null>(null);
 
-export const useToolVisibility = (id: string) => {
+export const useToolVisibility = (id: string, parentId?: string) => {
   const context = useContext(ToolVisibilityContext);
-  return (
-    context && {
-      isVisible: isAdjustmentVisible(context.sectionVisibility, id),
-      toggle: () => context.onToggleVisibility(id),
-    }
-  );
+  if (!context) {
+    return null;
+  }
+  const isVisible = isToolActive(context.activeTools, id);
+  return {
+    isDimmed: !isVisible && isToolActive(context.activeTools, parentId ?? context.section),
+    isVisible,
+    toggle: () => context.onToggleTool(id),
+  };
 };

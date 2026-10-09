@@ -68,10 +68,7 @@ export default function AdjustmentSubSection({ actions, children, id, order, tit
       </div>
       <div ref={wrapperRef} className="overflow-hidden transition-all duration-300 ease-in-out">
         <div
-          className={clsx(
-            'pt-2 transition-opacity duration-300',
-            visibility && !visibility.isVisible && HIDDEN_CONTENT_CLASS,
-          )}
+          className={clsx('pt-2 transition-opacity duration-300', visibility?.isDimmed && HIDDEN_CONTENT_CLASS)}
           ref={contentRef}
         >
           {children}

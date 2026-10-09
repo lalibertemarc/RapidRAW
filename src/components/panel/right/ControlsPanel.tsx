@@ -14,12 +14,13 @@ import Resizer from '../../ui/Resizer';
 import AdjustmentSectionsSubMenu from './AdjustmentSectionsSubMenu';
 import {
   Adjustments,
-  SectionVisibility,
   INITIAL_ADJUSTMENTS,
   ADJUSTMENT_SECTIONS,
+  getActiveTools,
   getVisibleAdjustmentSections,
-  showSectionAndTools,
-  toggleAdjustmentVisibility,
+  isToolActive,
+  setToolActive,
+  toggleToolActive,
 } from '../../../utils/adjustments';
 import { useContextMenu } from '../../../context/ContextMenuContext';
 import { ToolVisibilityContext } from '../../../context/ToolVisibilityContext';
@@ -105,13 +106,10 @@ export default function Controls() {
     [setUI],
   );
 
-  const handleToggleVisibility = (sectionName: string) => {
+  const handleToggleVisibility = (id: string) => {
     setAdjustments((prev: Adjustments) => ({
       ...prev,
-      sectionVisibility: toggleAdjustmentVisibility(
-        prev.sectionVisibility || INITIAL_ADJUSTMENTS.sectionVisibility,
-        sectionName,
-      ),
+      activeTools: toggleToolActive(getActiveTools(prev), id),
     }));
   };
 
@@ -124,7 +122,7 @@ export default function Controls() {
           acc[key] = INITIAL_ADJUSTMENTS[key as keyof Adjustments];
           return acc;
         }, {}),
-      sectionVisibility: { ...INITIAL_ADJUSTMENTS.sectionVisibility },
+      activeTools: { ...INITIAL_ADJUSTMENTS.activeTools },
     }));
   };
 
@@ -169,10 +167,7 @@ export default function Controls() {
       setAdjustments((prev: Adjustments) => ({
         ...prev,
         ...copiedSectionAdjustments.values,
-        sectionVisibility: showSectionAndTools(
-          prev.sectionVisibility || INITIAL_ADJUSTMENTS.sectionVisibility,
-          sectionName,
-        ),
+        activeTools: setToolActive(getActiveTools(prev), sectionName, true),
       }));
     };
 
@@ -184,10 +179,7 @@ export default function Controls() {
       setAdjustments((prev: Adjustments) => ({
         ...prev,
         ...resetValues,
-        sectionVisibility: showSectionAndTools(
-          prev.sectionVisibility || INITIAL_ADJUSTMENTS.sectionVisibility,
-          sectionName,
-        ),
+        activeTools: setToolActive(getActiveTools(prev), sectionName, true),
       }));
     };
 
@@ -297,12 +289,12 @@ export default function Controls() {
             }[sectionName];
 
             const title = t(`editor.adjustments.sections.${sectionName}`);
-            const sectionVisibility = adjustments.sectionVisibility || INITIAL_ADJUSTMENTS.sectionVisibility;
+            const activeTools = getActiveTools(adjustments);
 
             return (
               <div className="shrink-0 group" key={sectionName}>
                 <CollapsibleSection
-                  isContentVisible={sectionVisibility[sectionName as keyof SectionVisibility]}
+                  isContentVisible={isToolActive(activeTools, sectionName)}
                   isOpen={collapsibleSectionsState[sectionName as keyof typeof collapsibleSectionsState]}
                   onContextMenu={(e: any) => handleSectionContextMenu(e, sectionName)}
                   onToggle={() => handleToggleSection(sectionName)}
@@ -310,7 +302,7 @@ export default function Controls() {
                   title={title}
                 >
                   <ToolVisibilityContext.Provider
-                    value={{ sectionVisibility, onToggleVisibility: handleToggleVisibility }}
+                    value={{ activeTools, onToggleTool: handleToggleVisibility, section: sectionName }}
                   >
                     <SectionComponent
                       adjustments={adjustments}
