@@ -19,8 +19,10 @@ import {
   ADJUSTMENT_SECTIONS,
   getVisibleAdjustmentSections,
   showSectionAndTools,
+  toggleAdjustmentVisibility,
 } from '../../../utils/adjustments';
 import { useContextMenu } from '../../../context/ContextMenuContext';
+import { ToolVisibilityContext } from '../../../context/ToolVisibilityContext';
 import { OPTION_SEPARATOR, Orientation } from '../../ui/AppProperties';
 import Text from '../../ui/Text';
 import { TextVariants, TextColors, TextWeights } from '../../../types/typography';
@@ -104,16 +106,13 @@ export default function Controls() {
   );
 
   const handleToggleVisibility = (sectionName: string) => {
-    setAdjustments((prev: Adjustments) => {
-      const currentVisibility: SectionVisibility = prev.sectionVisibility || INITIAL_ADJUSTMENTS.sectionVisibility;
-      return {
-        ...prev,
-        sectionVisibility: {
-          ...currentVisibility,
-          [sectionName]: !currentVisibility[sectionName],
-        },
-      };
-    });
+    setAdjustments((prev: Adjustments) => ({
+      ...prev,
+      sectionVisibility: toggleAdjustmentVisibility(
+        prev.sectionVisibility || INITIAL_ADJUSTMENTS.sectionVisibility,
+        sectionName,
+      ),
+    }));
   };
 
   const handleResetAdjustments = () => {
@@ -311,21 +310,23 @@ export default function Controls() {
                   onToggleVisibility={() => handleToggleVisibility(sectionName)}
                   title={title}
                 >
-                  <SectionComponent
-                    adjustments={adjustments}
-                    setAdjustments={setAdjustments}
-                    histogram={histogram}
-                    theme={theme}
-                    handleLutSelect={handleLutSelect}
-                    onLutHover={setLutPreviewOverride}
-                    appSettings={appSettings}
-                    asShotWhiteBalance={selectedImage.asShotWhiteBalance}
-                    isWbPickerActive={isWbPickerActive}
-                    toggleWbPicker={toggleWbPicker}
-                    onDragStateChange={onDragStateChange}
-                    onToggleVisibility={handleToggleVisibility}
-                    sectionVisibility={sectionVisibility}
-                  />
+                  <ToolVisibilityContext.Provider
+                    value={{ sectionVisibility, onToggleVisibility: handleToggleVisibility }}
+                  >
+                    <SectionComponent
+                      adjustments={adjustments}
+                      setAdjustments={setAdjustments}
+                      histogram={histogram}
+                      theme={theme}
+                      handleLutSelect={handleLutSelect}
+                      onLutHover={setLutPreviewOverride}
+                      appSettings={appSettings}
+                      asShotWhiteBalance={selectedImage.asShotWhiteBalance}
+                      isWbPickerActive={isWbPickerActive}
+                      toggleWbPicker={toggleWbPicker}
+                      onDragStateChange={onDragStateChange}
+                    />
+                  </ToolVisibilityContext.Provider>
                 </CollapsibleSection>
               </div>
             );

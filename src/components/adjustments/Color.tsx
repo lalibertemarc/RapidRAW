@@ -4,13 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import Slider, { SliderChangeEvent } from '../ui/Slider';
 import ColorWheel from '../ui/ColorWheel';
-import {
-  ColorAdjustment,
-  ColorCalibration,
-  HueSatLum,
-  INITIAL_ADJUSTMENTS,
-  SectionVisibility,
-} from '../../utils/adjustments';
+import { ColorAdjustment, ColorCalibration, HueSatLum, INITIAL_ADJUSTMENTS } from '../../utils/adjustments';
 import { Adjustments, ColorGrading, getAdjustmentToolOrder, getHiddenAdjustmentTools } from '../../utils/adjustments';
 import { AppSettings } from '../ui/AppProperties';
 import Text from '../ui/Text';
@@ -45,8 +39,6 @@ interface ColorPanelProps {
   asShotWhiteBalance?: WhiteBalance;
   isForMask?: boolean;
   isWbPickerActive?: boolean;
-  onToggleVisibility?: (key: string) => void;
-  sectionVisibility?: SectionVisibility;
   toggleWbPicker?: () => void;
   onDragStateChange?: (isDragging: boolean) => void;
 }
@@ -424,8 +416,6 @@ export default function ColorPanel({
   toggleWbPicker,
   onDragStateChange,
   asShotWhiteBalance,
-  onToggleVisibility,
-  sectionVisibility,
 }: ColorPanelProps) {
   const { t } = useTranslation();
   const handleSettingsChange = useSettingsStore((state) => state.handleSettingsChange);
@@ -637,8 +627,6 @@ export default function ColorPanel({
       {!hiddenTools.includes('colorGrading') && (
         <AdjustmentSubSection
           id="colorGrading"
-          isContentVisible={sectionVisibility?.colorGrading}
-          onToggleVisibility={onToggleVisibility && (() => onToggleVisibility('colorGrading'))}
           order={toolOrder.indexOf('colorGrading')}
           title={t('adjustments.color.colorGrading')}
         >
@@ -654,8 +642,6 @@ export default function ColorPanel({
       {!hiddenTools.includes('colorMixer') && (
         <AdjustmentSubSection
           id="colorMixer"
-          isContentVisible={sectionVisibility?.colorMixer}
-          onToggleVisibility={onToggleVisibility && (() => onToggleVisibility('colorMixer'))}
           order={toolOrder.indexOf('colorMixer')}
           title={t('adjustments.color.colorMixer')}
         >
