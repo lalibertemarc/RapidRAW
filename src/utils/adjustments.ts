@@ -244,6 +244,7 @@ export interface Adjustments {
   [index: string]: any;
   aiPatches: Array<AiPatch>;
   aspectRatio: number | null;
+  baselineExposure: boolean;
   blacks: number;
   brightness: number;
   centré: number;
@@ -589,6 +590,7 @@ export const INITIAL_ADJUSTMENTS: Adjustments = {
   activeTools: {},
   aiPatches: [],
   aspectRatio: null,
+  baselineExposure: true,
   blacks: 0,
   brightness: 0,
   centré: 0,
@@ -813,6 +815,7 @@ export const normalizeLoadedAdjustments = (loadedAdjustments: Adjustments): any 
       })(),
       autoCrop: loadedAdjustments.guidedPerspective?.autoCrop ?? true,
     },
+    baselineExposure: loadedAdjustments.baselineExposure ?? false,
     lutIsSceneReferred: loadedAdjustments.lutIsSceneReferred ?? false,
     flareAmount: loadedAdjustments.flareAmount ?? INITIAL_ADJUSTMENTS.flareAmount,
     glowAmount: loadedAdjustments.glowAmount ?? INITIAL_ADJUSTMENTS.glowAmount,
