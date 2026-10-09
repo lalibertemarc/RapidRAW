@@ -2330,18 +2330,6 @@ export default function SettingsPanel({
                         />
                       </SettingItem>
 
-                      <SettingItem
-                        label={t('settings.processing.preprocessing.baselineExposure')}
-                        description={t('settings.processing.preprocessing.baselineExposureDesc')}
-                      >
-                        <Switch
-                          checked={Boolean(appSettings?.enableBaselineExposure)}
-                          id="baseline-exposure-toggle"
-                          label={t('settings.processing.preprocessing.enableBaselineExposure')}
-                          onChange={(checked) => onSettingsChange({ ...appSettings, enableBaselineExposure: checked })}
-                        />
-                      </SettingItem>
-
                       <div className="space-y-4">
                         <SettingItem
                           label={t('settings.processing.preprocessing.tonemapperOverride')}

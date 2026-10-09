@@ -456,10 +456,6 @@ pub fn default_linear_raw_mode() -> String {
     "auto".to_string()
 }
 
-pub fn default_enable_baseline_exposure() -> bool {
-    true
-}
-
 pub fn default_tagging_shortcuts_option() -> Option<Vec<String>> {
     Some(vec![
         "portrait".to_string(),
@@ -574,8 +570,6 @@ pub struct AppSettings {
     pub thumbnail_worker_threads: Option<u32>,
     #[serde(default)]
     pub image_cache_size: Option<u32>,
-    #[serde(default = "default_enable_baseline_exposure")]
-    pub enable_baseline_exposure: bool,
     #[serde(default)]
     pub tonemapper_override_enabled: Option<bool>,
     #[serde(default)]
@@ -704,7 +698,6 @@ impl Default for AppSettings {
             image_cache_size: Some(2),
             #[cfg(not(target_os = "android"))]
             image_cache_size: Some(5),
-            enable_baseline_exposure: default_enable_baseline_exposure(),
             tonemapper_override_enabled: Some(false),
             default_raw_tonemapper: Some("agx".to_string()),
             default_non_raw_tonemapper: Some("basic".to_string()),

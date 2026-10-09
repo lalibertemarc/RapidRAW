@@ -6,9 +6,7 @@ use crate::file_management::{parse_virtual_path, read_file_mapped};
 use crate::formats::is_raw_file;
 use crate::image_processing::ImageMetadata;
 use crate::image_processing::{
-    apply_orientation, apply_srgb_to_linear, effective_baseline_exposure, pin_baseline_exposure,
-    pinned_baseline_exposure, remove_raw_artifacts_and_enhance, srgb_channel_to_linear,
-    uses_baseline_exposure,
+    apply_orientation, apply_srgb_to_linear, remove_raw_artifacts_and_enhance,
 };
 use crate::mask_generation::{MaskDefinition, SubMask, generate_mask_bitmap};
 use crate::white_balance::WhiteBalance;
@@ -52,9 +50,20 @@ struct PatchMaskInfo {
     sub_masks: Vec<SubMask>,
 }
 
-pub fn srgb_to_linear_lut() -> &'static [f32; 256] {
+fn srgb_to_linear_lut() -> &'static [f32; 256] {
     static LUT: OnceLock<[f32; 256]> = OnceLock::new();
-    LUT.get_or_init(|| std::array::from_fn(|i| srgb_channel_to_linear(i as f32 / 255.0)))
+    LUT.get_or_init(|| {
+        let mut lut = [0.0f32; 256];
+        for (i, v) in lut.iter_mut().enumerate() {
+            let x = i as f32 / 255.0;
+            *v = if x <= 0.04045 {
+                x / 12.92
+            } else {
+                ((x + 0.055) / 1.055).powf(2.4)
+            };
+        }
+        lut
+    })
 }
 
 pub fn load_and_composite(
@@ -65,67 +74,9 @@ pub fn load_and_composite(
     settings: &AppSettings,
     cancel_token: Option<(Arc<AtomicUsize>, usize)>,
 ) -> Result<DynamicImage> {
-    let base_image = load_base_image_for_adjustments(
-        base_image,
-        path,
-        adjustments,
-        use_fast_raw_dev,
-        settings,
-        cancel_token,
-    )?;
+    let base_image =
+        load_base_image_from_bytes(base_image, path, use_fast_raw_dev, settings, cancel_token)?;
     composite_patches_on_image(&base_image, adjustments)
-}
-
-pub fn load_base_image_for_adjustments(
-    bytes: &[u8],
-    path: &str,
-    adjustments: &Value,
-    use_fast_raw_dev: bool,
-    settings: &AppSettings,
-    cancel_token: Option<(Arc<AtomicUsize>, usize)>,
-) -> Result<DynamicImage> {
-    let decode =
-        || load_base_image_from_bytes(bytes, path, use_fast_raw_dev, settings, cancel_token);
-    if !settings.enable_baseline_exposure
-        || !uses_baseline_exposure(adjustments)
-        || !crate::as_shot::needs_measured_baseline(path)
-    {
-        return decode();
-    }
-
-    let (image, camera) = std::thread::scope(|scope| {
-        let camera = scope.spawn(|| {
-            safe_embedded_preview_fallback(bytes, path)
-                .and_then(crate::baseline_exposure::camera_rendering)
-        });
-        (decode(), camera.join().ok().flatten())
-    });
-    let image = image?;
-    crate::as_shot::record_measured_baseline(
-        path,
-        camera.and_then(|camera| crate::baseline_exposure::measure(&camera, &image)),
-    );
-    Ok(image)
-}
-
-fn pin_measured_baseline(sidecar_path: &Path, baseline_exposure: f32) -> Option<ImageMetadata> {
-    let mut metadata = exif_processing::load_sidecar(sidecar_path);
-    if !uses_baseline_exposure(&metadata.adjustments)
-        || pinned_baseline_exposure(&metadata.adjustments).is_some()
-    {
-        return None;
-    }
-    pin_baseline_exposure(&mut metadata.adjustments, baseline_exposure);
-    let json = serde_json::to_string_pretty(&metadata).ok()?;
-    if let Err(e) = fs::write(sidecar_path, json) {
-        log::warn!(
-            "Failed to pin the baseline exposure in '{}': {}",
-            sidecar_path.display(),
-            e
-        );
-        return None;
-    }
-    Some(metadata)
 }
 
 pub fn load_base_image_from_bytes(
@@ -959,13 +910,11 @@ pub async fn load_image(
     let (source_path, sidecar_path) = parse_virtual_path(&path);
     let source_path_str = source_path.to_string_lossy().to_string();
 
-    let mut metadata: ImageMetadata = crate::exif_processing::load_sidecar(&sidecar_path);
+    let metadata: ImageMetadata = crate::exif_processing::load_sidecar(&sidecar_path);
 
     let settings = load_settings(app_handle.clone()).unwrap_or_default();
-    let baseline_exposure_enabled = settings.enable_baseline_exposure;
 
     let path_clone = source_path_str.clone();
-    let adjustments_clone = metadata.adjustments.clone();
 
     let cached_data = state
         .decoded_image_cache
@@ -995,10 +944,9 @@ pub async fn load_image(
                             return Err("Load cancelled".to_string());
                         }
 
-                        let img = load_base_image_for_adjustments(
+                        let img = load_base_image_from_bytes(
                             &mmap,
                             &path_clone,
-                            &adjustments_clone,
                             false,
                             &settings,
                             cancel_token.clone(),
@@ -1021,10 +969,9 @@ pub async fn load_image(
                             return Err("Load cancelled".to_string());
                         }
 
-                        let img = load_base_image_for_adjustments(
+                        let img = load_base_image_from_bytes(
                             &bytes,
                             &path_clone,
-                            &adjustments_clone,
                             false,
                             &settings,
                             cancel_token.clone(),
@@ -1061,24 +1008,13 @@ pub async fn load_image(
     }
 
     let (orig_width, orig_height) = pristine_arc.dimensions();
-    let as_shot = crate::as_shot::as_shot(&source_path_str);
-    if is_raw {
-        if baseline_exposure_enabled && !crate::as_shot::needs_measured_baseline(&source_path_str) {
-            metadata =
-                pin_measured_baseline(&sidecar_path, as_shot.baseline_exposure).unwrap_or(metadata);
-        }
-        log::info!(
-            "Baseline exposure applied to '{}': {:+.2} EV",
-            source_path_str,
-            effective_baseline_exposure(&metadata.adjustments, as_shot, baseline_exposure_enabled)
-        );
-    }
+    let as_shot_white_balance = crate::white_balance::as_shot_white_balance(&source_path_str);
 
     *state.original_image.lock().unwrap() = Some(LoadedImage {
         path,
         image: pristine_arc,
         is_raw,
-        as_shot,
+        as_shot_white_balance,
     });
 
     Ok(LoadImageResult {
@@ -1087,6 +1023,6 @@ pub async fn load_image(
         metadata,
         exif: exif_data,
         is_raw,
-        as_shot_white_balance: as_shot.white_balance,
+        as_shot_white_balance,
     })
 }

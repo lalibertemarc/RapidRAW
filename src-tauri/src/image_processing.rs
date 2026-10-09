@@ -1,4 +1,3 @@
-use crate::as_shot::AsShot;
 use crate::gpu_processing::WgpuDisplay;
 use crate::guided_perspective::{GuideLine, compute_guided_homography, count_valid_lines};
 use crate::white_balance::{self, WhiteBalance};
@@ -92,52 +91,6 @@ impl Default for ImageMetadata {
             tags: None,
             exif: None,
         }
-    }
-}
-
-const BASELINE_EXPOSURE_KEY: &str = "baselineExposure";
-
-pub fn mark_baseline_exposure(adjustments: &mut Value) {
-    if let Some(object) = adjustments.as_object_mut() {
-        object.insert(BASELINE_EXPOSURE_KEY.to_string(), Value::Bool(true));
-    }
-}
-
-pub fn default_adjustments() -> Value {
-    let mut adjustments = json!({});
-    mark_baseline_exposure(&mut adjustments);
-    adjustments
-}
-
-pub fn uses_baseline_exposure(adjustments: &Value) -> bool {
-    adjustments.is_null()
-        || adjustments
-            .get(BASELINE_EXPOSURE_KEY)
-            .is_some_and(|marker| marker == &Value::Bool(true) || marker.is_number())
-}
-
-pub fn pinned_baseline_exposure(adjustments: &Value) -> Option<f32> {
-    adjustments
-        .get(BASELINE_EXPOSURE_KEY)?
-        .as_f64()
-        .map(|baseline| baseline as f32)
-}
-
-pub fn pin_baseline_exposure(adjustments: &mut Value, baseline_exposure: f32) {
-    if adjustments.is_null() {
-        *adjustments = json!({});
-    }
-    if let Some(object) = adjustments.as_object_mut() {
-        let rounded = (f64::from(baseline_exposure) * 100.0).round() / 100.0;
-        object.insert(BASELINE_EXPOSURE_KEY.to_string(), Value::from(rounded));
-    }
-}
-
-pub fn effective_baseline_exposure(adjustments: &Value, as_shot: AsShot, enabled: bool) -> f32 {
-    if enabled && uses_baseline_exposure(adjustments) {
-        pinned_baseline_exposure(adjustments).unwrap_or(as_shot.baseline_exposure)
-    } else {
-        0.0
     }
 }
 
@@ -1251,27 +1204,7 @@ pub fn apply_cpu_default_raw_processing(image: &mut DynamicImage) {
     *image = DynamicImage::ImageRgb32F(f32_image);
 }
 
-fn map_color_channels(
-    mut image: DynamicImage,
-    map: impl Fn(f32) -> f32 + Send + Sync,
-) -> DynamicImage {
-    match &mut image {
-        DynamicImage::ImageRgb32F(img) => {
-            img.as_mut().par_iter_mut().for_each(|c| *c = map(*c));
-        }
-        DynamicImage::ImageRgba32F(img) => {
-            img.par_chunks_mut(4).for_each(|p| {
-                p[0] = map(p[0]);
-                p[1] = map(p[1]);
-                p[2] = map(p[2]);
-            });
-        }
-        _ => {}
-    }
-    image
-}
-
-pub fn srgb_channel_to_linear(c: f32) -> f32 {
+fn srgb_channel_to_linear(c: f32) -> f32 {
     if c <= 0.04045 {
         c / 12.92
     } else {
@@ -1279,19 +1212,49 @@ pub fn srgb_channel_to_linear(c: f32) -> f32 {
     }
 }
 
-pub fn apply_srgb_to_linear(image: DynamicImage) -> DynamicImage {
-    map_color_channels(image, |x| srgb_channel_to_linear(x.max(0.0)))
+pub fn apply_srgb_to_linear(mut image: DynamicImage) -> DynamicImage {
+    let to_linear = |x: f32| -> f32 { srgb_channel_to_linear(x.max(0.0)) };
+
+    match &mut image {
+        DynamicImage::ImageRgb32F(img) => {
+            img.as_mut().par_iter_mut().for_each(|c| *c = to_linear(*c));
+        }
+        DynamicImage::ImageRgba32F(img) => {
+            img.par_chunks_mut(4).for_each(|p| {
+                p[0] = to_linear(p[0]);
+                p[1] = to_linear(p[1]);
+                p[2] = to_linear(p[2]);
+            });
+        }
+        _ => {}
+    }
+    image
 }
 
-pub fn apply_linear_to_srgb(image: DynamicImage) -> DynamicImage {
-    map_color_channels(image, |x| {
+pub fn apply_linear_to_srgb(mut image: DynamicImage) -> DynamicImage {
+    let to_srgb = |x: f32| -> f32 {
         let x = x.max(0.0);
         if x <= 0.0031308 {
             x * 12.92
         } else {
             1.055 * x.powf(1.0 / 2.4) - 0.055
         }
-    })
+    };
+
+    match &mut image {
+        DynamicImage::ImageRgb32F(img) => {
+            img.as_mut().par_iter_mut().for_each(|c| *c = to_srgb(*c));
+        }
+        DynamicImage::ImageRgba32F(img) => {
+            img.par_chunks_mut(4).for_each(|p| {
+                p[0] = to_srgb(p[0]);
+                p[1] = to_srgb(p[1]);
+                p[2] = to_srgb(p[2]);
+            });
+        }
+        _ => {}
+    }
+    image
 }
 
 pub fn apply_orientation(image: DynamicImage, orientation: Orientation) -> DynamicImage {
@@ -1543,8 +1506,8 @@ pub struct GlobalAdjustments {
     pub wb_log_gain_l: f32,
     pub wb_log_gain_m: f32,
     pub wb_log_gain_s: f32,
-    pub baseline_exposure: f32,
-    pub baseline_shoulder_knee: f32,
+    _pad_color1: f32,
+    _pad_color2: f32,
 
     pub sharpness: f32,
     pub luma_noise_reduction: f32,
@@ -1950,25 +1913,12 @@ pub fn resolve_tonemapper_override(settings: &crate::AppSettings, is_raw: bool) 
     Some(if tm == "agx" { 1 } else { 0 })
 }
 
-#[derive(Clone, Copy, Debug)]
-pub struct RenderOptions {
-    pub tonemapper_override: Option<u32>,
-    pub baseline_exposure: bool,
-}
-
-pub fn resolve_render_options(settings: &crate::AppSettings, is_raw: bool) -> RenderOptions {
-    RenderOptions {
-        tonemapper_override: resolve_tonemapper_override(settings, is_raw),
-        baseline_exposure: settings.enable_baseline_exposure,
-    }
-}
-
-pub fn resolve_render_options_from_handle(
+pub fn resolve_tonemapper_override_from_handle(
     app_handle: &tauri::AppHandle,
     is_raw: bool,
-) -> RenderOptions {
+) -> Option<u32> {
     let settings = crate::app_settings::load_settings(app_handle.clone()).unwrap_or_default();
-    resolve_render_options(&settings, is_raw)
+    resolve_tonemapper_override(&settings, is_raw)
 }
 
 pub fn apply_cpu_agx_tonemap(image: &mut DynamicImage) {
@@ -2147,14 +2097,14 @@ pub fn is_image_edited(
         return true;
     }
 
-    let reference = AsShot::reference();
-    let render = RenderOptions {
+    let reference = WhiteBalance::reference();
+    let current_adj = get_all_adjustments_from_json(adj, is_raw, reference, tonemapper_override);
+    let default_adj = get_all_adjustments_from_json(
+        &serde_json::json!({}),
+        is_raw,
+        reference,
         tonemapper_override,
-        baseline_exposure: false,
-    };
-    let current_adj = get_all_adjustments_from_json(adj, is_raw, reference, render);
-    let default_adj =
-        get_all_adjustments_from_json(&serde_json::json!({}), is_raw, reference, render);
+    );
 
     bytemuck::bytes_of(&current_adj) != bytemuck::bytes_of(&default_adj)
 }
@@ -2233,7 +2183,6 @@ fn get_global_adjustments_from_json(
     js_adjustments: &serde_json::Value,
     is_raw: bool,
     white_balance_gains: [f32; 3],
-    baseline_exposure: f32,
     tonemapper_override: Option<u32>,
 ) -> GlobalAdjustments {
     let is_visible = |tool: &str| is_tool_active(js_adjustments, tool);
@@ -2372,8 +2321,8 @@ fn get_global_adjustments_from_json(
         wb_log_gain_l: white_balance_gains[0],
         wb_log_gain_m: white_balance_gains[1],
         wb_log_gain_s: white_balance_gains[2],
-        baseline_exposure,
-        baseline_shoulder_knee: crate::baseline_exposure::SHOULDER_KNEE,
+        _pad_color1: 0.0,
+        _pad_color2: 0.0,
 
         sharpness: get_val("sharpening", "sharpness", SCALES.sharpness, None),
         luma_noise_reduction: get_val(
@@ -2681,20 +2630,19 @@ fn get_mask_adjustments_from_json(
 pub fn get_all_adjustments_from_json(
     js_adjustments: &serde_json::Value,
     is_raw: bool,
-    as_shot: AsShot,
-    render: RenderOptions,
+    as_shot_white_balance: WhiteBalance,
+    tonemapper_override: Option<u32>,
 ) -> AllAdjustments {
     let target_white_balance = if is_tool_active(js_adjustments, "whiteBalance") {
-        white_balance::from_adjustments(js_adjustments, as_shot.white_balance)
+        white_balance::from_adjustments(js_adjustments, as_shot_white_balance)
     } else {
-        as_shot.white_balance
+        as_shot_white_balance
     };
     let global = get_global_adjustments_from_json(
         js_adjustments,
         is_raw,
-        white_balance::adaptation_log_gains(as_shot.white_balance, target_white_balance),
-        effective_baseline_exposure(js_adjustments, as_shot, render.baseline_exposure),
-        render.tonemapper_override,
+        white_balance::adaptation_log_gains(as_shot_white_balance, target_white_balance),
+        tonemapper_override,
     );
     let mut mask_adjustments = [MaskAdjustments::default(); MAX_MASKS];
     let mut mask_count = 0;
@@ -3402,10 +3350,7 @@ pub fn calculate_waveform_from_image(
     })
 }
 
-pub fn perform_auto_analysis(
-    image: &DynamicImage,
-    baseline_exposure: f32,
-) -> AutoAdjustmentResults {
+pub fn perform_auto_analysis(image: &DynamicImage) -> AutoAdjustmentResults {
     const ANALYSIS_MAX_DIM: u32 = 1024;
 
     const LUMA_R: f32 = 0.2126;
@@ -3455,10 +3400,7 @@ pub fn perform_auto_analysis(
     const EXPOSURE_OUTPUT_SCALE: f64 = 20.0;
     const BRIGHTNESS_SCALE: f64 = 0.007;
 
-    let analysis_preview = crate::baseline_exposure::apply(
-        downscale_f32_image(image, ANALYSIS_MAX_DIM, ANALYSIS_MAX_DIM),
-        baseline_exposure,
-    );
+    let analysis_preview = downscale_f32_image(image, ANALYSIS_MAX_DIM, ANALYSIS_MAX_DIM);
     let rgb_image = analysis_preview.to_rgb8();
     let total_pixels = (rgb_image.width() * rgb_image.height()) as f64;
 
@@ -3657,24 +3599,18 @@ pub fn auto_results_to_json(results: &AutoAdjustmentResults) -> serde_json::Valu
 
 #[tauri::command]
 pub fn calculate_auto_adjustments(
-    js_adjustments: serde_json::Value,
     state: tauri::State<AppState>,
-    app_handle: tauri::AppHandle,
 ) -> Result<serde_json::Value, String> {
-    let loaded_image = state
+    let original_image = state
         .original_image
         .lock()
         .unwrap()
-        .clone()
-        .ok_or("No image loaded for auto adjustments")?;
+        .as_ref()
+        .ok_or("No image loaded for auto adjustments")?
+        .image
+        .clone();
 
-    let render = resolve_render_options_from_handle(&app_handle, loaded_image.is_raw);
-    let baseline_exposure = effective_baseline_exposure(
-        &js_adjustments,
-        loaded_image.as_shot,
-        render.baseline_exposure,
-    );
-    let results = perform_auto_analysis(&loaded_image.image, baseline_exposure);
+    let results = perform_auto_analysis(&original_image);
 
     Ok(auto_results_to_json(&results))
 }
@@ -3842,7 +3778,7 @@ pub async fn sample_white_balance(
         compute_white_balance_sample(
             &loaded_image.image,
             loaded_image.is_raw,
-            loaded_image.as_shot.white_balance,
+            loaded_image.as_shot_white_balance,
             &corners,
         )
     })

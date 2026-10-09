@@ -29,7 +29,6 @@ use crate::PendingMetadata;
 #[cfg(target_os = "android")]
 use crate::android_integration::*;
 use crate::app_settings::*;
-use crate::as_shot::as_shot;
 use crate::exif_processing;
 use crate::filename_template::{FilenameContext, generate_filename_from_template};
 use crate::formats::{is_raw_file, is_supported_image_file};
@@ -39,8 +38,7 @@ use crate::image_processing::GpuContext;
 use crate::image_processing::{
     Crop, ImageFlag, ImageMetadata, apply_coarse_rotation, apply_cpu_default_raw_processing,
     apply_crop, apply_flip, apply_geometry_warp, apply_rotation, auto_results_to_json,
-    default_adjustments, effective_baseline_exposure, get_all_adjustments_from_json,
-    perform_auto_analysis, resolve_render_options,
+    get_all_adjustments_from_json, perform_auto_analysis,
 };
 use crate::mask_generation::MaskDefinition;
 use crate::preset_converter;
@@ -1707,11 +1705,12 @@ pub fn generate_thumbnail_data(
             })
             .collect();
 
+        let tm_override = crate::image_processing::resolve_tonemapper_override(&settings, is_raw);
         let gpu_adjustments = get_all_adjustments_from_json(
             &meta.adjustments,
             is_raw,
-            as_shot(&source_path_str),
-            resolve_render_options(&settings, is_raw),
+            crate::white_balance::as_shot_white_balance(&source_path_str),
+            tm_override,
         );
         let lut_path = meta.adjustments["lutPath"].as_str();
         let lut = lut_path.and_then(|p| {
@@ -1779,16 +1778,8 @@ pub fn generate_thumbnail_data(
     };
 
     if adjustments.is_null() {
-        let render = resolve_render_options(&settings, is_raw);
-        final_image = crate::baseline_exposure::apply(
-            final_image,
-            effective_baseline_exposure(
-                &adjustments,
-                as_shot(&source_path_str),
-                render.baseline_exposure,
-            ),
-        );
-        let use_agx = render.tonemapper_override == Some(1);
+        let tm_override = crate::image_processing::resolve_tonemapper_override(&settings, is_raw);
+        let use_agx = tm_override == Some(1);
 
         if use_agx {
             if !is_raw {
@@ -2677,7 +2668,7 @@ pub async fn apply_adjustments_to_paths(
 
             let mut new_adjustments = existing_metadata.adjustments;
             if new_adjustments.is_null() {
-                new_adjustments = default_adjustments();
+                new_adjustments = serde_json::json!({});
             }
 
             if let (Some(new_map), Some(pasted_map)) =
@@ -2770,7 +2761,7 @@ pub async fn reset_adjustments_for_paths(
 
             let mut existing_metadata = crate::exif_processing::load_sidecar(&sidecar_path);
 
-            existing_metadata.adjustments = default_adjustments();
+            existing_metadata.adjustments = serde_json::json!({});
 
             if let Ok(json_string) = serde_json::to_string_pretty(&existing_metadata) {
                 let _ = std::fs::write(&sidecar_path, json_string);
@@ -2862,7 +2853,7 @@ pub async fn apply_auto_lens_correction_to_paths(
                 crate::exif_processing::load_sidecar_with_exif(&sidecar_path, &source_path);
 
             if existing_metadata.adjustments.is_null() {
-                existing_metadata.adjustments = default_adjustments();
+                existing_metadata.adjustments = serde_json::json!({});
             }
 
             if let Some(obj) = existing_metadata.adjustments.as_object_mut() {
@@ -2953,22 +2944,21 @@ fn update_sidecars_from_images(
                 let (source_path, sidecar_path) = parse_virtual_path(path);
                 let source_path_str = source_path.to_string_lossy().to_string();
 
-                let mut existing_metadata = crate::exif_processing::load_sidecar(&sidecar_path);
-
-                if existing_metadata.adjustments.is_null() {
-                    existing_metadata.adjustments = default_adjustments();
-                }
-
                 let file_bytes = fs::read(&source_path).map_err(|e| e.to_string())?;
-                let image = image_loader::load_base_image_for_adjustments(
+                let image = image_loader::load_base_image_from_bytes(
                     &file_bytes,
                     &source_path_str,
-                    &existing_metadata.adjustments,
                     fast_decode,
                     &settings,
                     None,
                 )
                 .map_err(|e| e.to_string())?;
+
+                let mut existing_metadata = crate::exif_processing::load_sidecar(&sidecar_path);
+
+                if existing_metadata.adjustments.is_null() {
+                    existing_metadata.adjustments = serde_json::json!({});
+                }
 
                 update(&image, &source_path_str, &mut existing_metadata.adjustments);
 
@@ -3025,23 +3015,13 @@ pub async fn apply_auto_adjustments_to_paths(
     paths: Vec<String>,
     app_handle: AppHandle,
 ) -> Result<(), String> {
-    let baseline_exposure_enabled = load_settings(app_handle.clone())
-        .unwrap_or_default()
-        .enable_baseline_exposure;
     update_sidecars_from_images(
         paths,
         app_handle,
         "auto adjustments",
         true,
-        move |image, source_path, adjustments| {
-            let auto_results = perform_auto_analysis(
-                image,
-                effective_baseline_exposure(
-                    adjustments,
-                    as_shot(source_path),
-                    baseline_exposure_enabled,
-                ),
-            );
+        |image, _, adjustments| {
+            let auto_results = perform_auto_analysis(image);
             let auto_adjustments_json = auto_results_to_json(&auto_results);
             let mut active_tools = crate::image_processing::active_tools(adjustments);
 
@@ -4237,11 +4217,10 @@ pub fn sync_metadata_from_xmp(source_path: &Path, metadata: &mut ImageMetadata) 
             && rating != 0
         {
             metadata.rating = rating;
-            if !metadata.adjustments.is_object() {
-                metadata.adjustments = default_adjustments();
-            }
             if let Some(obj) = metadata.adjustments.as_object_mut() {
                 obj.insert("rating".to_string(), serde_json::json!(rating));
+            } else {
+                metadata.adjustments = serde_json::json!({"rating": rating});
             }
             changed = true;
         }
