@@ -452,7 +452,7 @@ fn apply_tonal_adjustments(
         let t_detail = exp2(local_log_detail * 0.4545);
         let t_blurred = t_pixel / max(t_detail, 0.0001);
 
-        let shadow_lift = sh * t_pixel * pow(max(1.0 - t_pixel, 0.0), 4.5);
+        let shadow_lift = select(sh, sh * 2.2, sh > 0.0) * t_pixel * pow(max(1.0 - t_pixel * 2.0, 0.0), 2.0);
         let black_lift = bl * t_pixel * pow(max(1.0 - t_pixel, 0.0), 12.0);
         let lift_amount = max(shadow_lift + black_lift, 0.0);
 
