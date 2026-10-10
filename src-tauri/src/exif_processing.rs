@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::io::{BufReader, Cursor};
@@ -5,15 +6,21 @@ use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
 use std::time::Duration;
 
+use crate::file_management;
 use crate::formats::is_raw_file;
-use crate::image_processing::ImageMetadata;
+use crate::image_processing::{ImageFlag, ImageMetadata};
+use crate::tagging::{COLOR_TAG_PREFIX, USER_TAG_PREFIX};
 use chrono::{DateTime, Local, LocalResult, NaiveDateTime, TimeZone, Utc};
 use exif::{Exif, In, Value};
+use image::ImageDecoder;
 use little_exif::exif_tag::ExifTag;
 use little_exif::filetype::FileExtension;
 use little_exif::ifd::ExifTagGroup;
 use little_exif::metadata::Metadata;
 use little_exif::rational::{iR64, uR64};
+use quick_xml::escape::{escape, unescape};
+use quick_xml::events::{BytesStart, BytesText, Event};
+use quick_xml::{Reader, Writer};
 use rawler::decoders::RawMetadata;
 use rawler::lens::LensDescription;
 use serde::{Deserialize, Serialize};
@@ -1228,12 +1235,34 @@ pub fn write_image_with_metadata(
     output_format: &str,
     keep_metadata: bool,
     strip_gps: bool,
+    xmp: &ExportXmp,
 ) -> Result<(), String> {
     // FIXME: temporary solution until I find a way to write metadata to TIFF
     if !keep_metadata || output_format.to_lowercase() == "tiff" {
         return Ok(());
     }
 
+    if output_format.eq_ignore_ascii_case("webp") {
+        convert_webp_to_extended(image_bytes);
+    }
+    write_exif_metadata(image_bytes, original_path_str, output_format, strip_gps)?;
+    embed_xmp(
+        image_bytes,
+        original_path_str,
+        output_format,
+        strip_gps,
+        xmp,
+    );
+
+    Ok(())
+}
+
+fn write_exif_metadata(
+    image_bytes: &mut Vec<u8>,
+    original_path_str: &str,
+    output_format: &str,
+    strip_gps: bool,
+) -> Result<(), String> {
     let original_path = Path::new(original_path_str);
     if !original_path.exists() {
         return Ok(());
@@ -1562,6 +1591,302 @@ pub fn write_image_with_metadata(
     }
 
     Ok(())
+}
+
+pub struct ExportXmp {
+    keywords: Vec<String>,
+    rating: Option<String>,
+    label: Option<String>,
+}
+
+impl ExportXmp {
+    pub fn from_metadata(metadata: &ImageMetadata) -> Self {
+        let tags = metadata.tags.as_deref().unwrap_or_default();
+        let mut keywords = Vec::new();
+        for tag in tags.iter().filter(|t| !t.starts_with(COLOR_TAG_PREFIX)) {
+            push_keyword(
+                &mut keywords,
+                tag.strip_prefix(USER_TAG_PREFIX).unwrap_or(tag),
+            );
+        }
+        Self {
+            keywords,
+            rating: (metadata.rating > 0 || metadata.flag == Some(ImageFlag::Reject))
+                .then(|| file_management::xmp_rating(metadata)),
+            label: file_management::xmp_label(tags),
+        }
+    }
+}
+
+fn push_keyword(keywords: &mut Vec<String>, keyword: &str) {
+    let keyword = keyword.trim();
+    if !keyword.is_empty() && !keywords.iter().any(|k| k == keyword) {
+        keywords.push(keyword.to_string());
+    }
+}
+
+fn embed_xmp(
+    image_bytes: &mut Vec<u8>,
+    original_path_str: &str,
+    output_format: &str,
+    strip_gps: bool,
+    xmp: &ExportXmp,
+) {
+    let source_xmp = if strip_gps || is_raw_file(original_path_str) {
+        None
+    } else {
+        read_source_xmp(Path::new(original_path_str))
+    };
+    let Some(packet) = build_export_xmp(xmp, source_xmp.as_deref()) else {
+        return;
+    };
+
+    match output_format.to_lowercase().as_str() {
+        "jpg" | "jpeg" => embed_jpeg_xmp(image_bytes, &packet),
+        "png" => embed_png_xmp(image_bytes, &packet),
+        "webp" => embed_webp_xmp(image_bytes, &packet),
+        _ => {}
+    }
+}
+
+fn read_source_xmp(path: &Path) -> Option<String> {
+    let mut decoder = image::ImageReader::open(path)
+        .ok()?
+        .with_guessed_format()
+        .ok()?
+        .into_decoder()
+        .ok()?;
+    String::from_utf8(decoder.xmp_metadata().ok()??).ok()
+}
+
+fn build_export_xmp(xmp: &ExportXmp, source_xmp: Option<&str>) -> Option<String> {
+    let mut keywords = xmp.keywords.clone();
+    for tag in source_xmp
+        .map(file_management::extract_xmp_tags)
+        .unwrap_or_default()
+    {
+        push_keyword(
+            &mut keywords,
+            &unescape(&tag).unwrap_or(Cow::Borrowed(&tag)),
+        );
+    }
+
+    let description = export_xmp_description(xmp, &keywords);
+    if let Some(merged) = source_xmp.and_then(|source| merge_source_xmp(source, &description, xmp))
+    {
+        return Some(merged);
+    }
+    if description.is_empty() {
+        return None;
+    }
+
+    Some(format!(
+        "<?xpacket begin=\"\u{feff}\" id=\"W5M0MpCehiHzreSzNTczkc9d\"?>\n\
+<x:xmpmeta xmlns:x=\"adobe:ns:meta/\" x:xmptk=\"RapidRAW\">\n \
+<rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\">\n\
+{} </rdf:RDF>\n\
+</x:xmpmeta>\n\
+<?xpacket end=\"w\"?>",
+        description
+    ))
+}
+
+fn export_xmp_description(xmp: &ExportXmp, keywords: &[String]) -> String {
+    let mut properties = String::new();
+    if let Some(rating) = &xmp.rating {
+        properties.push_str(&format!("   <xmp:Rating>{}</xmp:Rating>\n", rating));
+    }
+    if let Some(label) = &xmp.label {
+        properties.push_str(&format!(
+            "   <xmp:Label>{}</xmp:Label>\n",
+            escape(label.as_str())
+        ));
+    }
+    if !keywords.is_empty() {
+        properties.push_str("   <dc:subject>\n    <rdf:Bag>\n");
+        for keyword in keywords {
+            properties.push_str(&format!(
+                "     <rdf:li>{}</rdf:li>\n",
+                escape(keyword.as_str())
+            ));
+        }
+        properties.push_str("    </rdf:Bag>\n   </dc:subject>\n");
+    }
+    if properties.is_empty() {
+        return properties;
+    }
+
+    format!(
+        "  <rdf:Description rdf:about=\"\"\n    xmlns:xmp=\"http://ns.adobe.com/xap/1.0/\"\n    xmlns:dc=\"http://purl.org/dc/elements/1.1/\">\n{}  </rdf:Description>\n",
+        properties
+    )
+}
+
+fn is_replaced_xmp_property(name: &[u8], xmp: &ExportXmp) -> bool {
+    name.starts_with(b"crs:")
+        || matches!(
+            name,
+            b"dc:subject"
+                | b"tiff:Orientation"
+                | b"tiff:ImageWidth"
+                | b"tiff:ImageLength"
+                | b"exif:PixelXDimension"
+                | b"exif:PixelYDimension"
+                | b"xmpNote:HasExtendedXMP"
+        )
+        || (xmp.rating.is_some() && name == b"xmp:Rating")
+        || (xmp.label.is_some() && name == b"xmp:Label")
+}
+
+fn without_replaced_attributes(element: &BytesStart, xmp: &ExportXmp) -> BytesStart<'static> {
+    let mut kept = BytesStart::new(String::from_utf8_lossy(element.name().as_ref()).into_owned());
+    for attribute in element.attributes().with_checks(false).flatten() {
+        if !is_replaced_xmp_property(attribute.key.as_ref(), xmp) {
+            kept.push_attribute(attribute);
+        }
+    }
+    kept
+}
+
+fn merge_source_xmp(source: &str, description: &str, xmp: &ExportXmp) -> Option<String> {
+    let mut reader = Reader::from_str(source);
+    let mut writer = Writer::new(Vec::new());
+    let mut inserted = false;
+
+    loop {
+        match reader.read_event().ok()? {
+            Event::Eof => break,
+            Event::Start(e) if is_replaced_xmp_property(e.name().as_ref(), xmp) => {
+                reader.read_to_end(e.name()).ok()?;
+            }
+            Event::Empty(e) if is_replaced_xmp_property(e.name().as_ref(), xmp) => {}
+            Event::Start(e) => writer
+                .write_event(Event::Start(without_replaced_attributes(&e, xmp)))
+                .ok()?,
+            Event::Empty(e) => writer
+                .write_event(Event::Empty(without_replaced_attributes(&e, xmp)))
+                .ok()?,
+            Event::End(e) if e.name().as_ref() == b"rdf:RDF" => {
+                writer
+                    .write_event(Event::Text(BytesText::from_escaped(description)))
+                    .ok()?;
+                writer.write_event(Event::End(e)).ok()?;
+                inserted = true;
+            }
+            event => writer.write_event(event).ok()?,
+        }
+    }
+
+    if !inserted {
+        return None;
+    }
+    String::from_utf8(writer.into_inner()).ok()
+}
+
+fn embed_jpeg_xmp(image_bytes: &mut Vec<u8>, packet: &str) {
+    const XMP_NAMESPACE: &[u8] = b"http://ns.adobe.com/xap/1.0/\0";
+
+    if !image_bytes.starts_with(&[0xFF, 0xD8]) {
+        return;
+    }
+    let Ok(segment_len) = u16::try_from(2 + XMP_NAMESPACE.len() + packet.len()) else {
+        log::warn!("Skipping XMP metadata: packet exceeds JPEG segment size");
+        return;
+    };
+
+    let mut insert_at = 2;
+    while insert_at + 4 <= image_bytes.len()
+        && image_bytes[insert_at] == 0xFF
+        && (0xE0..=0xEF).contains(&image_bytes[insert_at + 1])
+    {
+        let len = u16::from_be_bytes([image_bytes[insert_at + 2], image_bytes[insert_at + 3]]);
+        insert_at += 2 + len as usize;
+    }
+    if insert_at > image_bytes.len() {
+        return;
+    }
+
+    let mut segment = Vec::with_capacity(2 + segment_len as usize);
+    segment.extend_from_slice(&[0xFF, 0xE1]);
+    segment.extend_from_slice(&segment_len.to_be_bytes());
+    segment.extend_from_slice(XMP_NAMESPACE);
+    segment.extend_from_slice(packet.as_bytes());
+    image_bytes.splice(insert_at..insert_at, segment);
+}
+
+fn embed_png_xmp(image_bytes: &mut Vec<u8>, packet: &str) {
+    const IHDR_END: usize = 33;
+
+    if image_bytes.len() < IHDR_END || &image_bytes[12..16] != b"IHDR" {
+        return;
+    }
+
+    let mut data = b"XML:com.adobe.xmp\0\0\0\0\0".to_vec();
+    data.extend_from_slice(packet.as_bytes());
+    let mut crc = crc32fast::Hasher::new();
+    crc.update(b"iTXt");
+    crc.update(&data);
+
+    let mut chunk = Vec::with_capacity(data.len() + 12);
+    chunk.extend_from_slice(&(data.len() as u32).to_be_bytes());
+    chunk.extend_from_slice(b"iTXt");
+    chunk.extend_from_slice(&data);
+    chunk.extend_from_slice(&crc.finalize().to_be_bytes());
+    image_bytes.splice(IHDR_END..IHDR_END, chunk);
+}
+
+fn embed_webp_xmp(image_bytes: &mut Vec<u8>, packet: &str) {
+    const VP8X_FLAGS: usize = 20;
+    const XMP_FLAG: u8 = 0x04;
+
+    if image_bytes.len() <= VP8X_FLAGS
+        || &image_bytes[0..4] != b"RIFF"
+        || &image_bytes[12..16] != b"VP8X"
+    {
+        return;
+    }
+
+    image_bytes[VP8X_FLAGS] |= XMP_FLAG;
+    image_bytes.extend_from_slice(b"XMP ");
+    image_bytes.extend_from_slice(&(packet.len() as u32).to_le_bytes());
+    image_bytes.extend_from_slice(packet.as_bytes());
+    if !packet.len().is_multiple_of(2) {
+        image_bytes.push(0);
+    }
+    update_riff_size(image_bytes);
+}
+
+fn convert_webp_to_extended(image_bytes: &mut Vec<u8>) {
+    const VP8_FRAME: usize = 20;
+
+    if image_bytes.len() < VP8_FRAME + 10
+        || &image_bytes[0..4] != b"RIFF"
+        || &image_bytes[12..16] != b"VP8 "
+        || image_bytes[VP8_FRAME + 3..VP8_FRAME + 6] != [0x9D, 0x01, 0x2A]
+    {
+        return;
+    }
+
+    let dimension = |offset: usize| {
+        u32::from(u16::from_le_bytes([image_bytes[offset], image_bytes[offset + 1]]) & 0x3FFF)
+            .saturating_sub(1)
+    };
+    let width = dimension(VP8_FRAME + 6);
+    let height = dimension(VP8_FRAME + 8);
+
+    let mut vp8x = Vec::with_capacity(18);
+    vp8x.extend_from_slice(b"VP8X");
+    vp8x.extend_from_slice(&10u32.to_le_bytes());
+    vp8x.extend_from_slice(&[0; 4]);
+    vp8x.extend_from_slice(&width.to_le_bytes()[..3]);
+    vp8x.extend_from_slice(&height.to_le_bytes()[..3]);
+    image_bytes.splice(12..12, vp8x);
+    update_riff_size(image_bytes);
+}
+
+fn update_riff_size(image_bytes: &mut [u8]) {
+    let riff_size = (image_bytes.len() - 8) as u32;
+    image_bytes[4..8].copy_from_slice(&riff_size.to_le_bytes());
 }
 
 pub fn get_primary_sidecar_path(image_path: &Path) -> PathBuf {

@@ -1042,7 +1042,7 @@ export default function ExportPanel({
                   )}
                 </Section>
 
-                {fileFormat == FileFormats.Jpeg && (
+                {[FileFormats.Jpeg, FileFormats.Png, FileFormats.Webp].includes(fileFormat as FileFormats) && (
                   <Section title={t('export.sections.metadata')}>
                     <Switch
                       checked={keepMetadata}
