@@ -15,6 +15,7 @@ use little_exif::ifd::ExifTagGroup;
 use little_exif::metadata::Metadata;
 use little_exif::rational::{iR64, uR64};
 use rawler::decoders::RawMetadata;
+use rawler::exif::ExifGPS;
 use rawler::lens::LensDescription;
 use serde::{Deserialize, Serialize};
 
@@ -285,6 +286,20 @@ fn to_ir64(val: &exif::SRational) -> iR64 {
     }
 }
 
+fn rawler_to_ur64(val: rawler::formats::tiff::Rational) -> uR64 {
+    uR64 {
+        nominator: val.n,
+        denominator: val.d,
+    }
+}
+
+fn rawler_to_ir64(val: rawler::formats::tiff::SRational) -> iR64 {
+    iR64 {
+        nominator: val.n,
+        denominator: val.d,
+    }
+}
+
 fn clean_creation_datetime_str(s: &str) -> &str {
     s.trim().trim_matches('"').trim_matches('\'').trim()
 }
@@ -424,10 +439,17 @@ pub fn read_exif(file_bytes: &[u8]) -> Option<Exif> {
 }
 
 pub fn read_raw_metadata(file_bytes: &[u8]) -> Option<RawMetadata> {
+    raw_metadata_from_source(&rawler::rawsource::RawSource::new_from_slice(file_bytes))
+}
+
+fn read_raw_metadata_from_path(path_str: &str) -> Option<RawMetadata> {
+    raw_metadata_from_source(&rawler::rawsource::RawSource::new(Path::new(path_str)).ok()?)
+}
+
+fn raw_metadata_from_source(raw_source: &rawler::rawsource::RawSource) -> Option<RawMetadata> {
     let loader = rawler::RawLoader::new();
-    let raw_source = rawler::rawsource::RawSource::new_from_slice(file_bytes);
-    let decoder = loader.get_decoder(&raw_source).ok()?;
-    decoder.raw_metadata(&raw_source, &Default::default()).ok()
+    let decoder = loader.get_decoder(raw_source).ok()?;
+    decoder.raw_metadata(raw_source, &Default::default()).ok()
 }
 
 fn insert_missing_lens_fields(map: &mut HashMap<String, String>, lens: &LensDescription) {
@@ -1096,69 +1118,49 @@ fn apply_sidecar_field_overrides(metadata: &mut Metadata, map: &HashMap<String, 
     }
 }
 
-fn apply_exif_from_rawler(metadata: &mut Metadata, original_path_str: &str) {
-    let loader = rawler::RawLoader::new();
-    let Ok(raw_source) = rawler::rawsource::RawSource::new(Path::new(original_path_str)) else {
-        return;
-    };
-    let Ok(decoder) = loader.get_decoder(&raw_source) else {
-        return;
-    };
-    let Ok(meta) = decoder.raw_metadata(&raw_source, &Default::default()) else {
-        return;
-    };
-
-    let ur = |r: rawler::formats::tiff::Rational| uR64 {
-        nominator: r.n,
-        denominator: r.d,
-    };
-    let ir = |r: rawler::formats::tiff::SRational| iR64 {
-        nominator: r.n,
-        denominator: r.d,
-    };
-
+fn apply_exif_from_rawler(metadata: &mut Metadata, meta: &RawMetadata) {
     if !meta.make.is_empty() {
         metadata.set_tag(ExifTag::Make(meta.make.clone()));
     }
     if !meta.model.is_empty() {
         metadata.set_tag(ExifTag::Model(meta.model.clone()));
     }
-    let exif = meta.exif;
-    if let Some(artist) = exif.artist {
-        metadata.set_tag(ExifTag::Artist(artist));
+    let exif = &meta.exif;
+    if let Some(artist) = &exif.artist {
+        metadata.set_tag(ExifTag::Artist(artist.clone()));
     }
-    if let Some(copyright) = exif.copyright {
-        metadata.set_tag(ExifTag::Copyright(copyright));
+    if let Some(copyright) = &exif.copyright {
+        metadata.set_tag(ExifTag::Copyright(copyright.clone()));
     }
-    if let Some(dt) = exif.date_time_original {
-        metadata.set_tag(ExifTag::DateTimeOriginal(dt));
+    if let Some(dt) = &exif.date_time_original {
+        metadata.set_tag(ExifTag::DateTimeOriginal(dt.clone()));
     }
-    if let Some(dt) = exif.create_date {
-        metadata.set_tag(ExifTag::CreateDate(dt));
+    if let Some(dt) = &exif.create_date {
+        metadata.set_tag(ExifTag::CreateDate(dt.clone()));
     }
-    if let Some(lens_make) = exif.lens_make {
-        metadata.set_tag(ExifTag::LensMake(lens_make));
+    if let Some(lens_make) = &exif.lens_make {
+        metadata.set_tag(ExifTag::LensMake(lens_make.clone()));
     }
-    if let Some(lens_model) = exif.lens_model {
-        metadata.set_tag(ExifTag::LensModel(lens_model));
+    if let Some(lens_model) = &exif.lens_model {
+        metadata.set_tag(ExifTag::LensModel(lens_model.clone()));
     }
     if let Some(lens_spec) = exif.lens_spec {
-        metadata.set_tag(ExifTag::LensInfo(lens_spec.map(ur).to_vec()));
+        metadata.set_tag(ExifTag::LensInfo(lens_spec.map(rawler_to_ur64).to_vec()));
     }
     if let Some(f) = exif.fnumber {
-        metadata.set_tag(ExifTag::FNumber(vec![ur(f)]));
+        metadata.set_tag(ExifTag::FNumber(vec![rawler_to_ur64(f)]));
     }
     if let Some(a) = exif.aperture_value {
-        metadata.set_tag(ExifTag::ApertureValue(vec![ur(a)]));
+        metadata.set_tag(ExifTag::ApertureValue(vec![rawler_to_ur64(a)]));
     }
     if let Some(t) = exif.exposure_time {
-        metadata.set_tag(ExifTag::ExposureTime(vec![ur(t)]));
+        metadata.set_tag(ExifTag::ExposureTime(vec![rawler_to_ur64(t)]));
     }
     if let Some(s) = exif.shutter_speed_value {
-        metadata.set_tag(ExifTag::ShutterSpeedValue(vec![ir(s)]));
+        metadata.set_tag(ExifTag::ShutterSpeedValue(vec![rawler_to_ir64(s)]));
     }
     if let Some(fl) = exif.focal_length {
-        metadata.set_tag(ExifTag::FocalLength(vec![ur(fl)]));
+        metadata.set_tag(ExifTag::FocalLength(vec![rawler_to_ur64(fl)]));
     }
     if let Some(iso) = exif.iso_speed {
         metadata.set_tag(ExifTag::ISO(vec![iso as u16]));
@@ -1166,7 +1168,7 @@ fn apply_exif_from_rawler(metadata: &mut Metadata, original_path_str: &str) {
         metadata.set_tag(ExifTag::ISO(vec![iso]));
     }
     if let Some(ev) = exif.exposure_bias {
-        metadata.set_tag(ExifTag::ExposureCompensation(vec![ir(ev)]));
+        metadata.set_tag(ExifTag::ExposureCompensation(vec![rawler_to_ir64(ev)]));
     }
     if let Some(flash) = exif.flash {
         metadata.set_tag(ExifTag::Flash(vec![flash]));
@@ -1251,63 +1253,21 @@ fn apply_gps_from_kamadak(metadata: &mut Metadata, original_path: &Path) {
     }
 }
 
-fn apply_gps_from_rawler(metadata: &mut Metadata, original_path_str: &str) {
-    let loader = rawler::RawLoader::new();
-    let Ok(raw_source) = rawler::rawsource::RawSource::new(Path::new(original_path_str)) else {
-        return;
-    };
-    let Ok(decoder) = loader.get_decoder(&raw_source) else {
-        return;
-    };
-    let Ok(meta) = decoder.raw_metadata(&raw_source, &Default::default()) else {
-        return;
-    };
-    let Some(gps) = meta.exif.gps else {
-        return;
-    };
+fn apply_gps_from_rawler(metadata: &mut Metadata, gps: ExifGPS) {
     if let Some(lat) = gps.gps_latitude {
-        metadata.set_tag(ExifTag::GPSLatitude(vec![
-            uR64 {
-                nominator: lat[0].n,
-                denominator: lat[0].d,
-            },
-            uR64 {
-                nominator: lat[1].n,
-                denominator: lat[1].d,
-            },
-            uR64 {
-                nominator: lat[2].n,
-                denominator: lat[2].d,
-            },
-        ]));
+        metadata.set_tag(ExifTag::GPSLatitude(lat.map(rawler_to_ur64).to_vec()));
     }
     if let Some(lat_ref) = gps.gps_latitude_ref {
         metadata.set_tag(ExifTag::GPSLatitudeRef(lat_ref));
     }
     if let Some(lon) = gps.gps_longitude {
-        metadata.set_tag(ExifTag::GPSLongitude(vec![
-            uR64 {
-                nominator: lon[0].n,
-                denominator: lon[0].d,
-            },
-            uR64 {
-                nominator: lon[1].n,
-                denominator: lon[1].d,
-            },
-            uR64 {
-                nominator: lon[2].n,
-                denominator: lon[2].d,
-            },
-        ]));
+        metadata.set_tag(ExifTag::GPSLongitude(lon.map(rawler_to_ur64).to_vec()));
     }
     if let Some(lon_ref) = gps.gps_longitude_ref {
         metadata.set_tag(ExifTag::GPSLongitudeRef(lon_ref));
     }
     if let Some(alt) = gps.gps_altitude {
-        metadata.set_tag(ExifTag::GPSAltitude(vec![uR64 {
-            nominator: alt.n,
-            denominator: alt.d,
-        }]));
+        metadata.set_tag(ExifTag::GPSAltitude(vec![rawler_to_ur64(alt)]));
     }
     if let Some(alt_ref) = gps.gps_altitude_ref {
         metadata.set_tag(ExifTag::GPSAltitudeRef(vec![alt_ref]));
@@ -1357,8 +1317,13 @@ pub fn write_image_with_metadata(
         && copy_full_exif_from_source(&mut metadata, original_path, strip_gps);
     let mut source_read_success = full_exif_copied;
 
-    if is_raw_file(original_path_str) {
-        apply_exif_from_rawler(&mut metadata, original_path_str);
+    let raw_metadata = if is_raw_file(original_path_str) {
+        read_raw_metadata_from_path(original_path_str)
+    } else {
+        None
+    };
+    if let Some(meta) = &raw_metadata {
+        apply_exif_from_rawler(&mut metadata, meta);
     }
 
     if !source_read_success && let Some(map) = read_rrexif_sidecar(original_path) {
@@ -1560,7 +1525,9 @@ pub fn write_image_with_metadata(
 
     if !strip_gps {
         if is_raw_file(original_path_str) {
-            apply_gps_from_rawler(&mut metadata, original_path_str);
+            if let Some(gps) = raw_metadata.and_then(|meta| meta.exif.gps) {
+                apply_gps_from_rawler(&mut metadata, gps);
+            }
         } else {
             apply_gps_from_kamadak(&mut metadata, original_path);
         }
