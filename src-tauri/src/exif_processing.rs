@@ -1334,17 +1334,21 @@ pub fn write_image_with_metadata(
         return Ok(());
     }
 
-    if output_format.eq_ignore_ascii_case("webp") {
+    let file_type = match output_format.to_lowercase().as_str() {
+        "jpg" | "jpeg" => FileExtension::JPEG,
+        "png" => FileExtension::PNG {
+            as_zTXt_chunk: true,
+        },
+        "tiff" => FileExtension::TIFF,
+        "webp" => FileExtension::WEBP,
+        _ => return Ok(()),
+    };
+
+    if file_type == FileExtension::WEBP {
         convert_webp_to_extended(image_bytes);
     }
-    write_exif_metadata(image_bytes, original_path_str, output_format, strip_gps)?;
-    embed_xmp(
-        image_bytes,
-        original_path_str,
-        output_format,
-        strip_gps,
-        xmp,
-    );
+    write_exif_metadata(image_bytes, original_path_str, file_type, strip_gps)?;
+    embed_xmp(image_bytes, original_path_str, file_type, strip_gps, xmp);
 
     Ok(())
 }
@@ -1352,7 +1356,7 @@ pub fn write_image_with_metadata(
 fn write_exif_metadata(
     image_bytes: &mut Vec<u8>,
     original_path_str: &str,
-    output_format: &str,
+    file_type: FileExtension,
     strip_gps: bool,
 ) -> Result<(), String> {
     let original_path = Path::new(original_path_str);
@@ -1369,16 +1373,6 @@ fn write_exif_metadata(
     if original_ext == "tiff" || original_ext == "tif" {
         return Ok(());
     }
-
-    let file_type = match output_format.to_lowercase().as_str() {
-        "jpg" | "jpeg" => FileExtension::JPEG,
-        "png" => FileExtension::PNG {
-            as_zTXt_chunk: true,
-        },
-        "tiff" => FileExtension::TIFF,
-        "webp" => FileExtension::WEBP,
-        _ => return Ok(()),
-    };
 
     let mut metadata = Metadata::new();
 
@@ -1658,7 +1652,7 @@ fn push_keyword(keywords: &mut Vec<String>, keyword: &str) {
 fn embed_xmp(
     image_bytes: &mut Vec<u8>,
     original_path_str: &str,
-    output_format: &str,
+    file_type: FileExtension,
     strip_gps: bool,
     xmp: &ExportXmp,
 ) {
@@ -1671,10 +1665,10 @@ fn embed_xmp(
         return;
     };
 
-    match output_format.to_lowercase().as_str() {
-        "jpg" | "jpeg" => embed_jpeg_xmp(image_bytes, &packet),
-        "png" => embed_png_xmp(image_bytes, &packet),
-        "webp" => embed_webp_xmp(image_bytes, &packet),
+    match file_type {
+        FileExtension::JPEG => embed_jpeg_xmp(image_bytes, &packet),
+        FileExtension::PNG { .. } => embed_png_xmp(image_bytes, &packet),
+        FileExtension::WEBP => embed_webp_xmp(image_bytes, &packet),
         _ => {}
     }
 }
@@ -1733,14 +1727,11 @@ fn export_xmp_description(xmp: &ExportXmp, keywords: &[String]) -> String {
         ));
     }
     if !keywords.is_empty() {
-        properties.push_str("   <dc:subject>\n    <rdf:Bag>\n");
-        for keyword in keywords {
-            properties.push_str(&format!(
-                "     <rdf:li>{}</rdf:li>\n",
-                escape(keyword.as_str())
-            ));
-        }
-        properties.push_str("    </rdf:Bag>\n   </dc:subject>\n");
+        let escaped: Vec<Cow<str>> = keywords.iter().map(|k| escape(k.as_str())).collect();
+        properties.push_str(&format!(
+            "   {}\n",
+            file_management::xmp_subject_bag(&escaped)
+        ));
     }
     if properties.is_empty() {
         return properties;
