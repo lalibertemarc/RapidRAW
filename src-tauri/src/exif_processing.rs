@@ -1288,6 +1288,7 @@ pub fn write_image_with_metadata(
     keep_metadata: bool,
     strip_gps: bool,
     xmp: &ExportXmp,
+    dpi: Option<u16>,
 ) -> Result<(), String> {
     // FIXME: temporary solution until I find a way to write metadata to TIFF
     if !keep_metadata || output_format.to_lowercase() == "tiff" {
@@ -1307,7 +1308,7 @@ pub fn write_image_with_metadata(
     if file_type == FileExtension::WEBP {
         convert_webp_to_extended(image_bytes);
     }
-    write_exif_metadata(image_bytes, original_path_str, file_type, strip_gps)?;
+    write_exif_metadata(image_bytes, original_path_str, file_type, strip_gps, dpi)?;
     embed_xmp(image_bytes, original_path_str, file_type, strip_gps, xmp);
 
     Ok(())
@@ -1318,6 +1319,7 @@ fn write_exif_metadata(
     original_path_str: &str,
     file_type: FileExtension,
     strip_gps: bool,
+    dpi: Option<u16>,
 ) -> Result<(), String> {
     let original_path = Path::new(original_path_str);
     if !original_path.exists() {
@@ -1567,6 +1569,16 @@ fn write_exif_metadata(
     metadata.set_tag(ExifTag::FlashpixVersion(b"0100".to_vec()));
     if matches!(file_type, FileExtension::JPEG) {
         metadata.set_tag(ExifTag::ComponentsConfiguration(vec![1, 2, 3, 0]));
+    }
+
+    if let Some(dpi) = dpi {
+        let resolution = vec![uR64 {
+            nominator: dpi.into(),
+            denominator: 1,
+        }];
+        metadata.set_tag(ExifTag::XResolution(resolution.clone()));
+        metadata.set_tag(ExifTag::YResolution(resolution));
+        metadata.set_tag(ExifTag::ResolutionUnit(vec![2u16]));
     }
 
     if let Ok(reader) =

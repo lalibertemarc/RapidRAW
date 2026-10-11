@@ -24,6 +24,7 @@ import {
   Status,
   ExportState,
   FileFormats,
+  MAX_EXPORT_DPI,
   TiffBitDepth,
   WatermarkAnchor,
 } from '../../ui/ExportImportProperties';
@@ -61,6 +62,11 @@ const MAX_BORDER_PERCENT = 100;
 function parsePercent(value: string): number | null {
   const parsed = Number(value.trim().replace(',', '.'));
   return Number.isFinite(parsed) && parsed >= 0 && parsed <= MAX_BORDER_PERCENT ? parsed : null;
+}
+
+function parseDpi(value: string): number | null {
+  const parsed = Number(value.trim());
+  return Number.isInteger(parsed) && parsed > 0 && parsed <= MAX_EXPORT_DPI ? parsed : null;
 }
 
 interface ValidatedNumberInputProps {
@@ -277,6 +283,8 @@ export default function ExportPanel({
     setJpegQuality,
     tiffBitDepth,
     setTiffBitDepth,
+    dpi,
+    setDpi,
     enableResize,
     setEnableResize,
     resizeMode,
@@ -386,6 +394,8 @@ export default function ExportPanel({
     enablePad && padRatioWidthValue !== null && padRatioHeightValue !== null
       ? { ratioWidth: padRatioWidthValue, ratioHeight: padRatioHeightValue, color: padColor }
       : null;
+
+  const dpiField = useParsedTextField(dpi, setDpi, parseDpi);
 
   const borderHorizontalField = useParsedTextField(borderHorizontalPercent, setBorderHorizontalPercent, parsePercent);
   const borderVerticalField = useParsedTextField(borderVerticalPercent, setBorderVerticalPercent, parsePercent);
@@ -663,6 +673,7 @@ export default function ExportPanel({
               opacity: watermarkOpacity,
             }
           : null,
+      dpi,
     };
 
     const lastExportPath = appSettings?.exportPresets?.find((p) => p.id === '__last_used__')?.lastExportPath;
@@ -817,6 +828,20 @@ export default function ExportPanel({
                     disabled={isExporting}
                     className="w-full"
                   />
+                </div>
+              )}
+              {[FileFormats.Jpeg, FileFormats.Png, FileFormats.Tiff].includes(fileFormat as FileFormats) && (
+                <div className="flex items-center gap-2">
+                  <Text variant={TextVariants.label} className="flex-1">
+                    {t('export.file.resolution')}
+                  </Text>
+                  <ValidatedNumberInput
+                    ariaLabel={t('export.file.resolution')}
+                    disabled={isExporting}
+                    field={dpiField}
+                    max={MAX_EXPORT_DPI}
+                  />
+                  <Text variant={TextVariants.label}>{t('export.file.dpi')}</Text>
                 </div>
               )}
             </Section>
