@@ -25,7 +25,7 @@ const RAF_JPEG_TIFF_HEADER: u32 = 12;
 const FUJI_MAKERNOTE_HEADER: &[u8] = b"FUJIFILM";
 const FUJI_MAKERNOTE_IFD_OFFSET: u32 = 12;
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, Default)]
 pub struct RawExposure {
     pub scene_referred: bool,
     pub dng_baseline: f32,
@@ -33,12 +33,6 @@ pub struct RawExposure {
 }
 
 impl RawExposure {
-    pub const NEUTRAL: Self = Self {
-        scene_referred: false,
-        dng_baseline: 0.0,
-        highlight_preservation: 0.0,
-    };
-
     pub fn compensation(&self, options: BaselineOptions) -> f32 {
         let baseline = options.baseline_exposure.map_or(0.0, |amount| {
             let scene_referred = if self.scene_referred { amount } else { 0.0 };
@@ -189,10 +183,7 @@ fn first_integer(ifd: &IFD, tag: u16) -> Option<i32> {
 }
 
 fn canon(makernote: &IFD) -> f32 {
-    canon_bias(&integers(makernote, CANON_LIGHTING_OPT))
-}
-
-fn canon_bias(lighting_opt: &[i32]) -> f32 {
+    let lighting_opt = integers(makernote, CANON_LIGHTING_OPT);
     let auto_lighting_optimizer = match lighting_opt.get(2) {
         Some(0) => 0.5,
         Some(1) => 0.33,
@@ -207,32 +198,21 @@ fn canon_bias(lighting_opt: &[i32]) -> f32 {
 }
 
 fn fuji(makernote: &IFD) -> f32 {
-    [FUJI_DEVELOPMENT_DYNAMIC_RANGE, FUJI_AUTO_DYNAMIC_RANGE]
+    match [FUJI_DEVELOPMENT_DYNAMIC_RANGE, FUJI_AUTO_DYNAMIC_RANGE]
         .into_iter()
         .find_map(|tag| first_integer(makernote, tag))
-        .map_or(0.0, fuji_bias)
-}
-
-fn fuji_bias(dynamic_range: i32) -> f32 {
-    match dynamic_range {
-        200 => 1.0,
-        400 => 2.0,
+    {
+        Some(200) => 1.0,
+        Some(400) => 2.0,
         _ => 0.0,
     }
 }
 
 fn nikon(makernote: &IFD) -> f32 {
-    nikon_bias(
-        first_integer(makernote, NIKON_COLOR_SPACE),
-        first_integer(makernote, NIKON_ACTIVE_D_LIGHTING),
-    )
-}
-
-fn nikon_bias(color_space: Option<i32>, active_d_lighting: Option<i32>) -> f32 {
-    if color_space == Some(4) {
+    if first_integer(makernote, NIKON_COLOR_SPACE) == Some(4) {
         return 2.0;
     }
-    match active_d_lighting {
+    match first_integer(makernote, NIKON_ACTIVE_D_LIGHTING) {
         Some(3) => 0.33,
         Some(5) => 0.66,
         Some(7) => 1.0,
@@ -245,11 +225,7 @@ fn nikon_bias(color_space: Option<i32>, active_d_lighting: Option<i32>) -> f32 {
 }
 
 fn olympus(camera_settings: &IFD) -> f32 {
-    olympus_bias(&integers(camera_settings, OLYMPUS_GRADATION))
-}
-
-fn olympus_bias(gradation: &[i32]) -> f32 {
-    match gradation {
+    match integers(camera_settings, OLYMPUS_GRADATION).as_slice() {
         [_, _, _, 1, ..] => 0.33,
         [-1, -1, 1, ..] => 0.66,
         _ => 0.0,
@@ -261,14 +237,7 @@ fn pentax(makernote: &IFD) -> f32 {
         .get_entry(PENTAX_DYNAMIC_RANGE_EXPANSION)
         .map(|entry| &entry.value)
     {
-        Some(Value::Undefined(data)) => pentax_bias(data),
-        _ => 0.0,
-    }
-}
-
-fn pentax_bias(dynamic_range_expansion: &[u8]) -> f32 {
-    match dynamic_range_expansion {
-        [1, ..] => 1.0,
+        Some(Value::Undefined(data)) if data.first() == Some(&1) => 1.0,
         _ => 0.0,
     }
 }

@@ -110,6 +110,7 @@ interface MyLens {
 }
 
 const EXECUTE_TIMEOUT = 3000;
+const DEFAULT_BASELINE_EXPOSURE = 0.7;
 
 const resolutions: OptionItem<number>[] = [
   { value: 720, label: '720px' },
@@ -586,7 +587,7 @@ export default function SettingsPanel({
     smallThumbnailResolution: appSettings?.smallThumbnailResolution || 480,
     mediumThumbnailResolution: appSettings?.mediumThumbnailResolution || 1280,
     rawHighlightCompression: appSettings?.rawHighlightCompression ?? 2.5,
-    baselineExposure: appSettings?.baselineExposure ?? 0.7,
+    baselineExposure: appSettings?.baselineExposure ?? DEFAULT_BASELINE_EXPOSURE,
     processingBackend: appSettings?.processingBackend || 'auto',
     linuxGpuOptimization: appSettings?.linuxGpuOptimization ?? false,
     highResZoomMultiplier: appSettings?.highResZoomMultiplier || 1.0,
@@ -700,7 +701,7 @@ export default function SettingsPanel({
       smallThumbnailResolution: appSettings?.smallThumbnailResolution || 480,
       mediumThumbnailResolution: appSettings?.mediumThumbnailResolution || 1280,
       rawHighlightCompression: appSettings?.rawHighlightCompression ?? 2.5,
-      baselineExposure: appSettings?.baselineExposure ?? 0.7,
+      baselineExposure: appSettings?.baselineExposure ?? DEFAULT_BASELINE_EXPOSURE,
       processingBackend: appSettings?.processingBackend || 'auto',
       linuxGpuOptimization: appSettings?.linuxGpuOptimization ?? false,
       highResZoomMultiplier: appSettings?.highResZoomMultiplier || 1.0,
@@ -2366,7 +2367,7 @@ export default function SettingsPanel({
                                     max={2}
                                     step={0.05}
                                     value={processingSettings.baselineExposure}
-                                    defaultValue={0.7}
+                                    defaultValue={DEFAULT_BASELINE_EXPOSURE}
                                     onChange={(e) =>
                                       handleProcessingSettingChange('baselineExposure', Number(e.target.value))
                                     }

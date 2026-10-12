@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use std::path::Path;
 use std::sync::{Mutex, OnceLock};
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug)]
 pub struct AsShot {
     pub white_balance: WhiteBalance,
     pub exposure: RawExposure,
@@ -16,7 +16,7 @@ impl AsShot {
     pub fn reference() -> Self {
         Self {
             white_balance: WhiteBalance::reference(),
-            exposure: RawExposure::NEUTRAL,
+            exposure: RawExposure::default(),
         }
     }
 }
