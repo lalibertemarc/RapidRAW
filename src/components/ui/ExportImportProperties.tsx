@@ -36,6 +36,7 @@ export const FILENAME_TOKEN_GROUPS = [
     id: 'file',
     tokens: [
       { token: '{original_filename}', key: 'originalFilename' },
+      { token: '{original_filename_number}', key: 'originalFilenameNumber' },
       { token: '{original_ext}', key: 'originalExt' },
       { token: '{folder}', key: 'folder' },
     ],
@@ -118,11 +119,6 @@ export const FILENAME_SCHEMES = [
   { id: 'custom', template: null },
 ] as const satisfies ReadonlyArray<{ id: string; template: string | null }>;
 
-export const withSequenceFallback = (template: string, fileCount: number) =>
-  fileCount > 1 && !template.includes('{sequence') && !template.includes('{original_filename}')
-    ? `${template}_{sequence}`
-    : template;
-
 export enum FilenameCase {
   AsIs = 'asIs',
   Lower = 'lower',
@@ -136,6 +132,11 @@ export interface FilenameSettings {
   filenameCase?: FilenameCase;
   presetName?: string;
 }
+
+const UNIQUE_FILENAME_VARIABLES: Array<string> = ['{original_filename}', '{original_filename_number}', '{sequence'];
+
+export const isUniqueFilenameTemplate = (template: string): boolean =>
+  UNIQUE_FILENAME_VARIABLES.some((variable) => template.includes(variable));
 
 export type TiffBitDepth = 8 | 16;
 

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import Switch from '../ui/Switch';
 import FilenameTemplateInput from '../ui/FilenameTemplateInput';
-import { withSequenceFallback } from '../ui/ExportImportProperties';
+import { isUniqueFilenameTemplate } from '../ui/ExportImportProperties';
 import Text from '../ui/Text';
 import { TextVariants } from '../../types/typography';
 
@@ -39,7 +39,7 @@ export default function ImportSettingsModal({ fileCount, isOpen, onClose, onSave
 
   const handleSave = useCallback(() => {
     onSave({
-      filenameTemplate: withSequenceFallback(filenameTemplate, fileCount),
+      filenameTemplate,
       organizeByDate,
       dateFolderFormat,
       deleteAfterImport,
@@ -93,6 +93,11 @@ export default function ImportSettingsModal({ fileCount, isOpen, onClose, onSave
               onChange={setFilenameTemplate}
               value={filenameTemplate}
             />
+            {fileCount > 1 && !isUniqueFilenameTemplate(filenameTemplate) && (
+              <Text variant={TextVariants.small} className="mt-2">
+                {t('modals.importSettings.notUniqueWarning')}
+              </Text>
+            )}
           </div>
 
           <div>

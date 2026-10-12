@@ -4044,6 +4044,15 @@ pub fn rename_files(
             ));
         }
 
+        if operations.iter().any(|(other_original, other_new)| {
+            *other_new == new_path && *other_original != original_path
+        }) {
+            return Err(format!(
+                "More than one file would be renamed to {}.",
+                new_path.display()
+            ));
+        }
+
         operations.push((original_path, new_path));
     }
 

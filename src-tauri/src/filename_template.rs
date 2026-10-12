@@ -179,6 +179,11 @@ impl<'a> Resolver<'a> {
             ("sequence", width) => self.sequence(width),
             (_, Some(_)) => return None,
             ("original_filename", _) => file_stem(self.ctx.original_path),
+            ("original_filename_number", _) => {
+                let stem = file_stem(self.ctx.original_path);
+                let prefix_len = stem.trim_end_matches(|c: char| c.is_ascii_digit()).len();
+                stem[prefix_len..].to_string()
+            }
             ("original_ext", _) => lossy(self.ctx.original_path.extension()),
             ("folder", _) => lossy(self.ctx.original_path.parent().and_then(Path::file_name)),
             ("total", _) => self.ctx.total.to_string(),
