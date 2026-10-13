@@ -7,11 +7,13 @@ use rawler::{
     decoders::{Decoder, Orientation, RawDecodeParams},
     imgop::{
         develop::{DemosaicAlgorithm, Intermediate, ProcessingStep, RawDevelop},
-        xyz::Illuminant,
+        xyz::{FlatColorMatrix, Illuminant},
     },
+    pixarray::Color2D,
     rawimage::{RawImage, RawPhotometricInterpretation},
     rawsource::RawSource,
 };
+use rayon::prelude::*;
 use std::sync::{
     Arc,
     atomic::{AtomicUsize, Ordering},
@@ -132,6 +134,119 @@ fn recover_clipped_pixel(r: f32, g: f32, b: f32) -> (f32, f32, f32) {
     (cur_r, cur_g, cur_b)
 }
 
+fn primary_color_matrix(raw_image: &RawImage) -> Option<&FlatColorMatrix> {
+    let matrices = &raw_image.color_matrix;
+    matrices
+        .get(&Illuminant::D65)
+        .or_else(|| matrices.values().next())
+}
+
+struct GamutCompression {
+    threshold: f32,
+    scale: f32,
+}
+
+impl GamutCompression {
+    const THRESHOLD: f32 = 0.8;
+    const POWER: f32 = 1.2;
+
+    fn new(limit: f32) -> Option<Self> {
+        if limit <= 1.0 {
+            return None;
+        }
+        let threshold = Self::THRESHOLD;
+        let span = limit - threshold;
+        let scale =
+            span / (((1.0 - threshold) / span).powf(-Self::POWER) - 1.0).powf(1.0 / Self::POWER);
+        Some(Self { threshold, scale })
+    }
+
+    #[inline]
+    fn compress(&self, distance: f32) -> f32 {
+        if distance <= self.threshold {
+            return distance;
+        }
+        let excess = distance - self.threshold;
+        self.threshold
+            + excess / (1.0 + (excess / self.scale).powf(Self::POWER)).powf(1.0 / Self::POWER)
+    }
+}
+
+struct CameraToSrgb {
+    matrix: [[f32; 4]; 3],
+    compression: [Option<GamutCompression>; 3],
+}
+
+impl CameraToSrgb {
+    fn new(raw_image: &RawImage) -> Option<Self> {
+        let color_matrix = as_shot_color(raw_image)
+            .map(|(_, color_matrix)| color_matrix)
+            .or_else(|| primary_color_matrix(raw_image).cloned())?;
+        if color_matrix.len() % 3 != 0 || color_matrix.len() > 12 {
+            return None;
+        }
+        let primaries =
+            crate::white_balance::camera_to_srgb(&color_matrix, &camera_neutral(raw_image))?;
+
+        let mut matrix = [[0.0f32; 4]; 3];
+        let mut limits = [0.0f32; 3];
+        for (channel, primary) in primaries.iter().enumerate() {
+            for (row, value) in matrix.iter_mut().zip(primary) {
+                row[channel] = *value;
+            }
+            let peak = primary[0].max(primary[1]).max(primary[2]);
+            if peak > 0.0 {
+                for (limit, value) in limits.iter_mut().zip(primary) {
+                    *limit = limit.max((peak - value) / peak);
+                }
+            }
+        }
+
+        Some(Self {
+            matrix,
+            compression: limits.map(GamutCompression::new),
+        })
+    }
+
+    #[inline]
+    fn pixel<const N: usize>(&self, camera: &[f32; N]) -> [f32; 3] {
+        let mut rgb = self
+            .matrix
+            .map(|row| row.iter().zip(camera).map(|(m, c)| m * c).sum::<f32>());
+        let achromatic = rgb[0].max(rgb[1]).max(rgb[2]);
+        if achromatic <= 0.0 {
+            return [0.0; 3];
+        }
+        for (value, compression) in rgb.iter_mut().zip(&self.compression) {
+            if let Some(compression) = compression {
+                let distance = (achromatic - *value) / achromatic;
+                *value = achromatic - compression.compress(distance) * achromatic;
+            }
+        }
+        rgb
+    }
+
+    fn convert_pixels<const N: usize>(&self, pixels: &Color2D<f32, N>) -> Color2D<f32, 3> {
+        Color2D::new_with(
+            pixels.data.par_iter().map(|p| self.pixel(p)).collect(),
+            pixels.width,
+            pixels.height,
+        )
+    }
+
+    fn apply(&self, intermediate: Intermediate) -> Intermediate {
+        match intermediate {
+            Intermediate::ThreeColor(pixels) => {
+                Intermediate::ThreeColor(self.convert_pixels(&pixels))
+            }
+            Intermediate::FourColor(pixels) => {
+                Intermediate::ThreeColor(self.convert_pixels(&pixels))
+            }
+            monochrome => monochrome,
+        }
+    }
+}
+
 fn develop_internal(
     file_bytes: &[u8],
     fast_demosaic: bool,
@@ -185,27 +300,34 @@ fn develop_internal(
     }
 
     let mut developer = RawDevelop::default();
+    developer
+        .steps
+        .retain(|&step| step != ProcessingStep::SRgb && step != ProcessingStep::Calibrate);
 
     if is_linear_format {
-        developer.steps.retain(|&step| {
-            step != ProcessingStep::SRgb
-                && step != ProcessingStep::Demosaic
-                && (apply_calibration || step != ProcessingStep::Calibrate)
-        });
+        developer
+            .steps
+            .retain(|&step| step != ProcessingStep::Demosaic);
     } else if fast_demosaic {
         developer.demosaic_algorithm = DemosaicAlgorithm::Speed;
-        developer.steps.retain(|&step| step != ProcessingStep::SRgb);
-    } else {
-        developer.steps.retain(|&step| step != ProcessingStep::SRgb);
     }
 
     raw_image.wb_coeffs =
         crate::multi_exposure::neutralize_wb_if_multiexposure(raw_image.wb_coeffs, file_bytes);
 
+    let camera_to_srgb = (apply_calibration || !is_linear_format)
+        .then(|| CameraToSrgb::new(&raw_image))
+        .flatten();
+
     check_cancel()?;
     let mut developed_intermediate = developer.develop_intermediate(&raw_image)?;
 
     drop(raw_image);
+
+    if let Some(camera_to_srgb) = &camera_to_srgb {
+        check_cancel()?;
+        developed_intermediate = camera_to_srgb.apply(developed_intermediate);
+    }
 
     let denominator = (original_white_level - original_black_level).max(1.0);
     let rescale_factor = (u32::MAX as f32 - original_black_level) / denominator;
@@ -295,29 +417,34 @@ fn develop_internal(
 pub fn read_as_shot(file_bytes: &[u8]) -> Option<AsShot> {
     let source = RawSource::new_from_slice(file_bytes);
     let decoder = rawler::get_decoder(&source).ok()?;
-    let raw_image = decoder
+    let mut raw_image = decoder
         .raw_image(&source, &RawDecodeParams::default(), true)
         .ok()?;
+    raw_image.wb_coeffs =
+        crate::multi_exposure::neutralize_wb_if_multiexposure(raw_image.wb_coeffs, file_bytes);
     let is_monochrome = raw_image.cpp == 1
         && !matches!(raw_image.photometric, RawPhotometricInterpretation::Cfa(_));
 
     Some(AsShot {
         white_balance: (!is_monochrome)
-            .then(|| as_shot_white_balance(&raw_image, file_bytes))
+            .then(|| as_shot_color(&raw_image))
             .flatten()
+            .map(|(white_balance, _)| white_balance)
             .unwrap_or_else(WhiteBalance::reference),
         exposure: crate::baseline_exposure::read(decoder.as_ref(), file_bytes, is_monochrome),
     })
 }
 
-fn as_shot_white_balance(raw_image: &RawImage, file_bytes: &[u8]) -> Option<WhiteBalance> {
-    let wb_coeffs =
-        crate::multi_exposure::neutralize_wb_if_multiexposure(raw_image.wb_coeffs, file_bytes);
-    let neutral = if wb_coeffs[0].is_nan() {
+fn camera_neutral(raw_image: &RawImage) -> [f32; 4] {
+    if raw_image.wb_coeffs[0].is_nan() {
         [1.0; 4]
     } else {
-        wb_coeffs.map(|c| 1.0 / c)
-    };
+        raw_image.wb_coeffs.map(|c| 1.0 / c)
+    }
+}
+
+fn as_shot_color(raw_image: &RawImage) -> Option<(WhiteBalance, FlatColorMatrix)> {
+    let neutral = camera_neutral(raw_image);
 
     let matrices = &raw_image.color_matrix;
     if let (Some(matrix_a), Some(matrix_d65)) =
@@ -326,10 +453,9 @@ fn as_shot_white_balance(raw_image: &RawImage, file_bytes: &[u8]) -> Option<Whit
         return WhiteBalance::from_dual_illuminant_camera_neutral(matrix_a, matrix_d65, &neutral);
     }
 
-    let color_matrix = matrices
-        .get(&Illuminant::D65)
-        .or_else(|| matrices.values().next())?;
+    let color_matrix = primary_color_matrix(raw_image)?;
     WhiteBalance::from_camera_neutral(color_matrix, &neutral)
+        .map(|white_balance| (white_balance, color_matrix.clone()))
 }
 
 pub fn get_fast_demosaic_scale_factor(
