@@ -533,11 +533,16 @@ export function useAppContextMenus(props: UseAppContextMenusProps) {
       };
 
       const handleApplyAutoAdjustmentsToSelection = () => {
-        if (finalSelection.length === 0) return;
-        finalSelection.forEach((p) => globalImageCache.delete(p));
+        const editingPath = activeView === 'editor' ? selectedImage?.path : undefined;
+        const batchPaths = finalSelection.filter((p) => p !== editingPath);
+        if (batchPaths.length < finalSelection.length) {
+          handleAutoAdjustments();
+        }
+        if (batchPaths.length === 0) return;
+        batchPaths.forEach((p) => globalImageCache.delete(p));
 
-        invoke(Invokes.ApplyAutoAdjustmentsToPaths, { paths: finalSelection })
-          .then(() => reloadAdjustmentsForPaths(finalSelection))
+        invoke(Invokes.ApplyAutoAdjustmentsToPaths, { paths: batchPaths })
+          .then(() => reloadAdjustmentsForPaths(batchPaths))
           .catch((err) => {
             console.error('Failed to apply auto adjustments to paths:', err);
             toast.error(t('contextMenus.toasts.failedApplyAuto', { err }));
@@ -886,6 +891,7 @@ export function useAppContextMenus(props: UseAppContextMenusProps) {
       buildAddToAlbumMenu,
       handleCopyAdjustments,
       handlePasteAdjustments,
+      handleAutoAdjustments,
       handleRate,
       buildFlagMenu,
       handleSetColorLabel,
