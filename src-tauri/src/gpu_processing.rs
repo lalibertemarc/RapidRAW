@@ -13,7 +13,7 @@ use crate::image_processing::{
     AllAdjustments, AnalyticsFrame, AnalyticsPixels, GpuContext, MAX_MASKS, MaskAdjustments,
 };
 use crate::lut_processing::Lut;
-use crate::{AppState, GpuImageCache, GpuImageEntry};
+use crate::{AppState, GpuImageCache, GpuImageEntry, PreviewTarget};
 
 #[derive(Clone, Copy, Debug)]
 pub struct Roi {
@@ -68,6 +68,37 @@ impl Default for DisplayTransform {
     }
 }
 
+#[derive(Clone, Copy, Debug, serde::Deserialize)]
+pub struct DisplayView {
+    pub zoom: f32,
+    pub center: [f32; 2],
+}
+
+impl Default for DisplayView {
+    fn default() -> Self {
+        Self {
+            zoom: 1.0,
+            center: [0.5, 0.5],
+        }
+    }
+}
+
+pub struct DisplayFrame {
+    texture: wgpu::Texture,
+    view: wgpu::TextureView,
+    capacity: [u32; 2],
+}
+
+#[derive(Clone, Copy)]
+pub struct DisplayOutput {
+    pub target: PreviewTarget,
+    pub to_viewer: bool,
+}
+
+pub fn align_texture_dimension(value: u32) -> u32 {
+    (value + 255) & !255
+}
+
 pub struct WgpuDisplay {
     pub surface: wgpu::Surface<'static>,
     pub config: wgpu::SurfaceConfiguration,
@@ -78,6 +109,8 @@ pub struct WgpuDisplay {
     pub latest_transform: DisplayTransform,
     pub current_bind_group: Option<wgpu::BindGroup>,
     pub standalone: bool,
+    pub view: DisplayView,
+    pub frame: Option<DisplayFrame>,
 }
 
 impl WgpuDisplay {
@@ -91,7 +124,7 @@ impl WgpuDisplay {
     ) {
         self.latest_transform.image_size = image_size;
         self.latest_transform.texture_size = texture_size;
-        self.fit_to_surface();
+        self.place_image();
         self.current_bind_group = Some(device.create_bind_group(&wgpu::BindGroupDescriptor {
             layout: &self.bind_group_layout,
             entries: &[
@@ -113,6 +146,75 @@ impl WgpuDisplay {
         self.flush(device, queue);
     }
 
+    pub fn show_frame(
+        &mut self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        source: &wgpu::Texture,
+        size: [u32; 2],
+        max_dimension: u32,
+    ) {
+        let area = |dims: [u32; 2]| dims[0] as u64 * dims[1] as u64;
+        let reusable = self.frame.as_ref().is_some_and(|frame| {
+            frame.capacity[0] >= size[0]
+                && frame.capacity[1] >= size[1]
+                && area(frame.capacity) <= 4 * area(size)
+        });
+        if !reusable {
+            let capacity = size.map(|dim| align_texture_dimension(dim).min(max_dimension));
+            let texture = device.create_texture(&wgpu::TextureDescriptor {
+                label: Some("Viewer Frame Texture"),
+                size: wgpu::Extent3d {
+                    width: capacity[0],
+                    height: capacity[1],
+                    depth_or_array_layers: 1,
+                },
+                mip_level_count: 1,
+                sample_count: 1,
+                dimension: wgpu::TextureDimension::D2,
+                format: wgpu::TextureFormat::Rgba8Unorm,
+                usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+                view_formats: &[],
+            });
+            let view = texture.create_view(&Default::default());
+            self.frame = Some(DisplayFrame {
+                texture,
+                view,
+                capacity,
+            });
+        }
+        let Some(frame) = &self.frame else {
+            return;
+        };
+        let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+            label: Some("Viewer Frame Copy"),
+        });
+        encoder.copy_texture_to_texture(
+            source.as_image_copy(),
+            frame.texture.as_image_copy(),
+            wgpu::Extent3d {
+                width: size[0],
+                height: size[1],
+                depth_or_array_layers: 1,
+            },
+        );
+        queue.submit(Some(encoder.finish()));
+        let view = frame.view.clone();
+        let capacity = frame.capacity;
+        self.show_texture(
+            device,
+            queue,
+            &view,
+            size.map(|dim| dim as f32),
+            capacity.map(|dim| dim as f32),
+        );
+    }
+
+    pub fn set_view(&mut self, view: DisplayView) {
+        self.view = view;
+        self.place_image();
+    }
+
     pub fn set_background(&mut self, color: [f32; 4]) {
         self.latest_transform.bg_primary = color;
         self.latest_transform.bg_secondary = color;
@@ -126,7 +228,7 @@ impl WgpuDisplay {
             self.config.height = height;
             self.surface.configure(device, &self.config);
         }
-        self.fit_to_surface();
+        self.place_image();
     }
 
     pub fn flush(&mut self, device: &wgpu::Device, queue: &wgpu::Queue) {
@@ -138,7 +240,7 @@ impl WgpuDisplay {
         self.render(device, queue);
     }
 
-    fn fit_to_surface(&mut self) {
+    fn place_image(&mut self) {
         if !self.standalone {
             return;
         }
@@ -146,17 +248,17 @@ impl WgpuDisplay {
         let surface_h = self.config.height as f32;
         let [image_w, image_h] = self.latest_transform.image_size;
         let scale = if image_w > 0.0 && image_h > 0.0 {
-            (surface_w / image_w).min(surface_h / image_h)
+            (surface_w / image_w).min(surface_h / image_h) * self.view.zoom
         } else {
             0.0
         };
-        let fit_w = image_w * scale;
-        let fit_h = image_h * scale;
+        let placed_w = image_w * scale;
+        let placed_h = image_h * scale;
         self.latest_transform.rect = [
-            (surface_w - fit_w) / 2.0,
-            (surface_h - fit_h) / 2.0,
-            fit_w,
-            fit_h,
+            (surface_w / 2.0 - self.view.center[0] * placed_w).round(),
+            (surface_h / 2.0 - self.view.center[1] * placed_h).round(),
+            placed_w,
+            placed_h,
         ];
         self.latest_transform.clip = [0.0, 0.0, surface_w, surface_h];
         self.latest_transform.window = [surface_w, surface_h];
@@ -403,6 +505,8 @@ pub fn build_wgpu_display(
         sampler,
         current_bind_group: None,
         standalone,
+        view: DisplayView::default(),
+        frame: None,
     })
 }
 
@@ -2739,7 +2843,7 @@ pub fn process_and_get_dynamic_image(
         request,
         caller_id,
         RenderOutputPrecision::EightBit,
-        false,
+        None,
         None,
     )
 }
@@ -2761,7 +2865,7 @@ pub fn process_and_get_dynamic_image_with_precision(
         request,
         caller_id,
         output_precision,
-        false,
+        None,
         None,
     )
 }
@@ -2774,7 +2878,7 @@ pub fn process_and_get_dynamic_image_with_analytics(
     transform_hash: u64,
     request: RenderRequest,
     caller_id: &str,
-    output_to_display: bool,
+    display_output: Option<DisplayOutput>,
     analytics_config: Option<crate::AnalyticsConfig>,
 ) -> Result<DynamicImage, String> {
     process_and_get_dynamic_image_inner(
@@ -2785,7 +2889,7 @@ pub fn process_and_get_dynamic_image_with_analytics(
         request,
         caller_id,
         RenderOutputPrecision::EightBit,
-        output_to_display,
+        display_output,
         analytics_config,
     )
 }
@@ -2799,7 +2903,7 @@ fn process_and_get_dynamic_image_inner(
     request: RenderRequest,
     caller_id: &str,
     output_precision: RenderOutputPrecision,
-    output_to_display: bool,
+    display_output: Option<DisplayOutput>,
     analytics_config: Option<crate::AnalyticsConfig>,
 ) -> Result<DynamicImage, String> {
     let start_time = Instant::now();
@@ -2831,9 +2935,11 @@ fn process_and_get_dynamic_image_inner(
             && e.source == source
     };
 
+    let cache_target = display_output.map_or(PreviewTarget::Editor, |output| output.target);
+    let image_cache = state.gpu_image_cache_for(cache_target);
     let mut img_rgba_f16: Option<Vec<f16>> = None;
     let (mut processor_lock, mut cache_lock) = loop {
-        let is_cached = lock_or_reset(&state.gpu_image_cache, "GPU image cache")
+        let is_cached = lock_or_reset(image_cache, "GPU image cache")
             .as_ref()
             .is_some_and(|c| c.entries.iter().any(matches));
         if !is_cached && img_rgba_f16.is_none() {
@@ -2841,7 +2947,7 @@ fn process_and_get_dynamic_image_inner(
         }
 
         let processor_lock = lock_or_reset(&state.gpu_processor, "GPU processor");
-        let cache_lock = lock_or_reset(&state.gpu_image_cache, "GPU image cache");
+        let cache_lock = lock_or_reset(image_cache, "GPU image cache");
         let is_cached = cache_lock
             .as_ref()
             .is_some_and(|c| c.entries.iter().any(matches));
@@ -2858,8 +2964,8 @@ fn process_and_get_dynamic_image_inner(
         let (old_width, old_height) = processor_lock
             .as_ref()
             .map_or((0, 0), |p| (p.width, p.height));
-        let new_width = ((width + 255) & !255).max(old_width);
-        let new_height = ((height + 255) & !255).max(old_height);
+        let new_width = align_texture_dimension(width).max(old_width);
+        let new_height = align_texture_dimension(height).max(old_height);
         log::info!(
             "Creating new GPU Processor for dimensions up to {}x{}",
             new_width,
@@ -2943,8 +3049,7 @@ fn process_and_get_dynamic_image_inner(
 
     let cache = cache.entries.last().unwrap();
 
-    let skip_readback = output_to_display;
-    let is_roi_frame = request.roi.is_some();
+    let skip_readback = display_output.is_some();
 
     let (processed_pixels, out_w, out_h, out_x, out_y) = processor.run(
         &cache.texture_view,
@@ -2953,7 +3058,7 @@ fn process_and_get_dynamic_image_inner(
         cache.width,
         cache.height,
         request,
-        output_to_display,
+        skip_readback,
         output_precision,
     )?;
 
@@ -3004,7 +3109,8 @@ fn process_and_get_dynamic_image_inner(
         submit_final_encoder = true;
     }
 
-    if output_to_display {
+    let to_editor = display_output.is_some_and(|output| output.target == PreviewTarget::Editor);
+    if to_editor {
         final_encoder.copy_texture_to_texture(
             wgpu::TexelCopyTextureInfo {
                 texture: &processor.display_textures().working_texture,
@@ -3068,22 +3174,36 @@ fn process_and_get_dynamic_image_inner(
         }
     }
 
-    if output_to_display {
-        let image_size = [width as f32, height as f32];
-        let texture_size = [processor_state.width as f32, processor_state.height as f32];
-        let targets = std::iter::once(&context.display)
-            .chain((!is_roi_frame).then_some(&context.viewer_display));
-        for target in targets {
-            if let Some(display) = target.lock().unwrap_or_else(|e| e.into_inner()).as_mut() {
-                display.show_texture(
-                    device,
-                    queue,
-                    &processor.display_textures().output_texture_view,
-                    image_size,
-                    texture_size,
-                );
-            }
-        }
+    if to_editor
+        && let Some(display) = context
+            .display
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .as_mut()
+    {
+        display.show_texture(
+            device,
+            queue,
+            &processor.display_textures().output_texture_view,
+            [width as f32, height as f32],
+            [processor_state.width as f32, processor_state.height as f32],
+        );
+    }
+
+    if display_output.is_some_and(|output| output.to_viewer)
+        && let Some(display) = context
+            .viewer_display
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .as_mut()
+    {
+        display.show_frame(
+            device,
+            queue,
+            &processor.display_textures().working_texture,
+            [width, height],
+            context.limits.max_texture_dimension_2d,
+        );
     }
 
     if skip_readback {
