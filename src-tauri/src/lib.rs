@@ -456,14 +456,8 @@ async fn update_wgpu_transform(
 ) -> Result<(), String> {
     viewer_window::set_viewer_background(&app_handle, payload.bg_secondary);
 
-    let context = match state
-        .gpu_context
-        .lock()
-        .unwrap_or_else(|e| e.into_inner())
-        .as_ref()
-    {
-        Some(c) => c.clone(),
-        None => return Ok(()),
+    let Some(context) = gpu_processing::current_gpu_context(&state) else {
+        return Ok(());
     };
 
     tokio::task::spawn_blocking(move || {
@@ -570,6 +564,7 @@ fn process_preview_job(
         PreviewTarget::Editor => interactive_divisor,
         PreviewTarget::Viewer => 1.0,
     };
+    let small_preview_dim = (preview_dim as f32 / interactive_divisor) as u32;
 
     let mut cached_preview_lock = state
         .cached_preview_for(target)
@@ -606,14 +601,13 @@ fn process_preview_job(
         Arc::clone(&cached_preview_lock.as_ref().unwrap().small_image)
     } else {
         let small = if interactive_divisor > 1.0 {
-            let target_size = (preview_dim as f32 / interactive_divisor) as u32;
             let (w, h) = final_preview_base.dimensions();
             let (small_w, small_h) = if w > h {
                 let ratio = h as f32 / w as f32;
-                (target_size, (target_size as f32 * ratio) as u32)
+                (small_preview_dim, (small_preview_dim as f32 * ratio) as u32)
             } else {
                 let ratio = w as f32 / h as f32;
-                ((target_size as f32 * ratio) as u32, target_size)
+                ((small_preview_dim as f32 * ratio) as u32, small_preview_dim)
             };
             Arc::new(image_processing::downscale_f32_image(
                 &final_preview_base,
@@ -656,7 +650,7 @@ fn process_preview_job(
     }
 
     let frame_resolution = if is_interactive {
-        (preview_dim as f32 / interactive_divisor) as u32
+        small_preview_dim
     } else {
         preview_dim
     };
@@ -767,12 +761,16 @@ fn process_preview_job(
             analytics_config,
         );
 
+    let deliver_to_viewer = |jpeg_bytes: Option<&[u8]>| {
+        if to_viewer {
+            viewer_window::record_viewer_frame(app_handle, content, frame_resolution, jpeg_bytes);
+        }
+        target == PreviewTarget::Viewer
+    };
+
     if let Ok(final_processed_image) = final_processed_image_result {
         if use_wgpu_renderer {
-            if to_viewer {
-                viewer_window::record_viewer_frame(app_handle, content, frame_resolution, None);
-            }
-            if target == PreviewTarget::Viewer {
+            if deliver_to_viewer(None) {
                 return Ok(Vec::new());
             }
             let _ = context.device.poll(wgpu::PollType::Wait {
@@ -810,15 +808,7 @@ fn process_preview_job(
 
         match encode_result {
             Ok(jpeg_bytes) => {
-                if to_viewer {
-                    viewer_window::record_viewer_frame(
-                        app_handle,
-                        content,
-                        frame_resolution,
-                        Some(&jpeg_bytes),
-                    );
-                }
-                if target == PreviewTarget::Viewer {
+                if deliver_to_viewer(Some(&jpeg_bytes)) {
                     return Ok(Vec::new());
                 }
                 if is_interactive {
@@ -2291,8 +2281,8 @@ pub fn run() {
                     let (mut w, mut h) = (1280.0_f64, 720.0_f64);
                     if let Some(m) = window.current_monitor().ok().flatten() {
                         let ms = m.size().to_logical::<f64>(m.scale_factor());
-                        w = w.min(ms.width - 80.0).max(800.0);
-                        h = h.min(ms.height - 120.0).max(600.0);
+                        w = w.min(ms.width - 80.0).max(MAIN_WINDOW_MIN_SIZE.0);
+                        h = h.min(ms.height - 120.0).max(MAIN_WINDOW_MIN_SIZE.1);
                     }
 
                     let _ = window.set_size(tauri::Size::Logical(tauri::LogicalSize::new(w, h)));
@@ -2367,8 +2357,8 @@ pub fn run() {
                                 .unwrap_or((0, 0));
 
                             let event_scale = window_for_handler.scale_factor().unwrap_or(1.0);
-                            let min_w = (800.0 * event_scale) as u32;
-                            let min_h = (600.0 * event_scale) as u32;
+                            let min_w = (MAIN_WINDOW_MIN_SIZE.0 * event_scale) as u32;
+                            let min_h = (MAIN_WINDOW_MIN_SIZE.1 * event_scale) as u32;
 
                             let is_maximize_in_progress = window_for_handler
                                 .current_monitor()

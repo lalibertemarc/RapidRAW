@@ -869,7 +869,7 @@ pub async fn load_image(
             .original_image
             .lock()
             .unwrap_or_else(|e| e.into_inner()) = None;
-        for target in [PreviewTarget::Editor, PreviewTarget::Viewer] {
+        for target in PreviewTarget::ALL {
             clear_preview_slot(&state, target);
         }
         *state

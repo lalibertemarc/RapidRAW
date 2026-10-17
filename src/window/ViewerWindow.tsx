@@ -4,6 +4,7 @@ import { listen } from '@tauri-apps/api/event';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { AppSettings, Invokes } from '../components/ui/AppProperties';
 import { calculateTargetResolution } from '../utils/previewResolution';
+import { wheelZoomFactor } from '../utils/wheelZoom';
 
 interface Size {
   width: number;
@@ -31,7 +32,6 @@ interface ViewerView {
 }
 
 const FIT_VIEW: ViewerView = { zoom: 1, center: [0.5, 0.5] };
-const WHEEL_ZOOM_RATE = 0.002;
 
 const toCssColor = ([r, g, b]: ViewerInfo['background']) =>
   `rgb(${Math.round(r * 255)}, ${Math.round(g * 255)}, ${Math.round(b * 255)})`;
@@ -197,14 +197,13 @@ export default function ViewerWindow() {
     const handleWheel = (event: WheelEvent) => {
       event.preventDefault();
       if (!image) return;
-      const delta = event.deltaY !== 0 ? event.deltaY : event.deltaX;
-      const factor = Math.exp(-delta * WHEEL_ZOOM_RATE * (settings?.zoomSpeedMultiplier ?? 1));
+      const factor = wheelZoomFactor(event, settings?.zoomSpeedMultiplier, settings?.canvasInputMode);
       const point = { x: event.clientX, y: event.clientY };
       setView((current) => zoomAt(current, current.zoom * factor, point, win, image));
     };
     root.addEventListener('wheel', handleWheel, { passive: false });
     return () => root.removeEventListener('wheel', handleWheel);
-  }, [image, settings?.zoomSpeedMultiplier, win]);
+  }, [image, settings?.zoomSpeedMultiplier, settings?.canvasInputMode, win]);
 
   const rect = image ? viewRect(view, win, image) : null;
   const canPan = rect !== null && (rect.width > win.width + 0.5 || rect.height > win.height + 0.5);

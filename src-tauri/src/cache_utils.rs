@@ -475,7 +475,7 @@ pub fn clear_image_caches(state: tauri::State<AppState>) {
     if let Ok(mut decoded_cache) = state.decoded_image_cache.lock() {
         decoded_cache.clear();
     }
-    for target in [PreviewTarget::Editor, PreviewTarget::Viewer] {
+    for target in PreviewTarget::ALL {
         clear_preview_slot(&state, target);
     }
     if let Ok(mut warped_cache) = state.full_warped_cache.lock() {

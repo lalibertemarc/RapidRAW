@@ -110,6 +110,10 @@ pub enum PreviewTarget {
     Viewer,
 }
 
+impl PreviewTarget {
+    pub const ALL: [PreviewTarget; 2] = [PreviewTarget::Editor, PreviewTarget::Viewer];
+}
+
 #[derive(Clone, Copy, PartialEq)]
 pub struct FrameContent {
     pub job_hash: u64,
