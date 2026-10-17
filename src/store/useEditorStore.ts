@@ -14,6 +14,8 @@ import { ToolType } from '../components/panel/right/Masks';
 import { OverlayMode } from '../components/panel/right/CropPanel';
 import { HslMixerProperty } from '../utils/hslMixer';
 
+export type CenterMarker = 'vignette' | 'centre';
+
 interface InteractivePatch {
   url: string;
   normX: number;
@@ -70,6 +72,7 @@ interface EditorState {
   mixerPickerProperty: HslMixerProperty | null;
   isRelightPickerActive: boolean;
   activeRelightLightId: string | null;
+  activeCenterMarker: CenterMarker | null;
   isGuidedPerspectiveActive: boolean;
   liveRotation: number | null;
   cropSessionSnapshot: { path: string | null; geometry: CropGeometry } | null;
@@ -139,6 +142,7 @@ export const useEditorStore = create<EditorState>((set) => ({
   mixerPickerProperty: null,
   isRelightPickerActive: false,
   activeRelightLightId: null,
+  activeCenterMarker: null,
   isGuidedPerspectiveActive: false,
   liveRotation: null,
   cropSessionSnapshot: null,

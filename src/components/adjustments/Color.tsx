@@ -507,6 +507,7 @@ export default function ColorPanel({
       mixerPickerProperty: mixerPickerProperty ? null : mixerTab,
       isWbPickerActive: false,
       isRelightPickerActive: false,
+      activeCenterMarker: null,
     });
   };
 

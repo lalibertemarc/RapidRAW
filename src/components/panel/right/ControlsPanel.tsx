@@ -89,6 +89,7 @@ export default function Controls() {
         isWbPickerActive: !state.isWbPickerActive,
         mixerPickerProperty: null,
         isRelightPickerActive: false,
+        activeCenterMarker: null,
       })),
     [setEditor],
   );

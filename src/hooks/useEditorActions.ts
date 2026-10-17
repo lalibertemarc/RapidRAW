@@ -119,6 +119,7 @@ export function useEditorActions() {
       setEditor((state) => {
         const prev = state.adjustments;
         const newAdjustments = typeof value === 'function' ? value(prev) : { ...prev, ...value };
+        if (newAdjustments === prev) return state;
         debouncedSetHistory(newAdjustments);
         return {
           adjustments: newAdjustments,
@@ -133,8 +134,7 @@ export function useEditorActions() {
     (degrees: number) => {
       const { selectedImage, adjustments } = useEditorStore.getState();
       const increment = degrees > 0 ? 1 : 3;
-      const newAspectRatio =
-        adjustments.aspectRatio && adjustments.aspectRatio !== 0 ? 1 / adjustments.aspectRatio : null;
+      const newAspectRatio = adjustments.aspectRatio ? 1 / adjustments.aspectRatio : adjustments.aspectRatio;
       const newOrientationSteps = ((adjustments.orientationSteps || 0) + increment) % 4;
       const newCrop =
         selectedImage?.width && selectedImage?.height
@@ -178,13 +178,14 @@ export function useEditorActions() {
       const rotation: number | null = await invoke(Invokes.CalculateAutoStraighten, {
         jsAdjustments: useEditorStore.getState().adjustments,
       });
-      if (useEditorStore.getState().selectedImage?.path !== selectedImage.path) return;
+      const loadedImage = useEditorStore.getState().selectedImage;
+      if (loadedImage?.path !== selectedImage.path) return;
       if (rotation === null) {
         toast.info(t('editor.crop.autoStraightenNoLines'));
         return;
       }
       setEditor({ liveRotation: null, isStraightenActive: false });
-      setAdjustments((prev: Adjustments) => withRotation(prev, selectedImage, rotation));
+      setAdjustments((prev: Adjustments) => withRotation(prev, loadedImage, rotation));
     } catch (err) {
       toast.error(t('editor.crop.autoStraightenFailed', { error: String(err) }));
     } finally {
@@ -295,9 +296,7 @@ export function useEditorActions() {
           if (libraryActivePath && pathsToReset.includes(libraryActivePath))
             setLibrary({ libraryActiveAdjustments: { ...INITIAL_ADJUSTMENTS } });
           if (selectedImage && pathsToReset.includes(selectedImage.path)) {
-            const aspect =
-              selectedImage.width && selectedImage.height ? selectedImage.width / selectedImage.height : null;
-            const resetData = { ...INITIAL_ADJUSTMENTS, aspectRatio: aspect, aiPatches: [] };
+            const resetData = { ...INITIAL_ADJUSTMENTS, aiPatches: [] };
             resetHistory(resetData);
             setEditor({ adjustments: resetData });
           }

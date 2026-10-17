@@ -100,11 +100,8 @@ fn resolve_image_metadata(
 ) -> ImageFileMetadata {
     let mut metadata = crate::exif_processing::load_sidecar(sidecar_path);
 
-    if enable_xmp_sync
-        && sync_metadata_from_xmp(image_path, &mut metadata)
-        && let Ok(json) = serde_json::to_string_pretty(&metadata)
-    {
-        let _ = fs::write(sidecar_path, json);
+    if enable_xmp_sync && sync_metadata_from_xmp(image_path, &mut metadata) {
+        let _ = crate::exif_processing::write_sidecar(sidecar_path, image_path, &metadata);
     }
 
     let is_raw = crate::formats::is_raw_file(image_path);
@@ -392,6 +389,17 @@ pub struct ImportSettings {
     pub delete_after_import: bool,
 }
 
+pub fn parse_sidecar_name(file_name: &str) -> Option<(&str, Option<&str>)> {
+    let base = file_name.strip_suffix(".rrdata")?;
+    if base.len() >= 7 && base.as_bytes()[base.len() - 7] == b'.' {
+        let id = &base[base.len() - 6..];
+        if id.chars().all(|c| matches!(c, '0'..='9' | 'a'..='f')) {
+            return Some((&base[..base.len() - 7], Some(id)));
+        }
+    }
+    Some((base, None))
+}
+
 pub fn parse_virtual_path(virtual_path: &str) -> (PathBuf, PathBuf) {
     let (source_path_str, copy_id) = if let Some((base, id)) = virtual_path.rsplit_once("?vc=") {
         (base.to_string(), Some(id.to_string()))
@@ -507,9 +515,11 @@ pub async fn update_exif_fields(
             let mut final_metadata = crate::exif_processing::load_sidecar(&primary_path);
 
             final_metadata.exif = Some(exif_data);
-            if let Ok(json) = serde_json::to_string_pretty(&final_metadata) {
-                let _ = std::fs::write(&primary_path, json);
-            }
+            let _ = crate::exif_processing::write_sidecar(
+                &primary_path,
+                original_path,
+                &final_metadata,
+            );
         });
         Ok(())
     })
@@ -587,25 +597,11 @@ pub fn list_images_in_dir(path: String, app_handle: AppHandle) -> Result<Vec<Ima
             .into_string()
             .unwrap_or_else(|os| os.to_string_lossy().into_owned());
 
-        if file_name.ends_with(".rrdata") {
-            let base = &file_name[..file_name.len() - 7];
-
-            let (source_filename, copy_id) =
-                if base.len() >= 7 && base.as_bytes()[base.len() - 7] == b'.' {
-                    let id = &base[base.len() - 6..];
-                    if id.chars().all(|c| matches!(c, '0'..='9' | 'a'..='f')) {
-                        (&base[..base.len() - 7], Some(id.to_string()))
-                    } else {
-                        (base, None)
-                    }
-                } else {
-                    (base, None)
-                };
-
+        if let Some((source_filename, copy_id)) = parse_sidecar_name(&file_name) {
             sidecars_by_filename
                 .entry(source_filename.to_string())
                 .or_default()
-                .push(copy_id);
+                .push(copy_id.map(str::to_string));
         } else if is_supported_image_file(&file_name) {
             images.push((file_name, entry_path));
         }
@@ -717,24 +713,12 @@ pub fn list_images_recursive(
         }
 
         let file_name = entry_path.file_name().unwrap_or_default().to_string_lossy();
-        if let Some(base) = file_name.strip_suffix(".rrdata") {
-            let (source_filename, copy_id) =
-                if base.len() >= 7 && base.as_bytes()[base.len() - 7] == b'.' {
-                    let id = &base[base.len() - 6..];
-                    if id.chars().all(|c| matches!(c, '0'..='9' | 'a'..='f')) {
-                        (&base[..base.len() - 7], Some(id.to_string()))
-                    } else {
-                        (base, None)
-                    }
-                } else {
-                    (base, None)
-                };
-
+        if let Some((source_filename, copy_id)) = parse_sidecar_name(&file_name) {
             if let Some(parent) = entry_path.parent() {
                 sidecars_by_path
                     .entry(parent.join(source_filename))
                     .or_default()
-                    .push(copy_id);
+                    .push(copy_id.map(str::to_string));
             }
         } else if is_supported_image_file(entry_path.to_string_lossy().as_ref()) {
             images.push(entry_path.to_path_buf());
@@ -1370,7 +1354,6 @@ pub async fn get_pinned_folder_trees(
     }
 }
 
-/// Checks if the given path exists and is an iCloud placeholder file on macOS.
 #[cfg(target_os = "macos")]
 pub fn is_cloud_placeholder(path: &Path) -> bool {
     use std::os::unix::ffi::OsStrExt;
@@ -2572,8 +2555,8 @@ pub fn save_metadata_and_update_thumbnail(
 
     metadata.adjustments = final_adjustments;
 
-    let json_string = serde_json::to_string_pretty(&metadata).map_err(|e| e.to_string())?;
-    std::fs::write(&sidecar_path, json_string).map_err(|e| e.to_string())?;
+    crate::exif_processing::write_sidecar(&sidecar_path, &source_path, &metadata)
+        .map_err(|e| e.to_string())?;
 
     if let Ok(settings) = load_settings(app_handle.clone())
         && settings.enable_xmp_sync.unwrap_or(false)
@@ -2693,12 +2676,13 @@ pub async fn apply_adjustments_to_paths(
 
             existing_metadata.adjustments = new_adjustments;
 
-            if let Ok(json_string) = serde_json::to_string_pretty(&existing_metadata) {
-                let _ = std::fs::write(&sidecar_path, json_string);
-            }
+            let _ = crate::exif_processing::write_sidecar(
+                &sidecar_path,
+                &source_path,
+                &existing_metadata,
+            );
 
             if enable_xmp_sync {
-                let source_path = parse_virtual_path(path).0;
                 sync_metadata_to_xmp(&source_path, &existing_metadata, create_xmp_if_missing);
             }
         });
@@ -2723,18 +2707,19 @@ pub async fn reset_adjustments_for_paths(
         let create_xmp_if_missing = settings.create_xmp_if_missing.unwrap_or(false);
 
         paths.par_iter().for_each(|path| {
-            let (_, sidecar_path) = parse_virtual_path(path);
+            let (source_path, sidecar_path) = parse_virtual_path(path);
 
             let mut existing_metadata = crate::exif_processing::load_sidecar(&sidecar_path);
 
             existing_metadata.adjustments = default_adjustments();
 
-            if let Ok(json_string) = serde_json::to_string_pretty(&existing_metadata) {
-                let _ = std::fs::write(&sidecar_path, json_string);
-            }
+            let _ = crate::exif_processing::write_sidecar(
+                &sidecar_path,
+                &source_path,
+                &existing_metadata,
+            );
 
             if enable_xmp_sync {
-                let source_path = parse_virtual_path(path).0;
                 sync_metadata_to_xmp(&source_path, &existing_metadata, create_xmp_if_missing);
             }
         });
@@ -2828,9 +2813,11 @@ pub async fn apply_auto_lens_correction_to_paths(
                 lens_db.as_deref(),
             );
 
-            if let Ok(json_string) = serde_json::to_string_pretty(&existing_metadata) {
-                let _ = std::fs::write(&sidecar_path, json_string);
-            }
+            let _ = crate::exif_processing::write_sidecar(
+                &sidecar_path,
+                &source_path,
+                &existing_metadata,
+            );
 
             if enable_xmp_sync {
                 sync_metadata_to_xmp(&source_path, &existing_metadata, create_xmp_if_missing);
@@ -2850,13 +2837,13 @@ pub async fn apply_auto_lens_correction_to_paths(
 
 const FULL_DECODE_WORKER_THREADS: usize = 2;
 
-fn update_sidecars_from_images(
+async fn update_sidecars_from_images(
     paths: Vec<String>,
     app_handle: AppHandle,
     operation: &'static str,
     fast_decode: bool,
-    update: impl Fn(&DynamicImage, &str, &mut Value) + Send + Sync + 'static,
-) {
+    update: impl Fn(&DynamicImage, &str, &AppSettings, &mut Value) + Send + Sync + 'static,
+) -> Result<(), String> {
     let state = app_handle.state::<AppState>();
     add_to_thumbnail_queue(&state, paths.len(), &app_handle);
 
@@ -2903,11 +2890,18 @@ fn update_sidecars_from_images(
                     existing_metadata.adjustments = default_adjustments();
                 }
 
-                update(&image, &source_path_str, &mut existing_metadata.adjustments);
+                update(
+                    &image,
+                    &source_path_str,
+                    &settings,
+                    &mut existing_metadata.adjustments,
+                );
 
-                if let Ok(json_string) = serde_json::to_string_pretty(&existing_metadata) {
-                    let _ = std::fs::write(&sidecar_path, json_string);
-                }
+                let _ = crate::exif_processing::write_sidecar(
+                    &sidecar_path,
+                    &source_path,
+                    &existing_metadata,
+                );
 
                 if enable_xmp_sync {
                     sync_metadata_to_xmp(&source_path, &existing_metadata, create_xmp_if_missing);
@@ -2951,26 +2945,32 @@ fn update_sidecars_from_images(
         } else {
             paths.iter().for_each(process);
         }
-    });
+    })
+    .await
+    .map_err(|e| e.to_string())
 }
+
 #[tauri::command]
 pub async fn apply_auto_adjustments_to_paths(
     paths: Vec<String>,
     app_handle: AppHandle,
 ) -> Result<(), String> {
-    let baseline =
-        BaselineOptions::from_settings(&load_settings(app_handle.clone()).unwrap_or_default());
     update_sidecars_from_images(
         paths,
         app_handle,
         "auto adjustments",
         true,
-        move |image, source_path, adjustments| {
+        |image, source_path, settings, adjustments| {
             let auto_results = perform_auto_analysis(
                 image,
-                effective_baseline_exposure(adjustments, as_shot(source_path), baseline),
+                effective_baseline_exposure(
+                    adjustments,
+                    as_shot(source_path),
+                    BaselineOptions::from_settings(settings),
+                ),
             );
             let auto_adjustments_json = auto_results_to_json(&auto_results);
+
             let mut active_tools = crate::image_processing::active_tools(adjustments);
 
             if let (Some(existing_map), Some(auto_map)) = (
@@ -2992,9 +2992,8 @@ pub async fn apply_auto_adjustments_to_paths(
                 }
             }
         },
-    );
-
-    Ok(())
+    )
+    .await
 }
 
 #[tauri::command]
@@ -3007,10 +3006,11 @@ pub async fn apply_auto_straighten_to_paths(
         app_handle,
         "auto straighten",
         false,
-        crate::auto_straighten::straighten_adjustments,
-    );
-
-    Ok(())
+        |image, source_path, _, adjustments| {
+            crate::auto_straighten::straighten_adjustments(image, source_path, adjustments)
+        },
+    )
+    .await
 }
 fn update_metadata_for_paths(
     paths: &[String],
@@ -3028,9 +3028,7 @@ fn update_metadata_for_paths(
 
         update(&mut metadata);
 
-        if let Ok(json_string) = serde_json::to_string_pretty(&metadata) {
-            let _ = std::fs::write(&sidecar_path, json_string);
-        }
+        let _ = crate::exif_processing::write_sidecar(&sidecar_path, &source_path, &metadata);
 
         if enable_xmp_sync {
             sync_metadata_to_xmp(&source_path, &metadata, create_xmp_if_missing);
@@ -3099,11 +3097,8 @@ pub fn load_metadata(path: String, app_handle: AppHandle) -> Result<ImageMetadat
     let (source_path, sidecar_path) = parse_virtual_path(&path);
     let mut metadata = crate::exif_processing::load_sidecar(&sidecar_path);
 
-    if enable_xmp_sync
-        && sync_metadata_from_xmp(&source_path, &mut metadata)
-        && let Ok(json) = serde_json::to_string_pretty(&metadata)
-    {
-        let _ = fs::write(&sidecar_path, json);
+    if enable_xmp_sync && sync_metadata_from_xmp(&source_path, &mut metadata) {
+        let _ = crate::exif_processing::write_sidecar(&sidecar_path, &source_path, &metadata);
     }
 
     Ok(metadata)
@@ -4075,14 +4070,34 @@ pub fn create_virtual_copy(
     let new_virtual_path = format!("{}?vc={}", source_path.to_string_lossy(), new_copy_id);
     let (_, new_sidecar_path) = parse_virtual_path(&new_virtual_path);
 
-    if source_sidecar_path.exists() {
-        fs::copy(&source_sidecar_path, &new_sidecar_path)
-            .map_err(|e| format!("Failed to copy sidecar file: {}", e))?;
-    } else {
-        let default_metadata = ImageMetadata::default();
-        let json_string =
-            serde_json::to_string_pretty(&default_metadata).map_err(|e| e.to_string())?;
-        fs::write(new_sidecar_path, json_string).map_err(|e| e.to_string())?;
+    let default_json =
+        serde_json::to_string_pretty(&ImageMetadata::default()).map_err(|e| e.to_string())?;
+
+    {
+        let _layout = crate::exif_processing::SIDECAR_LAYOUT_LOCK.lock().unwrap();
+
+        if source_sidecar_path.exists() {
+            fs::copy(&source_sidecar_path, &new_sidecar_path)
+                .map_err(|e| format!("Failed to copy sidecar file: {}", e))?;
+        } else {
+            fs::write(&new_sidecar_path, &default_json).map_err(|e| e.to_string())?;
+        }
+
+        // The library hides the original when only virtual copy sidecars exist.
+        let primary_sidecar_path = crate::exif_processing::get_primary_sidecar_path(&source_path);
+        match fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&primary_sidecar_path)
+        {
+            Ok(mut file) => {
+                use std::io::Write;
+                file.write_all(default_json.as_bytes())
+                    .map_err(|e| e.to_string())?;
+            }
+            Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {}
+            Err(e) => return Err(e.to_string()),
+        }
     }
 
     if let Some(album_id) = target_album_id {

@@ -1165,7 +1165,6 @@ fn encode_grayscale_to_png(bitmap: &GrayImage) -> Result<Vec<u8>, String> {
     Ok(buf)
 }
 
-/// Exports are sRGB-encoded; tagging them lets color-managed apps read them correctly.
 const SRGB_ICC_PROFILE: &[u8] = include_bytes!("../icc/sRGB-v2-magic.icc");
 
 fn encode_image_to_bytes(
@@ -1306,28 +1305,12 @@ where
 }
 
 fn insert_png_phys_chunk(image_bytes: &mut Vec<u8>, dpi: u16) {
-    const IHDR_END: usize = 33;
-
-    if image_bytes.len() < IHDR_END || &image_bytes[12..16] != b"IHDR" {
-        return;
-    }
-
     let pixels_per_meter = (f64::from(dpi) / 0.0254).round() as u32;
     let mut data = Vec::with_capacity(9);
     data.extend_from_slice(&pixels_per_meter.to_be_bytes());
     data.extend_from_slice(&pixels_per_meter.to_be_bytes());
     data.push(1);
-
-    let mut crc = crc32fast::Hasher::new();
-    crc.update(b"pHYs");
-    crc.update(&data);
-
-    let mut chunk = Vec::with_capacity(data.len() + 12);
-    chunk.extend_from_slice(&(data.len() as u32).to_be_bytes());
-    chunk.extend_from_slice(b"pHYs");
-    chunk.extend_from_slice(&data);
-    chunk.extend_from_slice(&crc.finalize().to_be_bytes());
-    image_bytes.splice(IHDR_END..IHDR_END, chunk);
+    exif_processing::insert_png_chunk(image_bytes, b"pHYs", &data);
 }
 
 #[allow(clippy::too_many_arguments)]
