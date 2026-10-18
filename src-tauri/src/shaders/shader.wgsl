@@ -791,14 +791,19 @@ fn apply_hsl_panel(color: vec3<f32>, hsl_adjustments: array<HslColor, 8>, coords
     return final_color;
 }
 
+fn color_grade_tint(hue: f32) -> vec3<f32> {
+    let tint = hsv_to_rgb(vec3<f32>(hue, 1.0, 1.0));
+    return tint - get_luma(tint);
+}
+
 fn apply_color_grading(color: vec3<f32>, shadows: ColorGradeSettings, midtones: ColorGradeSettings, highlights: ColorGradeSettings, global: ColorGradeSettings, blending: f32, balance: f32) -> vec3<f32> {
-    let luma = get_luma(max(vec3(0.0), color));
-    let base_shadow_crossover = 0.1;
-    let base_highlight_crossover = 0.5;
-    let balance_range = 0.5;
+    let luma = linear_to_srgb_extended(vec3<f32>(get_luma(max(vec3(0.0), color)))).x;
+    let base_shadow_crossover = 0.28;
+    let base_highlight_crossover = 0.58;
+    let balance_range = 0.3;
     let shadow_crossover = base_shadow_crossover + max(0.0, -balance) * balance_range;
     let highlight_crossover = base_highlight_crossover - max(0.0, balance) * balance_range;
-    let feather = 0.2 * blending;
+    let feather = 0.26 * blending;
     let final_shadow_crossover = min(shadow_crossover, highlight_crossover - 0.01);
     let shadow_mask = 1.0 - smoothstep(final_shadow_crossover - feather, final_shadow_crossover + feather, luma);
     let highlight_mask = smoothstep(highlight_crossover - feather, highlight_crossover + feather, luma);
@@ -809,17 +814,17 @@ fn apply_color_grading(color: vec3<f32>, shadows: ColorGradeSettings, midtones: 
     let shadow_lum_strength = 0.5;
     let midtone_sat_strength = 0.6;
     let midtone_lum_strength = 0.8;
-    let highlight_sat_strength = 0.8;
+    let highlight_sat_strength = 1.6;
     let highlight_lum_strength = 1.0;
     let global_sat_strength = 1.0;
     let global_lum_strength = 1.0;
-    if (shadows.saturation > 0.001) { let tint_rgb = hsv_to_rgb(vec3<f32>(shadows.hue, 1.0, 1.0)); graded_color += (tint_rgb - 0.5) * shadows.saturation * shadow_mask * shadow_sat_strength; }
+    if (shadows.saturation > 0.001) { graded_color += color_grade_tint(shadows.hue) * shadows.saturation * shadow_mask * shadow_sat_strength; }
     graded_color += shadows.luminance * shadow_mask * shadow_lum_strength;
-    if (midtones.saturation > 0.001) { let tint_rgb = hsv_to_rgb(vec3<f32>(midtones.hue, 1.0, 1.0)); graded_color += (tint_rgb - 0.5) * midtones.saturation * midtone_mask * midtone_sat_strength; }
+    if (midtones.saturation > 0.001) { graded_color += color_grade_tint(midtones.hue) * midtones.saturation * midtone_mask * midtone_sat_strength; }
     graded_color += midtones.luminance * midtone_mask * midtone_lum_strength;
-    if (highlights.saturation > 0.001) { let tint_rgb = hsv_to_rgb(vec3<f32>(highlights.hue, 1.0, 1.0)); graded_color += (tint_rgb - 0.5) * highlights.saturation * highlight_mask * highlight_sat_strength; }
+    if (highlights.saturation > 0.001) { graded_color += color_grade_tint(highlights.hue) * highlights.saturation * highlight_mask * highlight_sat_strength; }
     graded_color += highlights.luminance * highlight_mask * highlight_lum_strength;
-    if (global.saturation > 0.001) { let tint_rgb = hsv_to_rgb(vec3<f32>(global.hue, 1.0, 1.0)); graded_color += (tint_rgb - 0.5) * global.saturation * global_mask * global_sat_strength; }
+    if (global.saturation > 0.001) { graded_color += color_grade_tint(global.hue) * global.saturation * global_mask * global_sat_strength; }
     graded_color += global.luminance * global_mask * global_lum_strength;
     return graded_color;
 }
