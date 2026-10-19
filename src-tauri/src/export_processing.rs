@@ -29,9 +29,7 @@ use crate::exif_processing;
 use crate::file_management::{parse_virtual_path, read_file_mapped};
 use crate::filename_template::FilenameSettings;
 use crate::formats::is_raw_file;
-use crate::image_loader::{
-    composite_patches_on_image, load_and_composite, load_base_image_from_bytes,
-};
+use crate::image_loader::{load_and_composite, load_base_image_from_bytes, prepare_base_image};
 use crate::image_processing::{
     AllAdjustments, Crop, GpuContext, RenderOptions, RenderOutputPrecision, RenderRequest,
     downscale_f32_image, get_all_adjustments_from_json, get_or_init_gpu_context,
@@ -1801,7 +1799,7 @@ pub(crate) async fn export_images_impl(
                     };
 
                     let base_image = if let Some(loaded_image) = loaded_image {
-                        composite_patches_on_image(&loaded_image.image, &js_adjustments)
+                        prepare_base_image(&loaded_image.image, &loaded_image.path, &js_adjustments)
                             .map_err(|e| format!("Failed to composite AI patches: {}", e))?
                     } else {
                         match read_file_mapped(Path::new(&source_path_str)) {
