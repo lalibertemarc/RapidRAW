@@ -99,7 +99,8 @@ use tempfile::NamedTempFile;
 use tokio::sync::Mutex as TokioMutex;
 
 use crate::cache_utils::{
-    DecodedImageCache, calculate_full_job_hash, calculate_geometry_hash, calculate_transform_hash,
+    DecodedImageCache, calculate_full_job_hash, calculate_geometry_hash, calculate_patch_hash,
+    calculate_transform_hash,
 };
 use crate::file_management::{parse_virtual_path, read_file_mapped};
 use crate::formats::is_raw_file;
@@ -601,6 +602,7 @@ fn process_preview_job(
     let render = resolve_render_options(&settings, is_raw);
     let content = FrameContent {
         job_hash: calculate_full_job_hash(&loaded_image.path, &adjustments_json),
+        patch_hash: calculate_patch_hash(&adjustments_json),
         render,
     };
     if target == PreviewTarget::Editor {

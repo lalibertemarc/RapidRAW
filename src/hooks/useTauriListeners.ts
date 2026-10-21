@@ -288,11 +288,6 @@ export function useTauriListeners({
           }));
         }
       }),
-      listen('viewer-closed', () => {
-        if (isEffectActive) {
-          useUIStore.getState().setUI({ isViewerOpen: false });
-        }
-      }),
       listen<{ path: string; progress: number }>('ai-denoise-progress', (event) => {
         if (!isEffectActive) return;
         const { path, progress } = event.payload;
@@ -323,6 +318,11 @@ export function useTauriListeners({
               : {}),
           };
         });
+      }),
+      listen('viewer-closed', () => {
+        if (isEffectActive) {
+          useUIStore.getState().setUI({ isViewerOpen: false });
+        }
       }),
       listen('wgpu-frame-ready', (event: any) => {
         const editorState = useEditorStore.getState();

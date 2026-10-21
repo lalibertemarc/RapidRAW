@@ -117,6 +117,7 @@ impl PreviewTarget {
 #[derive(Clone, Copy, PartialEq)]
 pub struct FrameContent {
     pub job_hash: u64,
+    pub patch_hash: u64,
     pub render: RenderOptions,
 }
 

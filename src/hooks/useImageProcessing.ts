@@ -10,8 +10,8 @@ import { Adjustments, COPYABLE_ADJUSTMENT_KEYS } from '../utils/adjustments';
 import { Invokes, Panel } from '../components/ui/AppProperties';
 import { debouncedSave } from './useEditorActions';
 import { globalImageCache } from '../utils/ImageLRUCache';
-import { calculateTargetResolution } from '../utils/previewResolution';
 import { prepareAdjustmentsPayload } from '../utils/backendPayload';
+import { calculateTargetResolution } from '../utils/previewResolution';
 
 export function useImageProcessing(
   transformWrapperRef: any,
