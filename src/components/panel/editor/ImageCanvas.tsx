@@ -1425,6 +1425,11 @@ const MaskOverlay = memo(
   },
 );
 
+const getWbSampleAdjustments = () => {
+  const { adjustments } = useEditorStore.getState();
+  return adjustments.negativeConversionEnabled ? adjustments : null;
+};
+
 const ImageCanvas = memo(
   ({
     appSettings,
@@ -2357,7 +2362,10 @@ const ImageCanvas = memo(
       const generation = state.generation;
 
       try {
-        const sample = await invoke<WbSample>(Invokes.SampleWhiteBalance, { corners });
+        const sample = await invoke<WbSample>(Invokes.SampleWhiteBalance, {
+          corners,
+          jsAdjustments: getWbSampleAdjustments(),
+        });
         if (state.generation === generation) {
           setWbSample(sample);
         }
@@ -2392,7 +2400,10 @@ const ImageCanvas = memo(
         const { generation, session } = state;
 
         try {
-          const sample = await invoke<WbSample>(Invokes.SampleWhiteBalance, { corners });
+          const sample = await invoke<WbSample>(Invokes.SampleWhiteBalance, {
+            corners,
+            jsAdjustments: getWbSampleAdjustments(),
+          });
           if (state.session !== session) return;
           if (state.generation === generation) {
             setWbSample(sample);

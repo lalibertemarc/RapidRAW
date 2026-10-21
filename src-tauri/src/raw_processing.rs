@@ -1,11 +1,13 @@
 use crate::as_shot::AsShot;
-use crate::image_processing::apply_orientation;
+use crate::highlight_reconstruction::{self, Region};
+use crate::image_processing::{apply_orientation, oriented_rgb32f};
 use crate::white_balance::WhiteBalance;
 use anyhow::{Result, anyhow};
 use image::{DynamicImage, ImageBuffer, Rgb};
 use rawler::{
     decoders::{Decoder, Orientation, RawDecodeParams},
     imgop::{
+        Dim2, Point, Rect,
         develop::{DemosaicAlgorithm, Intermediate, ProcessingStep, RawDevelop},
         xyz::{FlatColorMatrix, Illuminant},
     },
@@ -318,13 +320,25 @@ fn develop_internal(
     let camera_to_srgb = (apply_calibration || !is_linear_format)
         .then(|| CameraToSrgb::new(&raw_image))
         .flatten();
+    let cfa_balance = (!is_linear_format && camera_to_srgb.is_some())
+        .then(|| cfa_white_balance(&raw_image))
+        .flatten();
+    if cfa_balance.is_some() {
+        developer
+            .steps
+            .retain(|&step| step != ProcessingStep::CropDefault);
+    }
 
     check_cancel()?;
     let mut developed_intermediate = developer.develop_intermediate(&raw_image)?;
 
+    let (crop_area, active_area, raw_dim) =
+        (raw_image.crop_area, raw_image.active_area, raw_image.dim());
     drop(raw_image);
 
-    if let Some(camera_to_srgb) = &camera_to_srgb {
+    if cfa_balance.is_none()
+        && let Some(camera_to_srgb) = &camera_to_srgb
+    {
         check_cancel()?;
         developed_intermediate = camera_to_srgb.apply(developed_intermediate);
     }
@@ -356,6 +370,47 @@ fn develop_internal(
                 }
                 *p = linear_val.clamp(0.0, clamp_limit);
             });
+        }
+        Intermediate::ThreeColor(pixels) if cfa_balance.is_some() => {
+            let wb = cfa_balance.unwrap();
+            let camera_to_srgb = camera_to_srgb.as_ref().unwrap();
+            let crop = default_crop(crop_area, active_area, raw_dim, pixels.dim());
+            let region = Region {
+                stride: pixels.width,
+                x: crop.p.x,
+                y: crop.p.y,
+                width: crop.d.w,
+                height: crop.d.h,
+            };
+
+            let levels =
+                highlight_reconstruction::detect_clip_levels(&pixels.data, region, rescale_factor);
+            let clips: [f32; 3] = std::array::from_fn(|c| wb[c] * levels[c]);
+
+            pixels
+                .data
+                .par_chunks_exact_mut(region.stride)
+                .skip(region.y)
+                .take(region.height)
+                .for_each(|row| {
+                    for p in &mut row[region.x..region.x + region.width] {
+                        for c in 0..3 {
+                            p[c] = (p[c] * rescale_factor).max(0.0) * wb[c];
+                        }
+                    }
+                });
+            highlight_reconstruction::reconstruct_highlights(&mut pixels.data, region, clips);
+            check_cancel()?;
+
+            let neutral = wb.map(|c| 1.0 / c);
+            let data = &pixels.data;
+            let image = oriented_rgb32f(region.width, region.height, orientation, |x, y| {
+                let [r, g, b] = data[(region.y + y) * region.stride + region.x + x];
+                camera_to_srgb
+                    .pixel(&[r * neutral[0], g * neutral[1], b * neutral[2]])
+                    .map(|value| value.clamp(0.0, clamp_limit))
+            });
+            return Ok((DynamicImage::ImageRgb32F(image), Orientation::Normal));
         }
         Intermediate::ThreeColor(pixels) => {
             pixels.data.par_iter_mut().for_each(|p| {
@@ -404,6 +459,45 @@ fn develop_internal(
     };
 
     Ok((dynamic_image, orientation))
+}
+
+fn default_crop(
+    crop_area: Option<Rect>,
+    active_area: Option<Rect>,
+    raw_dim: Dim2,
+    dim: Dim2,
+) -> Rect {
+    let full = Rect::new(Point::zero(), dim);
+    let Some(mut crop) = crop_area else {
+        return full;
+    };
+    if let Some(active_area) = active_area {
+        crop = crop.intersection(&active_area).adapt(&active_area);
+    }
+    let original_width = active_area.map(|area| area.d.w).unwrap_or(raw_dim.w);
+    if original_width > 0 {
+        let scale_factor = dim.w as f32 / original_width as f32;
+        if (scale_factor - 1.0).abs() > 1e-6 {
+            crop.scale(scale_factor);
+        }
+    }
+    let in_bounds = crop.p.x + crop.d.w <= dim.w && crop.p.y + crop.d.h <= dim.h;
+    if crop.is_empty() || crop.d == dim || !in_bounds {
+        full
+    } else {
+        crop
+    }
+}
+
+fn cfa_white_balance(raw_image: &RawImage) -> Option<[f32; 3]> {
+    let RawPhotometricInterpretation::Cfa(config) = &raw_image.photometric else {
+        return None;
+    };
+    if raw_image.cpp != 1 || !config.cfa.is_rgb() || config.cfa.unique_colors() != 3 {
+        return None;
+    }
+    let neutral = camera_neutral(raw_image);
+    Some(std::array::from_fn(|c| 1.0 / neutral[c]))
 }
 
 pub fn read_as_shot(file_bytes: &[u8]) -> Option<AsShot> {
@@ -472,16 +566,22 @@ fn mono_pixels_to_rgb(
         .ok_or_else(|| anyhow!("Developed image size does not match its dimensions"))
 }
 
+pub fn raw_dimensions(file_bytes: &[u8]) -> Option<(usize, usize)> {
+    let source = RawSource::new_from_slice(file_bytes);
+    let decoder = rawler::get_decoder(&source).ok()?;
+    let raw_img = decoder
+        .raw_image(&source, &RawDecodeParams::default(), true)
+        .ok()?;
+    Some((raw_img.width, raw_img.height))
+}
+
 pub fn get_fast_demosaic_scale_factor(
     file_bytes: &[u8],
     decoded_width: u32,
     decoded_height: u32,
 ) -> f32 {
-    let source = RawSource::new_from_slice(file_bytes);
-    if let Ok(decoder) = rawler::get_decoder(&source)
-        && let Ok(raw_img) = decoder.raw_image(&source, &RawDecodeParams::default(), true)
-    {
-        let max_orig = (raw_img.width as f32).max(raw_img.height as f32);
+    if let Some((raw_width, raw_height)) = raw_dimensions(file_bytes) {
+        let max_orig = (raw_width as f32).max(raw_height as f32);
         let max_comp = (decoded_width as f32).max(decoded_height as f32);
         if max_orig > 0.0 {
             let ratio = max_comp / max_orig;
