@@ -38,7 +38,7 @@ export const useKeyboardShortcuts = ({
   handlePasteFiles,
   handleZoomChange,
 }: KeyboardShortcutsProps) => {
-  const { handleRotate, handleAutoStraighten, handleCopyAdjustments, handlePasteAdjustments, toggleShowOriginal } =
+  const { handleRotate, handleAutoStraighten, handleCopyAdjustments, handlePasteAdjustments, toggleCompare } =
     useEditorActions();
   const { handleRate, handleSetFlag, handleToggleFlag, handleSetColorLabel } = useLibraryActions();
 
@@ -328,7 +328,7 @@ export const useKeyboardShortcuts = ({
         shouldFire: (s: any) => s.ui.activeView === 'editor' && !!s.editor.selectedImage,
         execute: (e: any) => {
           e.preventDefault();
-          toggleShowOriginal();
+          toggleCompare();
         },
       },
       toggle_adjustments: {
@@ -710,8 +710,7 @@ export const useKeyboardShortcuts = ({
         state.ui.confirmModalState.isOpen ||
         state.ui.panoramaModalState.isOpen ||
         state.ui.cullingModalState.isOpen ||
-        state.ui.collageModalState.isOpen ||
-        state.ui.denoiseModalState.isOpen;
+        state.ui.collageModalState.isOpen;
 
       if (isModalOpen) return;
 
@@ -767,6 +766,6 @@ export const useKeyboardShortcuts = ({
     handleSetFlag,
     handleToggleFlag,
     handleSetColorLabel,
-    toggleShowOriginal,
+    toggleCompare,
   ]);
 };

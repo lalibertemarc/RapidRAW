@@ -127,7 +127,9 @@ impl<'a> Resolver<'a> {
             self.ctx
                 .sidecar_path
                 .map(|sidecar| {
-                    exif_processing::load_sidecar_with_exif(sidecar, self.ctx.original_path)
+                    let mut meta = exif_processing::load_sidecar(sidecar);
+                    exif_processing::fill_missing_exif(&mut meta, self.ctx.original_path);
+                    meta
                 })
                 .unwrap_or_default()
         })

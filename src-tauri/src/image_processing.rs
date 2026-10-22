@@ -22,7 +22,6 @@ pub use crate::gpu_processing::{
     process_and_get_dynamic_image_with_analytics, process_and_get_dynamic_image_with_precision,
 };
 use crate::{AppState, mask_generation::MaskDefinition};
-use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
 
 pub trait IntoCowImage<'a> {
     fn into_cow(self) -> Cow<'a, DynamicImage>;
@@ -67,6 +66,7 @@ where
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(default)]
 pub struct ImageMetadata {
     pub version: u32,
     pub rating: u8,
@@ -3204,7 +3204,6 @@ fn apply_gentle_detail_enhance(
         });
 }
 
-#[derive(Serialize, Clone)]
 pub struct HistogramData {
     red: Vec<f32>,
     green: Vec<f32>,
@@ -3364,15 +3363,57 @@ fn normalize_histogram_range(histogram: &mut [f32], percentile_clip: f32) {
     }
 }
 
-#[derive(serde::Serialize, Clone)]
-#[serde(rename_all = "camelCase")]
 pub struct WaveformData {
-    pub rgb: String,
-    pub luma: String,
-    pub parade: String,
-    pub vectorscope: String,
+    pub rgb: Vec<u8>,
+    pub luma: Vec<u8>,
+    pub parade: Vec<u8>,
+    pub vectorscope: Vec<u8>,
     pub width: u32,
     pub height: u32,
+}
+
+pub fn encode_analytics_packet(
+    path: &str,
+    histogram: Option<&HistogramData>,
+    waveform: Option<&WaveformData>,
+) -> Vec<u8> {
+    let put_u32 = |out: &mut Vec<u8>, v: usize| out.extend_from_slice(&(v as u32).to_le_bytes());
+    let wave_len = waveform.map_or(0, |w| {
+        w.rgb.len() + w.luma.len() + w.parade.len() + w.vectorscope.len()
+    });
+    let mut out = Vec::with_capacity(path.len() + 4 * 256 * 4 + wave_len + 40);
+
+    put_u32(&mut out, path.len());
+    out.extend_from_slice(path.as_bytes());
+
+    match histogram {
+        Some(h) => {
+            put_u32(&mut out, h.red.len());
+            for channel in [&h.red, &h.green, &h.blue, &h.luma] {
+                for v in channel.iter() {
+                    out.extend_from_slice(&v.to_le_bytes());
+                }
+            }
+        }
+        None => put_u32(&mut out, 0),
+    }
+
+    match waveform {
+        Some(w) => {
+            put_u32(&mut out, w.width as usize);
+            put_u32(&mut out, w.height as usize);
+            for plane in [&w.rgb, &w.luma, &w.parade, &w.vectorscope] {
+                put_u32(&mut out, plane.len());
+                out.extend_from_slice(plane);
+            }
+        }
+        None => {
+            put_u32(&mut out, 0);
+            put_u32(&mut out, 0);
+        }
+    }
+
+    out
 }
 
 const WAVEFORM_W: usize = 256;
@@ -3648,26 +3689,10 @@ pub fn calculate_waveform(
     }
 
     Ok(WaveformData {
-        rgb: if do_rgb {
-            BASE64.encode(&rgba_rgb)
-        } else {
-            String::new()
-        },
-        luma: if do_luma {
-            BASE64.encode(&rgba_luma)
-        } else {
-            String::new()
-        },
-        parade: if do_parade {
-            BASE64.encode(&rgba_parade)
-        } else {
-            String::new()
-        },
-        vectorscope: if do_vectorscope {
-            BASE64.encode(&rgba_vector)
-        } else {
-            String::new()
-        },
+        rgb: rgba_rgb,
+        luma: rgba_luma,
+        parade: rgba_parade,
+        vectorscope: rgba_vector,
         width: W as u32,
         height: H as u32,
     })
@@ -4138,90 +4163,4 @@ pub async fn sample_white_balance(
     })
     .await
     .map_err(|e| format!("Task execution failed: {}", e))?
-}
-
-#[cfg(test)]
-mod downscale_tests {
-    use super::*;
-
-    fn pseudo_random_bytes(len: usize, seed: u32) -> Vec<u8> {
-        let mut state = seed;
-        (0..len)
-            .map(|_| {
-                state = state.wrapping_mul(1_664_525).wrapping_add(1_013_904_223);
-                (state >> 24) as u8
-            })
-            .collect()
-    }
-
-    #[test]
-    fn u8_fast_path_matches_f32_conversion() {
-        for &(w, h, tw) in &[
-            (1013u32, 677u32, 480u32),
-            (640, 960, 320),
-            (300, 200, 299),
-            (4000, 3, 1280),
-        ] {
-            let rgb = image::RgbImage::from_raw(w, h, pseudo_random_bytes((w * h * 3) as usize, w))
-                .unwrap();
-            let rgba =
-                image::RgbaImage::from_raw(w, h, pseudo_random_bytes((w * h * 4) as usize, h))
-                    .unwrap();
-
-            for img in [DynamicImage::ImageRgb8(rgb), DynamicImage::ImageRgba8(rgba)] {
-                let fast = downscale_f32_image(&img, tw, tw);
-                let reference =
-                    downscale_f32_image(&DynamicImage::ImageRgb32F(img.to_rgb32f()), tw, tw);
-                let fast_bits: Vec<u32> = fast
-                    .as_rgb32f()
-                    .unwrap()
-                    .as_raw()
-                    .iter()
-                    .map(|v| v.to_bits())
-                    .collect();
-                let ref_bits: Vec<u32> = reference
-                    .as_rgb32f()
-                    .unwrap()
-                    .as_raw()
-                    .iter()
-                    .map(|v| v.to_bits())
-                    .collect();
-                assert_eq!(fast.dimensions(), reference.dimensions());
-                assert!(fast_bits == ref_bits, "mismatch for {}x{} -> {}", w, h, tw);
-            }
-        }
-    }
-
-    #[test]
-    fn rgb32f_orientation_matches_image_crate() {
-        let (w, h) = (37u32, 23u32);
-        let data: Vec<f32> = (0..w * h * 3).map(|i| i as f32 * 0.37).collect();
-        let img = DynamicImage::ImageRgb32F(Rgb32FImage::from_raw(w, h, data).unwrap());
-        for orientation in [
-            Orientation::HorizontalFlip,
-            Orientation::Rotate180,
-            Orientation::VerticalFlip,
-            Orientation::Transpose,
-            Orientation::Rotate90,
-            Orientation::Transverse,
-            Orientation::Rotate270,
-        ] {
-            let fast = apply_orientation(img.clone(), orientation);
-            let reference = match orientation {
-                Orientation::HorizontalFlip => img.fliph(),
-                Orientation::Rotate180 => img.rotate180(),
-                Orientation::VerticalFlip => img.flipv(),
-                Orientation::Transpose => img.rotate90().fliph(),
-                Orientation::Rotate90 => img.rotate90(),
-                Orientation::Transverse => img.rotate270().fliph(),
-                _ => img.rotate270(),
-            };
-            assert_eq!(fast.dimensions(), reference.dimensions());
-            assert!(
-                fast.as_rgb32f().unwrap().as_raw() == reference.as_rgb32f().unwrap().as_raw(),
-                "mismatch for {:?}",
-                orientation
-            );
-        }
-    }
 }

@@ -9,6 +9,8 @@ import {
   SlidersHorizontal,
   CloudOff,
   Layers,
+  Loader2,
+  Pause,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
@@ -48,13 +50,15 @@ const ThumbnailComponent = ({
   tags,
   aspectRatio: thumbnailAspectRatio,
   isEdited,
-  exif,
   isCloudPlaceholder,
   groupBadgeLabel,
   onAspectRatioLoaded,
 }: any) => {
   const { t } = useTranslation();
   const data = useProcessStore((s) => s.thumbnails[path]);
+  const exif = useLibraryStore((s) => s.exifByPath[path]);
+  const isAiPending = useProcessStore((s) => !!s.aiPendingPaths[path]);
+  const isAiPaused = useProcessStore((s) => s.aiJobs.paused);
   const exifOverlay = useSettingsStore((s) => s.appSettings?.exifOverlay || ExifOverlay.Off);
   const displayEditIcon = useSettingsStore((s) => s.appSettings?.displayEditIcon ?? true);
   const showEditIcon = isEdited && displayEditIcon;
@@ -171,7 +175,8 @@ const ThumbnailComponent = ({
   const isRejected = flag === ImageFlag.Reject;
   const hasRating = rating > 0 && !isRejected;
   const hasGroupBadge = !!groupBadgeLabel;
-  const hasAnyOverlay = hasEditIcon || hasColorLabel || hasRating || !!flag || hasGroupBadge;
+  const hasOtherBadge = hasEditIcon || hasColorLabel || hasRating || !!flag || hasGroupBadge;
+  const hasAnyOverlay = hasOtherBadge || isAiPending;
 
   return (
     <div
@@ -347,6 +352,21 @@ const ThumbnailComponent = ({
             data-tooltip={groupBadgeLabel}
           >
             <Layers size={12} className="text-white" />
+          </div>
+
+          <div
+            className={clsx(
+              'flex items-center shrink-0 transition-all duration-200 ease-out overflow-hidden',
+              isAiPending ? 'max-w-4 opacity-100 scale-100' : 'max-w-0 opacity-0 scale-75 pointer-events-none',
+              isAiPending && hasOtherBadge ? 'ml-1.5' : 'ml-0',
+            )}
+            data-tooltip={t(isAiPaused ? 'library.aiJobs.thumbnailPaused' : 'library.aiJobs.thumbnailPending')}
+          >
+            {isAiPaused ? (
+              <Pause size={12} className="text-white" />
+            ) : (
+              <Loader2 size={12} className="text-white animate-spin" />
+            )}
           </div>
         </div>
       </div>
@@ -525,13 +545,13 @@ const ListItemComponent = ({
   modified,
   aspectRatio: thumbnailAspectRatio,
   columnWidths,
-  exif,
   isCloudPlaceholder,
   isPrevSelected,
   isNextSelected,
 }: any) => {
   const { t } = useTranslation();
   const data = useProcessStore((s) => s.thumbnails[path]);
+  const exif = useLibraryStore((s) => s.exifByPath[path]);
   const exifOverlay = useSettingsStore((s) => s.appSettings?.exifOverlay || ExifOverlay.Off);
 
   const [showPlaceholder, setShowPlaceholder] = useState(false);
@@ -1028,7 +1048,6 @@ const RowComponent = ({
                 rating={imageRatings?.[imageFile.path] || 0}
                 flag={imageFile.flag}
                 tags={imageFile.tags}
-                exif={imageFile.exif}
                 aspectRatio={thumbnailAspectRatio}
                 modified={imageFile.modified}
                 columnWidths={columnWidths}
@@ -1049,7 +1068,6 @@ const RowComponent = ({
                 rating={imageRatings?.[imageFile.path] || 0}
                 flag={imageFile.flag}
                 tags={imageFile.tags}
-                exif={imageFile.exif}
                 isEdited={imageFile.is_edited}
                 aspectRatio={thumbnailAspectRatio}
                 isCloudPlaceholder={imageFile.is_cloud_placeholder}

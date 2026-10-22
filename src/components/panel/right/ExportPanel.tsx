@@ -712,7 +712,12 @@ export default function ExportPanel({
           }
         }
 
-        setExportState({ status: Status.Exporting, progress: { current: 0, total: numImages }, errorMessage: '' });
+        setExportState({
+          destination: isOriginalFolder || isAndroid ? null : outputFolderOrFile,
+          errorMessage: '',
+          progress: { current: 0, total: numImages },
+          status: Status.Exporting,
+        });
         await invoke(Invokes.ExportImages, {
           paths: pathsToExport,
           outputFolderOrFile: outputFolderOrFile,

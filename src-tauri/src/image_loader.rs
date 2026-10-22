@@ -2,7 +2,7 @@ use crate::Cursor;
 use crate::app_settings::{AppSettings, load_settings};
 use crate::app_state::{AppState, LoadedImage, PreviewTarget};
 use crate::baseline_exposure::BaselineOptions;
-use crate::cache_utils::clear_preview_slot;
+use crate::cache_utils::{DecodeFingerprint, FlightRole, clear_preview_slot};
 use crate::exif_processing;
 use crate::file_management::{parse_virtual_path, read_file_mapped};
 use crate::formats::is_raw_file;
@@ -32,6 +32,7 @@ use std::sync::{
     atomic::{AtomicUsize, Ordering},
 };
 use std::time::Instant;
+use tauri::Manager;
 
 #[derive(serde::Serialize)]
 pub struct LoadImageResult {
@@ -139,11 +140,7 @@ pub fn load_base_image_from_bytes(
             return Err(anyhow!("Load cancelled"));
         }
 
-        match crate::apple_raw::develop_raw9(
-            bytes,
-            path_for_ext_check,
-            &crate::apple_raw::Raw9Options::for_loading(),
-        ) {
+        match crate::apple_raw::develop_raw9(bytes, path_for_ext_check) {
             Ok(image) => return Ok(image),
             Err(e) => log::warn!(
                 "Apple RAW 9 unavailable for '{}', falling back to rawler: {}",
@@ -353,10 +350,8 @@ fn largest_tiff_jpeg_preview(buf: &[u8]) -> Option<DynamicImage> {
     None
 }
 
-fn embedded_preview_fallback(bytes: &[u8]) -> Option<DynamicImage> {
-    let Some(img) = largest_tiff_jpeg_preview(bytes) else {
-        return crate::raw_processing::extract_embedded_preview(bytes);
-    };
+pub fn tiff_embedded_preview(bytes: &[u8]) -> Option<DynamicImage> {
+    let img = largest_tiff_jpeg_preview(bytes)?;
 
     let orientation = ExifReader::new()
         .read_from_container(&mut Cursor::new(bytes))
@@ -371,6 +366,10 @@ fn embedded_preview_fallback(bytes: &[u8]) -> Option<DynamicImage> {
         Some(o) if o > 1 => apply_orientation(img, Orientation::from_u16(o as u16)),
         _ => img,
     })
+}
+
+fn embedded_preview_fallback(bytes: &[u8]) -> Option<DynamicImage> {
+    tiff_embedded_preview(bytes).or_else(|| crate::raw_processing::extract_embedded_preview(bytes))
 }
 
 pub fn safe_embedded_preview_fallback(bytes: &[u8], path: &str) -> Option<DynamicImage> {
@@ -864,15 +863,96 @@ fn composite_patches_cow<'a>(
     Ok(Cow::Owned(composited_image))
 }
 
+fn is_cancelled(cancel_token: &Option<(Arc<AtomicUsize>, usize)>) -> bool {
+    cancel_token
+        .as_ref()
+        .is_some_and(|(tracker, generation)| tracker.load(Ordering::SeqCst) != *generation)
+}
+
+pub fn get_or_decode_pristine(
+    state: &AppState,
+    source_path: &Path,
+    settings: &AppSettings,
+    cancel_token: Option<(Arc<AtomicUsize>, usize)>,
+) -> Result<(Arc<DynamicImage>, HashMap<String, String>), String> {
+    let path_str = source_path.to_string_lossy().to_string();
+    let fingerprint = DecodeFingerprint::for_file(source_path, settings);
+    loop {
+        if let Some(fp) = &fingerprint
+            && let Some(hit) = state.decoded_image_cache.lock().unwrap().get(&path_str, fp)
+        {
+            return Ok(hit);
+        }
+        if is_cancelled(&cancel_token) {
+            return Err("Load cancelled".to_string());
+        }
+        let _flight = match state.decode_flights.begin(&path_str) {
+            FlightRole::Follower(flight) => {
+                flight.wait();
+                continue;
+            }
+            FlightRole::Leader(guard) => guard,
+        };
+
+        if crate::file_management::is_cloud_placeholder(source_path) {
+            return Err(format!(
+                "'{}' is stored in iCloud and hasn't been downloaded yet. Download it in Finder, then try again.",
+                path_str
+            ));
+        }
+        let decode = |bytes: &[u8]| -> Result<(DynamicImage, HashMap<String, String>), String> {
+            if is_cancelled(&cancel_token) {
+                return Err("Load cancelled".to_string());
+            }
+            let image =
+                load_base_image_from_bytes(bytes, &path_str, false, settings, cancel_token.clone())
+                    .map_err(|e| e.to_string())?;
+            Ok((image, exif_processing::read_exif_data(&path_str, bytes)))
+        };
+        let (image, exif) = match read_file_mapped(source_path) {
+            Ok(mmap) => decode(&mmap)?,
+            Err(e) => {
+                log::warn!(
+                    "Failed to memory-map file '{}': {}. Falling back to standard read.",
+                    path_str,
+                    e
+                );
+                let bytes = fs::read(source_path).map_err(|io_err| {
+                    format!("Fallback read failed for {}: {}", path_str, io_err)
+                })?;
+                decode(&bytes)?
+            }
+        };
+
+        let image = Arc::new(image);
+        if let Some(fp) = fingerprint {
+            state.decoded_image_cache.lock().unwrap().insert(
+                path_str,
+                fp,
+                Arc::clone(&image),
+                exif.clone(),
+            );
+        }
+        return Ok((image, exif));
+    }
+}
+
 #[tauri::command]
-pub fn is_image_cached(path: String, state: tauri::State<'_, AppState>) -> bool {
+pub fn is_image_cached(
+    path: String,
+    state: tauri::State<'_, AppState>,
+    app_handle: tauri::AppHandle,
+) -> bool {
     let (source_path, _) = parse_virtual_path(&path);
-    let source_path_str = source_path.to_string_lossy().to_string();
+    let settings = load_settings(app_handle).unwrap_or_default();
+    let Some(fingerprint) = DecodeFingerprint::for_file(&source_path, &settings) else {
+        return false;
+    };
     state
         .decoded_image_cache
         .lock()
         .unwrap()
-        .contains(&source_path_str)
+        .contains(&source_path.to_string_lossy(), &fingerprint)
 }
 
 #[tauri::command]
@@ -882,8 +962,7 @@ pub async fn load_image(
     app_handle: tauri::AppHandle,
 ) -> Result<LoadImageResult, String> {
     let my_generation = state.load_image_generation.fetch_add(1, Ordering::SeqCst) + 1;
-    let generation_tracker = state.load_image_generation.clone();
-    let cancel_token = Some((generation_tracker.clone(), my_generation));
+    let cancel_token = Some((state.load_image_generation.clone(), my_generation));
 
     {
         *state
@@ -915,10 +994,6 @@ pub async fn load_image(
             .unwrap_or_else(|e| e.into_inner())
             .clear();
 
-        *state
-            .denoise_result
-            .lock()
-            .unwrap_or_else(|e| e.into_inner()) = None;
         *state.hdr_result.lock().unwrap_or_else(|e| e.into_inner()) = None;
         *state
             .panorama_result
@@ -934,87 +1009,21 @@ pub async fn load_image(
     let settings = load_settings(app_handle.clone()).unwrap_or_default();
     let baseline_options = BaselineOptions::from_settings(&settings);
 
-    let path_clone = source_path_str.clone();
+    state
+        .decoded_image_cache
+        .lock()
+        .unwrap()
+        .compact_except(&source_path_str);
 
-    let cached_data = {
-        let mut decoded_cache = state.decoded_image_cache.lock().unwrap();
-        decoded_cache.compact_except(&source_path_str);
-        decoded_cache.get(&source_path_str)
-    };
-
-    let (pristine_arc, exif_data) = if let Some((cached_img, cached_exif)) = cached_data {
-        (cached_img, cached_exif)
-    } else {
-        if crate::file_management::is_cloud_placeholder(&source_path) {
-            return Err(format!(
-                "'{}' is stored in iCloud and hasn't been downloaded yet. Download it in Finder, then try again.",
-                source_path_str
-            ));
-        }
-
-        let (pristine_img, exif_data_loaded) = tokio::task::spawn_blocking(move || {
-            if generation_tracker.load(Ordering::SeqCst) != my_generation {
-                return Err("Load cancelled".to_string());
-            }
-
-            let result: Result<(DynamicImage, HashMap<String, String>), String> =
-                (|| match read_file_mapped(Path::new(&path_clone)) {
-                    Ok(mmap) => {
-                        if generation_tracker.load(Ordering::SeqCst) != my_generation {
-                            return Err("Load cancelled".to_string());
-                        }
-
-                        let img = load_base_image_from_bytes(
-                            &mmap,
-                            &path_clone,
-                            false,
-                            &settings,
-                            cancel_token.clone(),
-                        )
-                        .map_err(|e| e.to_string())?;
-                        let exif = exif_processing::read_exif_data(&path_clone, &mmap);
-                        Ok((img, exif))
-                    }
-                    Err(e) => {
-                        log::warn!(
-                            "Failed to memory-map file '{}': {}. Falling back to standard read.",
-                            path_clone,
-                            e
-                        );
-                        let bytes = fs::read(&path_clone).map_err(|io_err| {
-                            format!("Fallback read failed for {}: {}", path_clone, io_err)
-                        })?;
-
-                        if generation_tracker.load(Ordering::SeqCst) != my_generation {
-                            return Err("Load cancelled".to_string());
-                        }
-
-                        let img = load_base_image_from_bytes(
-                            &bytes,
-                            &path_clone,
-                            false,
-                            &settings,
-                            cancel_token.clone(),
-                        )
-                        .map_err(|e| e.to_string())?;
-                        let exif = exif_processing::read_exif_data(&path_clone, &bytes);
-                        Ok((img, exif))
-                    }
-                })();
-            result
+    let (pristine_arc, exif_data) = {
+        let app_handle = app_handle.clone();
+        let source_path = source_path.clone();
+        tokio::task::spawn_blocking(move || {
+            let state = app_handle.state::<AppState>();
+            get_or_decode_pristine(&state, &source_path, &settings, cancel_token)
         })
         .await
-        .map_err(|e| e.to_string())??;
-
-        let arc_img = Arc::new(pristine_img);
-
-        state.decoded_image_cache.lock().unwrap().insert(
-            source_path_str.clone(),
-            arc_img.clone(),
-            exif_data_loaded.clone(),
-        );
-
-        (arc_img, exif_data_loaded)
+        .map_err(|e| e.to_string())??
     };
 
     if state.load_image_generation.load(Ordering::SeqCst) != my_generation {
@@ -1040,11 +1049,13 @@ pub async fn load_image(
     }
 
     *state.original_image.lock().unwrap() = Some(LoadedImage {
-        path,
+        path: path.clone(),
         image: pristine_arc,
         is_raw,
         as_shot,
     });
+
+    crate::ai_jobs::prioritize(&app_handle, &path);
 
     Ok(LoadImageResult {
         width: orig_width,

@@ -6,10 +6,17 @@ import { useTranslation } from 'react-i18next';
 import { useLibraryStore } from '../store/useLibraryStore';
 import { useEditorStore } from '../store/useEditorStore';
 import { useUIStore } from '../store/useUIStore';
-import { useProcessStore } from '../store/useProcessStore';
+import { JobKind, useProcessStore } from '../store/useProcessStore';
 import { useSettingsStore } from '../store/useSettingsStore';
 import { ImageFlag, Invokes } from '../components/ui/AppProperties';
 import { Status } from '../components/ui/ExportImportProperties';
+
+export const transferFiles = (kind: JobKind.Copy | JobKind.Move, sourcePaths: string[], destinationFolder: string) =>
+  useProcessStore
+    .getState()
+    .runJob(kind, { progress: { total: sourcePaths.length }, detail: destinationFolder }, () =>
+      invoke(kind === JobKind.Copy ? Invokes.CopyFiles : Invokes.MoveFiles, { sourcePaths, destinationFolder }),
+    );
 
 export function useFileOperations(
   refreshImageList: () => Promise<void>,
@@ -302,6 +309,7 @@ export function useFileOperations(
   const startImportFiles = useCallback(async (sourcePaths: string[], destinationFolder: string, settings: any) => {
     if (sourcePaths.length === 0 || !destinationFolder) return;
 
+    useProcessStore.getState().setImportState({ destination: destinationFolder });
     try {
       await invoke(Invokes.ImportFiles, { destinationFolder, settings, sourcePaths });
     } catch (err) {
@@ -418,9 +426,9 @@ export function useFileOperations(
 
       try {
         if (mode === 'copy') {
-          await invoke(Invokes.CopyFiles, { sourcePaths: copiedFilePaths, destinationFolder: currentFolderPath });
+          await transferFiles(JobKind.Copy, copiedFilePaths, currentFolderPath);
         } else {
-          await invoke(Invokes.MoveFiles, { sourcePaths: copiedFilePaths, destinationFolder: currentFolderPath });
+          await transferFiles(JobKind.Move, copiedFilePaths, currentFolderPath);
           setProcess({ copiedFilePaths: [] });
           setLibrary({ multiSelectedPaths: [] });
           await refreshAllFolderTrees();

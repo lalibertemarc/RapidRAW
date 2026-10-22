@@ -39,6 +39,7 @@ interface LibraryState {
   // Images & Selection
   imageList: Array<ImageFile>;
   imageRatings: Record<string, number>;
+  exifByPath: Record<string, Record<string, string>>;
   multiSelectedPaths: Array<string>;
   selectionAnchorPath: string | null;
   libraryActivePath: string | null;
@@ -81,6 +82,7 @@ export const useLibraryStore = create<LibraryState>((set) => ({
 
   imageList: [],
   imageRatings: {},
+  exifByPath: {},
   multiSelectedPaths: [],
   selectionAnchorPath: null,
   libraryActivePath: null,

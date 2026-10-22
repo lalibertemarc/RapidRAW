@@ -48,15 +48,15 @@ import {
   Album as AlbumIcon,
   PencilSparkles,
   Sparkles,
-  Wand2,
   MonitorUp,
+  ScanLine,
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 import { useContextMenu } from '../context/ContextMenuContext';
 import { useEditorStore } from '../store/useEditorStore';
 import { useLibraryStore } from '../store/useLibraryStore';
-import { useProcessStore } from '../store/useProcessStore';
+import { JobKind, useProcessStore } from '../store/useProcessStore';
 import { useUIStore } from '../store/useUIStore';
 import { useSettingsStore } from '../store/useSettingsStore';
 import {
@@ -69,10 +69,17 @@ import {
   Album,
   AlbumGroup,
 } from '../components/ui/AppProperties';
-import { AutoAdjustMode, Color, COLOR_LABELS, INITIAL_ADJUSTMENTS } from '../utils/adjustments';
+import {
+  AutoAdjustMode,
+  Color,
+  COLOR_LABELS,
+  getAiDenoiseEnablePatch,
+  INITIAL_ADJUSTMENTS,
+} from '../utils/adjustments';
 import TaggingSubMenu from '../context/TaggingSubMenu';
 import { buildAutoAdjustModeOptions, reloadAdjustmentsForPaths, useEditorActions } from './useEditorActions';
 import { useLibraryActions } from './useLibraryActions';
+import { transferFiles } from './useFileOperations';
 import { globalImageCache } from '../utils/ImageLRUCache';
 
 export interface UseAppContextMenusProps {
@@ -114,7 +121,7 @@ export function useAppContextMenus(latestProps: UseAppContextMenusProps) {
     handleAutoLensCorrection,
     handleAutoStraighten,
     handleAutoStraightenPaths,
-    handleConvertNegatives,
+    handleEnableAdjustments,
     handleResetAdjustments,
     handleCopyAdjustments,
     handlePasteAdjustments,
@@ -308,31 +315,24 @@ export function useAppContextMenus(latestProps: UseAppContextMenusProps) {
             },
             {
               label: t('contextMenus.editor.autoStraighten'),
-              icon: Wand2,
+              icon: ScanLine,
               onClick: handleAutoStraighten,
               disabled: !selectedImage?.isReady,
             },
             {
               label: t('contextMenus.editor.denoise'),
               icon: Grip,
-              onClick: () => {
-                setUI({
-                  denoiseModalState: {
-                    isOpen: true,
-                    isProcessing: false,
-                    previewBase64: null,
-                    error: null,
-                    targetPaths: [selectedImage.path],
-                    progressMessage: null,
-                    isRaw: selectedImage?.isRaw || false,
-                  },
-                });
-              },
+              onClick: () =>
+                handleEnableAdjustments(
+                  [selectedImage.path],
+                  getAiDenoiseEnablePatch(useSettingsStore.getState().appSettings?.aiProvider),
+                ),
+              disabled: !selectedImage?.isReady,
             },
             {
               label: t('contextMenus.editor.convertNegative'),
               icon: Film,
-              onClick: () => handleConvertNegatives([selectedImage.path]),
+              onClick: () => handleEnableAdjustments([selectedImage.path], { negativeConversionEnabled: true }),
               disabled: !selectedImage?.isReady,
             },
             {
@@ -665,32 +665,24 @@ export function useAppContextMenus(latestProps: UseAppContextMenusProps) {
             },
             {
               label: t('contextMenus.thumbnail.autoStraighten', { count: selectionCount }),
-              icon: Wand2,
+              icon: ScanLine,
               onClick: () => handleAutoStraightenPaths(finalSelection),
             },
             {
               label: denoiseLabel,
               icon: Grip,
               disabled: finalSelection.length === 0,
-              onClick: () => {
-                setUI({
-                  denoiseModalState: {
-                    isOpen: true,
-                    isProcessing: false,
-                    previewBase64: null,
-                    error: null,
-                    targetPaths: finalSelection,
-                    progressMessage: null,
-                    isRaw: selectedImage?.isRaw || false,
-                  },
-                });
-              },
+              onClick: () =>
+                handleEnableAdjustments(
+                  finalSelection,
+                  getAiDenoiseEnablePatch(useSettingsStore.getState().appSettings?.aiProvider),
+                ),
             },
             {
               label: conversionLabel,
               icon: Film,
               disabled: selectionCount === 0,
-              onClick: () => handleConvertNegatives(finalSelection),
+              onClick: () => handleEnableAdjustments(finalSelection, { negativeConversionEnabled: true }),
             },
             {
               icon: LayoutTemplate,
@@ -1064,7 +1056,7 @@ export function useAppContextMenus(latestProps: UseAppContextMenusProps) {
               label: copyPastedLabel,
               onClick: async () => {
                 try {
-                  await invoke(Invokes.CopyFiles, { sourcePaths: copiedFilePaths, destinationFolder: targetPath });
+                  await transferFiles(JobKind.Copy, copiedFilePaths, targetPath);
                   if (targetPath === currentFolderPath) props.handleLibraryRefresh();
                 } catch (err) {
                   toast.error(t('contextMenus.toasts.failedCopy', { err }));
@@ -1075,7 +1067,7 @@ export function useAppContextMenus(latestProps: UseAppContextMenusProps) {
               label: movePastedLabel,
               onClick: async () => {
                 try {
-                  await invoke(Invokes.MoveFiles, { sourcePaths: copiedFilePaths, destinationFolder: targetPath });
+                  await transferFiles(JobKind.Move, copiedFilePaths, targetPath);
                   setProcess({ copiedFilePaths: [] });
                   setLibrary({ multiSelectedPaths: [] });
                   props.refreshAllFolderTrees();
@@ -1424,10 +1416,7 @@ export function useAppContextMenus(latestProps: UseAppContextMenusProps) {
                 label: copyPastedLabel,
                 onClick: async () => {
                   try {
-                    await invoke(Invokes.CopyFiles, {
-                      sourcePaths: copiedFilePaths,
-                      destinationFolder: currentFolderPath,
-                    });
+                    await transferFiles(JobKind.Copy, copiedFilePaths, currentFolderPath as string);
                     props.handleLibraryRefresh();
                   } catch (err) {
                     toast.error(t('contextMenus.toasts.failedCopy', { err }));
@@ -1438,10 +1427,7 @@ export function useAppContextMenus(latestProps: UseAppContextMenusProps) {
                 label: movePastedLabel,
                 onClick: async () => {
                   try {
-                    await invoke(Invokes.MoveFiles, {
-                      sourcePaths: copiedFilePaths,
-                      destinationFolder: currentFolderPath,
-                    });
+                    await transferFiles(JobKind.Move, copiedFilePaths, currentFolderPath as string);
                     setProcess({ copiedFilePaths: [] });
                     setLibrary({ multiSelectedPaths: [] });
                     props.refreshAllFolderTrees();

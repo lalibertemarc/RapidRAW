@@ -10,10 +10,10 @@ interface ConnectedWaveformProps {
 }
 
 export default function ConnectedWaveform({ setDisplayMode, setAdjustments }: ConnectedWaveformProps) {
-  const { waveform, histogram, activeWaveformChannel, showClipping } = useEditorStore(
+  const { hasWaveform, hasHistogram, activeWaveformChannel, showClipping } = useEditorStore(
     useShallow((state) => ({
-      waveform: state.waveform,
-      histogram: state.histogram,
+      hasWaveform: !!state.waveform,
+      hasHistogram: !!state.histogram?.red,
       activeWaveformChannel: state.activeWaveformChannel,
       showClipping: state.adjustments.showClipping || false,
     })),
@@ -28,8 +28,8 @@ export default function ConnectedWaveform({ setDisplayMode, setAdjustments }: Co
 
   return (
     <Waveform
-      waveformData={waveform || null}
-      histogram={histogram}
+      hasWaveform={hasWaveform}
+      hasHistogram={hasHistogram}
       displayMode={activeWaveformChannel || 'luma'}
       setDisplayMode={setDisplayMode}
       showClipping={showClipping}
