@@ -9,6 +9,7 @@ use std::borrow::Cow;
 use std::collections::HashSet;
 use std::fs::{self, File};
 use std::io::{BufReader, BufWriter, Read, Write};
+use std::ops::Range;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, LazyLock, Mutex};
@@ -21,6 +22,8 @@ const BM3D_INTENSITY: f32 = 0.15;
 const FILE_MAGIC: &[u8; 8] = b"RRDN0002";
 const MEMORY_CACHE_CAPACITY: usize = 2;
 const BLEND_CHUNK: usize = 3 * 16 * 1024;
+const ENVELOPE_BLOCK: usize = 8;
+const ENVELOPE_RADIUS: usize = 1;
 
 struct DenoisedBase {
     key: String,
@@ -361,6 +364,26 @@ pub fn apply_ai_denoise<'a>(
     Cow::Owned(DynamicImage::ImageRgb32F(out))
 }
 
+fn reduce_blocks(
+    w: usize,
+    h: usize,
+    block: usize,
+    reduce: impl Fn(Range<usize>, Range<usize>) -> f32 + Sync,
+) -> Vec<f32> {
+    let sw = w.div_ceil(block);
+    let mut plane = vec![0.0f32; sw * h.div_ceil(block)];
+    plane
+        .par_chunks_exact_mut(sw)
+        .enumerate()
+        .for_each(|(sy, row)| {
+            let y_range = sy * block..((sy + 1) * block).min(h);
+            for (sx, out) in row.iter_mut().enumerate() {
+                *out = reduce(sx * block..((sx + 1) * block).min(w), y_range.clone());
+            }
+        });
+    plane
+}
+
 fn restore_low_frequencies(denoised: &mut Rgb32FImage, source: &Rgb32FImage) {
     const FACTOR: usize = 64;
     let (w, h) = (source.width() as usize, source.height() as usize);
@@ -373,24 +396,17 @@ fn restore_low_frequencies(denoised: &mut Rgb32FImage, source: &Rgb32FImage) {
     let dn = denoised.as_raw();
     let planes: Vec<Vec<f32>> = (0..3)
         .map(|c| {
-            let mut plane = vec![0.0f32; sw * sh];
-            plane
-                .par_chunks_exact_mut(sw)
-                .enumerate()
-                .for_each(|(sy, row)| {
-                    let y_range = sy * FACTOR..((sy + 1) * FACTOR).min(h);
-                    for (sx, out) in row.iter_mut().enumerate() {
-                        let x_range = sx * FACTOR..((sx + 1) * FACTOR).min(w);
-                        let mut acc = 0.0f32;
-                        for y in y_range.clone() {
-                            for x in x_range.clone() {
-                                let i = (y * w + x) * 3 + c;
-                                acc += src[i] - dn[i];
-                            }
-                        }
-                        *out = acc / (y_range.len() * x_range.len()) as f32;
+            let mut plane = reduce_blocks(w, h, FACTOR, |x_range, y_range| {
+                let count = (y_range.len() * x_range.len()) as f32;
+                let mut acc = 0.0f32;
+                for y in y_range {
+                    for x in x_range.clone() {
+                        let i = (y * w + x) * 3 + c;
+                        acc += src[i] - dn[i];
                     }
-                });
+                }
+                acc / count
+            });
             for _ in 0..3 {
                 crate::lens_blur::dof_box_filter(&mut plane, sw, sh, 1, 3);
             }
@@ -412,17 +428,71 @@ fn restore_low_frequencies(denoised: &mut Rgb32FImage, source: &Rgb32FImage) {
         });
 }
 
+fn dilate_max(plane: &mut [f32], w: usize, h: usize, radius: usize) {
+    let horizontal: Vec<f32> = plane
+        .par_chunks_exact(w)
+        .flat_map_iter(|row| {
+            (0..w).map(move |x| {
+                row[x.saturating_sub(radius)..=(x + radius).min(w - 1)]
+                    .iter()
+                    .copied()
+                    .fold(f32::MIN, f32::max)
+            })
+        })
+        .collect();
+    plane
+        .par_chunks_exact_mut(w)
+        .enumerate()
+        .for_each(|(y, row)| {
+            for (x, out) in row.iter_mut().enumerate() {
+                *out = (y.saturating_sub(radius)..=(y + radius).min(h - 1))
+                    .map(|yy| horizontal[yy * w + x])
+                    .fold(f32::MIN, f32::max);
+            }
+        });
+}
+
+fn highlight_envelope(image: &Rgb32FImage) -> Vec<f32> {
+    let (w, h) = (image.width() as usize, image.height() as usize);
+    let (sw, sh) = (w.div_ceil(ENVELOPE_BLOCK), h.div_ceil(ENVELOPE_BLOCK));
+    let raw = image.as_raw();
+    let mut plane = reduce_blocks(w, h, ENVELOPE_BLOCK, |x_range, y_range| {
+        let mut peak = 1.0f32;
+        for y in y_range {
+            for x in x_range.clone() {
+                let i = (y * w + x) * 3;
+                peak = peak.max(raw[i]).max(raw[i + 1]).max(raw[i + 2]);
+            }
+        }
+        peak
+    });
+    dilate_max(&mut plane, sw, sh, 3 * ENVELOPE_RADIUS);
+    for _ in 0..2 {
+        crate::lens_blur::dof_box_filter(&mut plane, sw, sh, 1, ENVELOPE_RADIUS);
+    }
+
+    let (span_x, span_y) = ((sw * ENVELOPE_BLOCK) as f32, (sh * ENVELOPE_BLOCK) as f32);
+    let mut envelope = vec![1.0f32; w * h];
+    envelope
+        .par_chunks_exact_mut(w)
+        .enumerate()
+        .for_each(|(y, row)| {
+            let v = (y as f32 + 0.5) / span_y;
+            for (x, out) in row.iter_mut().enumerate() {
+                *out = RelightTap::new((x as f32 + 0.5) / span_x, v, sw, sh).sample(&plane);
+            }
+        });
+    envelope
+}
+
 fn run_denoiser(
     base: &DynamicImage,
     session: Option<&Session>,
     on_progress: &(dyn Fn(f32) + Sync),
 ) -> Result<Rgb32FImage, String> {
     let mut source = base.to_rgb32f();
-    let peaks: Vec<f32> = source
-        .par_chunks_exact(3)
-        .map(|px| px[0].max(px[1]).max(px[2]).max(1.0))
-        .collect();
-    scale_pixels(&mut source, &peaks, |value, peak| value / peak);
+    let envelope = highlight_envelope(&source);
+    scale_pixels(&mut source, &envelope, |value, scale| value / scale);
 
     let mut output = match session {
         Some(session) => crate::ai_processing::run_ai_denoise(&source, session, on_progress)
@@ -437,15 +507,15 @@ fn run_denoiser(
         .for_each(|(dn, &src)| *dn += src - src.clamp(0.0, 1.0));
 
     restore_low_frequencies(&mut output, &source);
-    scale_pixels(&mut output, &peaks, |value, peak| value * peak);
+    scale_pixels(&mut output, &envelope, |value, scale| value * scale);
     Ok(output)
 }
 
-fn scale_pixels(image: &mut Rgb32FImage, peaks: &[f32], op: impl Fn(f32, f32) -> f32 + Sync) {
+fn scale_pixels(image: &mut Rgb32FImage, envelope: &[f32], op: impl Fn(f32, f32) -> f32 + Sync) {
     image
         .par_chunks_exact_mut(3)
-        .zip(peaks.par_iter())
-        .for_each(|(px, &peak)| px.iter_mut().for_each(|value| *value = op(*value, peak)));
+        .zip(envelope.par_iter())
+        .for_each(|(px, &scale)| px.iter_mut().for_each(|value| *value = op(*value, scale)));
 }
 
 fn denoise_into_cache(
