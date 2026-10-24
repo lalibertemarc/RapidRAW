@@ -496,8 +496,15 @@ fn cfa_white_balance(raw_image: &RawImage) -> Option<[f32; 3]> {
     if raw_image.cpp != 1 || !config.cfa.is_rgb() || config.cfa.unique_colors() != 3 {
         return None;
     }
-    let neutral = camera_neutral(raw_image);
-    Some(std::array::from_fn(|c| 1.0 / neutral[c]))
+    if raw_image.wb_coeffs[0].is_nan() {
+        Some([1.0; 3])
+    } else {
+        Some([
+            raw_image.wb_coeffs[0],
+            raw_image.wb_coeffs[1],
+            raw_image.wb_coeffs[2],
+        ])
+    }
 }
 
 pub fn read_as_shot(file_bytes: &[u8]) -> Option<AsShot> {
