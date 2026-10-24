@@ -124,14 +124,77 @@ pub struct WgpuDisplay {
     pub transform_buffer: wgpu::Buffer,
     pub latest_transform: DisplayTransform,
     pub current_bind_group: Option<wgpu::BindGroup>,
+    pub edited_view: Option<wgpu::TextureView>,
+    pub original_texture: Option<(wgpu::Texture, wgpu::TextureView)>,
     pub standalone: bool,
     pub view: DisplayView,
     pub frame: Option<DisplayFrame>,
-    pub edited_view: Option<wgpu::TextureView>,
-    pub original_texture: Option<(wgpu::Texture, wgpu::TextureView)>,
 }
 
 impl WgpuDisplay {
+    fn original_texture(
+        &mut self,
+        device: &wgpu::Device,
+        width: u32,
+        height: u32,
+    ) -> &wgpu::Texture {
+        if self
+            .original_texture
+            .as_ref()
+            .is_none_or(|(t, _)| t.width() != width || t.height() != height)
+        {
+            let texture = device.create_texture(&wgpu::TextureDescriptor {
+                label: Some("Original Display Texture"),
+                size: wgpu::Extent3d {
+                    width,
+                    height,
+                    depth_or_array_layers: 1,
+                },
+                mip_level_count: 1,
+                sample_count: 1,
+                dimension: wgpu::TextureDimension::D2,
+                format: wgpu::TextureFormat::Rgba8Unorm,
+                usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+                view_formats: &[],
+            });
+            let view = texture.create_view(&Default::default());
+            self.original_texture = Some((texture, view));
+        }
+        &self.original_texture.as_ref().unwrap().0
+    }
+
+    pub fn rebind(&mut self, device: &wgpu::Device) {
+        let Some(edited_view) = &self.edited_view else {
+            return;
+        };
+        let original_view = self
+            .original_texture
+            .as_ref()
+            .map_or(edited_view, |(_, view)| view);
+        self.current_bind_group = Some(device.create_bind_group(&wgpu::BindGroupDescriptor {
+            layout: &self.bind_group_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: self.transform_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: wgpu::BindingResource::TextureView(edited_view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 2,
+                    resource: wgpu::BindingResource::Sampler(&self.sampler),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 3,
+                    resource: wgpu::BindingResource::TextureView(original_view),
+                },
+            ],
+            label: None,
+        }));
+    }
+
     pub fn show_texture(
         &mut self,
         device: &wgpu::Device,
@@ -142,8 +205,8 @@ impl WgpuDisplay {
     ) {
         self.latest_transform.image_size = image_size;
         self.latest_transform.texture_size = texture_size;
-        self.place_image();
         self.edited_view = Some(view.clone());
+        self.place_image();
         self.rebind(device);
         self.flush(device, queue);
     }
@@ -210,69 +273,6 @@ impl WgpuDisplay {
             size.map(|dim| dim as f32),
             capacity.map(|dim| dim as f32),
         );
-    }
-
-    fn original_texture(
-        &mut self,
-        device: &wgpu::Device,
-        width: u32,
-        height: u32,
-    ) -> &wgpu::Texture {
-        if self
-            .original_texture
-            .as_ref()
-            .is_none_or(|(t, _)| t.width() != width || t.height() != height)
-        {
-            let texture = device.create_texture(&wgpu::TextureDescriptor {
-                label: Some("Original Display Texture"),
-                size: wgpu::Extent3d {
-                    width,
-                    height,
-                    depth_or_array_layers: 1,
-                },
-                mip_level_count: 1,
-                sample_count: 1,
-                dimension: wgpu::TextureDimension::D2,
-                format: wgpu::TextureFormat::Rgba8Unorm,
-                usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
-                view_formats: &[],
-            });
-            let view = texture.create_view(&Default::default());
-            self.original_texture = Some((texture, view));
-        }
-        &self.original_texture.as_ref().unwrap().0
-    }
-
-    pub fn rebind(&mut self, device: &wgpu::Device) {
-        let Some(edited_view) = &self.edited_view else {
-            return;
-        };
-        let original_view = self
-            .original_texture
-            .as_ref()
-            .map_or(edited_view, |(_, view)| view);
-        self.current_bind_group = Some(device.create_bind_group(&wgpu::BindGroupDescriptor {
-            layout: &self.bind_group_layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: self.transform_buffer.as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: wgpu::BindingResource::TextureView(edited_view),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 2,
-                    resource: wgpu::BindingResource::Sampler(&self.sampler),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 3,
-                    resource: wgpu::BindingResource::TextureView(original_view),
-                },
-            ],
-            label: None,
-        }));
     }
 
     pub fn set_view(&mut self, view: DisplayView) {
@@ -579,11 +579,11 @@ pub fn build_wgpu_display(
         latest_transform: DisplayTransform::default(),
         sampler,
         current_bind_group: None,
+        edited_view: None,
+        original_texture: None,
         standalone,
         view: DisplayView::default(),
         frame: None,
-        edited_view: None,
-        original_texture: None,
     })
 }
 
@@ -3072,7 +3072,7 @@ fn process_and_get_dynamic_image_inner(
     let display_layer = display_output
         .filter(|output| output.target == PreviewTarget::Editor)
         .map(|output| output.layer);
-    let output_to_display = display_layer.is_some();
+    let output_to_display = display_output.is_some();
     let (width, height) = base_image.dimensions();
     let device = &context.device;
     let queue = &context.queue;
@@ -3216,10 +3216,10 @@ fn process_and_get_dynamic_image_inner(
 
     let cache = cache.entries.last().unwrap();
 
-    let skip_readback = display_output.is_some();
+    let skip_readback = output_to_display;
 
     let (processed_pixels, out_w, out_h, out_x, out_y) =
-        processor.run(cache, request, skip_readback, output_precision)?;
+        processor.run(cache, request, output_to_display, output_precision)?;
 
     let mut final_encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
         label: Some("Final Passes Encoder"),
@@ -3344,17 +3344,19 @@ fn process_and_get_dynamic_image_inner(
         }
     }
 
+    let image_size = [width as f32, height as f32];
+    let texture_size = [processor_state.width as f32, processor_state.height as f32];
     if let (Some(layer), Some(display)) = (display_layer, display) {
         match layer {
             DisplayLayer::Edited => display.show_texture(
                 device,
                 queue,
                 &processor.display_textures().output_texture_view,
-                [width as f32, height as f32],
-                [processor_state.width as f32, processor_state.height as f32],
+                image_size,
+                texture_size,
             ),
             DisplayLayer::Original => {
-                display.latest_transform.original_size = [width as f32, height as f32];
+                display.latest_transform.original_size = image_size;
                 display.rebind(device);
                 display.flush(device, queue);
             }
@@ -3377,7 +3379,6 @@ fn process_and_get_dynamic_image_inner(
             context.limits.max_texture_dimension_2d,
         );
     }
-
     if skip_readback {
         let duration = start_time.elapsed();
         let fps = 1.0 / duration.as_secs_f64();

@@ -670,8 +670,8 @@ fn process_preview_job(
         patch_hash: calculate_patch_hash(&adjustments_json),
         render,
     };
-    let feeds_viewer = target == PreviewTarget::Editor && layer == DisplayLayer::Edited;
-    if feeds_viewer {
+    let mirrors_editor = target == PreviewTarget::Editor && layer == DisplayLayer::Edited;
+    if mirrors_editor {
         viewer_window::record_editor_source(
             app_handle,
             &loaded_image.path,
@@ -777,7 +777,7 @@ fn process_preview_job(
 
     drop(cached_preview_lock);
 
-    if feeds_viewer {
+    if mirrors_editor {
         viewer_window::sync_viewer_image(
             app_handle,
             &loaded_image.path,
@@ -874,7 +874,7 @@ fn process_preview_job(
     let to_viewer = match target {
         PreviewTarget::Viewer => true,
         PreviewTarget::Editor => {
-            feeds_viewer
+            mirrors_editor
                 && pixel_roi.is_none()
                 && viewer_window::accepts_editor_frame(app_handle, &content, frame_resolution)
         }
@@ -1067,10 +1067,15 @@ fn subscribe_analytics(channel: Channel, state: tauri::State<AppState>) {
     *state.analytics_channel.lock().unwrap() = Some(channel);
 }
 
+fn catch_render_panic(render: impl FnOnce() -> Result<Vec<u8>, String>) -> Result<Vec<u8>, String> {
+    panic::catch_unwind(panic::AssertUnwindSafe(render))
+        .unwrap_or_else(|_| Err("Preview rendering panicked".to_string()))
+}
+
 fn run_editor_job(app_handle: &tauri::AppHandle, job: PreviewJob) {
     let state = app_handle.state::<AppState>();
     let responder = job.responder;
-    let result = panic::catch_unwind(panic::AssertUnwindSafe(|| {
+    let result = catch_render_panic(|| {
         process_preview_job(
             app_handle,
             state,
@@ -1084,12 +1089,11 @@ fn run_editor_job(app_handle: &tauri::AppHandle, job: PreviewJob) {
             job.active_waveform_channel.as_deref(),
             PreviewTarget::Editor,
         )
-    }))
-    .unwrap_or_else(|_| Err("Preview rendering panicked".to_string()));
+    });
     match result {
         Ok(bytes) => {
             let _ = responder.send(bytes);
-            if !job.is_interactive && job.layer == DisplayLayer::Edited {
+            if job.layer == DisplayLayer::Edited && !job.is_interactive {
                 viewer_window::schedule_viewer_render(app_handle);
             }
         }
@@ -1104,7 +1108,7 @@ fn run_viewer_job(app_handle: &tauri::AppHandle) {
     else {
         return;
     };
-    let result = panic::catch_unwind(panic::AssertUnwindSafe(|| {
+    let result = catch_render_panic(|| {
         process_preview_job(
             app_handle,
             app_handle.state::<AppState>(),
@@ -1118,8 +1122,7 @@ fn run_viewer_job(app_handle: &tauri::AppHandle) {
             None,
             PreviewTarget::Viewer,
         )
-    }))
-    .unwrap_or_else(|_| Err("Preview rendering panicked".to_string()));
+    });
     if let Err(e) = result {
         log::error!("Viewer preview error: {}", e);
     }
@@ -1143,19 +1146,19 @@ fn start_preview_worker(app_handle: tauri::AppHandle) {
                 }
             };
 
-            let mut editor_jobs: [Option<PreviewJob>; 2] = [None, None];
+            let mut latest: [Option<PreviewJob>; 2] = [None, None];
             for task in first.into_iter().chain(rx.try_iter()) {
                 match task {
                     PreviewTask::Editor(job) => {
                         let slot = job.layer as usize;
-                        editor_jobs[slot] = Some(job);
+                        latest[slot] = Some(job);
                     }
                     PreviewTask::Viewer => viewer_pending = true,
                 }
             }
 
-            if editor_jobs.iter().any(Option::is_some) {
-                for job in editor_jobs.into_iter().flatten() {
+            if latest.iter().any(Option::is_some) {
+                for job in latest.into_iter().flatten() {
                     run_editor_job(&app_handle, job);
                 }
             } else if std::mem::take(&mut viewer_pending) {
@@ -2704,12 +2707,12 @@ pub fn run() {
             cancel_thumbnail_generation,
             update_wgpu_transform,
             sample_display_area,
+            release_original_preview,
             viewer_window::open_viewer_window,
             viewer_window::close_viewer_window,
             viewer_window::set_viewer_view,
             viewer_window::get_viewer_info,
             viewer_window::get_viewer_frame,
-            release_original_preview,
             android_integration::resolve_android_content_uri_name,
             cache_utils::clear_session_caches,
             cache_utils::clear_image_caches,

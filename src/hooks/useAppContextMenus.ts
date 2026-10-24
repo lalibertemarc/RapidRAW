@@ -48,8 +48,8 @@ import {
   Album as AlbumIcon,
   PencilSparkles,
   Sparkles,
-  MonitorUp,
   ScanLine,
+  MonitorUp,
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';

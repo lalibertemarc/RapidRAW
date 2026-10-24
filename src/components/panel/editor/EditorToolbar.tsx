@@ -32,14 +32,6 @@ const COMPARE_MODES = [
   { mode: 'sideBySide', icon: Columns2, label: 'editor.compare.sideBySide' },
 ] as const satisfies ReadonlyArray<{ mode: CompareMode; icon: LucideIcon; label: string }>;
 
-interface CompareButtonProps {
-  compareMode: CompareMode;
-  isComparing: boolean;
-  onKeyDown(e: React.KeyboardEvent<HTMLButtonElement>): void;
-  onSelectMode(mode: CompareMode): void;
-  onToggle(): void;
-}
-
 const toggleButtonClass = (isActive: boolean) =>
   clsx(
     'p-2 rounded-full transition-colors',
@@ -47,6 +39,14 @@ const toggleButtonClass = (isActive: boolean) =>
       ? 'bg-accent text-button-text hover:bg-accent/90 hover:text-button-text'
       : 'bg-surface hover:bg-card-active text-text-primary',
   );
+
+interface CompareButtonProps {
+  compareMode: CompareMode;
+  isComparing: boolean;
+  onKeyDown(e: React.KeyboardEvent<HTMLButtonElement>): void;
+  onSelectMode(mode: CompareMode): void;
+  onToggle(): void;
+}
 
 function CompareButton({ compareMode, isComparing, onKeyDown, onSelectMode, onToggle }: CompareButtonProps) {
   const { t } = useTranslation();
