@@ -81,6 +81,8 @@ import { buildAutoAdjustModeOptions, reloadAdjustmentsForPaths, useEditorActions
 import { useLibraryActions } from './useLibraryActions';
 import { transferFiles } from './useFileOperations';
 import { globalImageCache } from '../utils/ImageLRUCache';
+import { immichAlbumOf, isImmichAlbumId, removeFromImmichAlbum } from '../components/immich/immichApi';
+import { useImmichStore } from '../components/immich/useImmichStore';
 
 export interface UseAppContextMenusProps {
   handleImageSelect: (path: string) => void;
@@ -255,8 +257,17 @@ export function useAppContextMenus(latestProps: UseAppContextMenusProps) {
       event.preventDefault();
       event.stopPropagation();
 
-      const { selectedImage, history, historyIndex, undo, redo, resetHistory, copiedAdjustments, setEditor } =
-        useEditorStore.getState();
+      const {
+        selectedImage,
+        adjustments,
+        history,
+        historyIndex,
+        undo,
+        redo,
+        resetHistory,
+        copiedAdjustments,
+        setEditor,
+      } = useEditorStore.getState();
       const { appSettings, osPlatform } = useSettingsStore.getState();
       const { setPanel, setUI, isViewerOpen, toggleViewerWindow } = useUIStore.getState();
 
@@ -320,19 +331,28 @@ export function useAppContextMenus(latestProps: UseAppContextMenusProps) {
               disabled: !selectedImage?.isReady,
             },
             {
-              label: t('contextMenus.editor.denoise'),
+              label: adjustments.aiDenoiseEnabled
+                ? t('contextMenus.editor.removeDenoise')
+                : t('contextMenus.editor.denoise'),
               icon: Grip,
               onClick: () =>
                 handleEnableAdjustments(
                   [selectedImage.path],
-                  getAiDenoiseEnablePatch(useSettingsStore.getState().appSettings?.aiProvider),
+                  adjustments.aiDenoiseEnabled
+                    ? { aiDenoiseEnabled: false }
+                    : getAiDenoiseEnablePatch(useSettingsStore.getState().appSettings?.aiProvider),
                 ),
               disabled: !selectedImage?.isReady,
             },
             {
-              label: t('contextMenus.editor.convertNegative'),
+              label: adjustments.negativeConversionEnabled
+                ? t('contextMenus.editor.removeNegativeConversion')
+                : t('contextMenus.editor.convertNegative'),
               icon: Film,
-              onClick: () => handleEnableAdjustments([selectedImage.path], { negativeConversionEnabled: true }),
+              onClick: () =>
+                handleEnableAdjustments([selectedImage.path], {
+                  negativeConversionEnabled: !adjustments.negativeConversionEnabled,
+                }),
               disabled: !selectedImage?.isReady,
             },
             {
@@ -533,7 +553,6 @@ export function useAppContextMenus(latestProps: UseAppContextMenusProps) {
       const cullLabel = t('contextMenus.thumbnail.cullImage', { count: selectionCount });
       const collageLabel = t('contextMenus.thumbnail.collage', { count: selectionCount });
       const stitchLabel = t('contextMenus.editor.stitchPanorama');
-      const conversionLabel = t('contextMenus.thumbnail.convertNegative', { count: selectionCount });
       const denoiseLabel = t('contextMenus.thumbnail.denoise', { count: selectionCount });
       const mergeLabel = t('contextMenus.editor.mergeHdr');
 
@@ -581,6 +600,22 @@ export function useAppContextMenus(latestProps: UseAppContextMenusProps) {
 
       const handleRemoveFromAlbum = async () => {
         if (!activeAlbumId) return;
+        const immichAlbum = immichAlbumOf(activeAlbumId);
+        if (immichAlbum) {
+          try {
+            await removeFromImmichAlbum(immichAlbum, finalSelection);
+            const removed = new Set(finalSelection.filter((p) => !p.includes('?vc=')));
+            if (useLibraryStore.getState().activeAlbumId === activeAlbumId) {
+              setLibrary((state) => ({
+                imageList: state.imageList.filter((i) => !removed.has(i.path.split('?vc=')[0])),
+              }));
+            }
+            useImmichStore.getState().loadAlbums();
+          } catch (e) {
+            toast.error(String(e));
+          }
+          return;
+        }
         const newTree = JSON.parse(JSON.stringify(albumTree));
 
         const removeImages = (nodes: AlbumItem[]): boolean => {
@@ -638,10 +673,9 @@ export function useAppContextMenus(latestProps: UseAppContextMenusProps) {
           isSingleSelection && !!imageList.find((img) => img.path === finalSelection[0])?.is_raw,
         ).flatMap((option) => [option, { type: OPTION_SEPARATOR }]),
         {
-          disabled: !isSingleSelection,
           icon: Copy,
           label: t('contextMenus.editor.copyAdjustments'),
-          onClick: () => handleCopyAdjustments(finalSelection[0]),
+          onClick: () => handleCopyAdjustments(path),
         },
         {
           disabled: copiedAdjustments === null,
@@ -672,17 +706,39 @@ export function useAppContextMenus(latestProps: UseAppContextMenusProps) {
               label: denoiseLabel,
               icon: Grip,
               disabled: finalSelection.length === 0,
-              onClick: () =>
-                handleEnableAdjustments(
-                  finalSelection,
-                  getAiDenoiseEnablePatch(useSettingsStore.getState().appSettings?.aiProvider),
-                ),
+              submenu: [
+                {
+                  label: t('contextMenus.thumbnail.enable'),
+                  icon: Check,
+                  onClick: () =>
+                    handleEnableAdjustments(
+                      finalSelection,
+                      getAiDenoiseEnablePatch(useSettingsStore.getState().appSettings?.aiProvider),
+                    ),
+                },
+                {
+                  label: t('contextMenus.thumbnail.remove'),
+                  icon: X,
+                  onClick: () => handleEnableAdjustments(finalSelection, { aiDenoiseEnabled: false }),
+                },
+              ],
             },
             {
-              label: conversionLabel,
+              label: t('contextMenus.editor.convertNegative'),
               icon: Film,
               disabled: selectionCount === 0,
-              onClick: () => handleEnableAdjustments(finalSelection, { negativeConversionEnabled: true }),
+              submenu: [
+                {
+                  label: t('contextMenus.thumbnail.enable'),
+                  icon: Check,
+                  onClick: () => handleEnableAdjustments(finalSelection, { negativeConversionEnabled: true }),
+                },
+                {
+                  label: t('contextMenus.thumbnail.remove'),
+                  icon: X,
+                  onClick: () => handleEnableAdjustments(finalSelection, { negativeConversionEnabled: false }),
+                },
+              ],
             },
             {
               icon: LayoutTemplate,
@@ -851,15 +907,19 @@ export function useAppContextMenus(latestProps: UseAppContextMenusProps) {
           ],
         },
         { type: OPTION_SEPARATOR },
-        {
-          label: t('contextMenus.thumbnail.addToAlbum'),
-          icon: FolderPlus,
-          submenu:
-            albumTree.length > 0
-              ? buildAddToAlbumMenu(albumTree, finalSelection)
-              : [{ label: t('contextMenus.thumbnail.noAlbums'), disabled: true }],
-        },
-        ...(activeAlbumId
+        ...(isImmichAlbumId(activeAlbumId)
+          ? []
+          : [
+              {
+                label: t('contextMenus.thumbnail.addToAlbum'),
+                icon: FolderPlus,
+                submenu:
+                  albumTree.length > 0
+                    ? buildAddToAlbumMenu(albumTree, finalSelection)
+                    : [{ label: t('contextMenus.thumbnail.noAlbums'), disabled: true }],
+              },
+            ]),
+        ...(activeAlbumId && (!isImmichAlbumId(activeAlbumId) || immichAlbumOf(activeAlbumId))
           ? [
               {
                 label: t('contextMenus.thumbnail.removeFromAlbum', { count: selectionCount }),

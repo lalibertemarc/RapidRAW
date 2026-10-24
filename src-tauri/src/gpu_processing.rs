@@ -664,7 +664,10 @@ pub fn get_or_init_gpu_context(
         log::warn!("Recreating GPU context after the device was lost.");
         if let Some(context) = context_lock.take() {
             *context.display.lock().unwrap_or_else(|e| e.into_inner()) = None;
-            *context.viewer_display.lock().unwrap_or_else(|e| e.into_inner()) = None;
+            *context
+                .viewer_display
+                .lock()
+                .unwrap_or_else(|e| e.into_inner()) = None;
         }
         *lock_or_reset(&state.gpu_processor, "GPU processor") = None;
         for target in PreviewTarget::ALL {

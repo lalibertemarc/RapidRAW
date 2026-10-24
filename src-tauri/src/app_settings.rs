@@ -507,6 +507,18 @@ pub fn default_ai_gpu_acceleration() -> bool {
     true
 }
 
+pub fn default_ai_cache_limit_gb() -> u32 {
+    10
+}
+
+pub fn default_ai_maps_cache_limit_gb() -> u32 {
+    4
+}
+
+pub fn default_thumbnail_cache_limit_gb() -> u32 {
+    10
+}
+
 pub fn default_tagging_shortcuts_option() -> Option<Vec<String>> {
     Some(vec![
         "portrait".to_string(),
@@ -626,6 +638,12 @@ pub struct AppSettings {
     #[serde(default)]
     pub image_cache_size: Option<u32>,
     #[serde(default)]
+    pub ai_cache_limit_gb: Option<u32>,
+    #[serde(default)]
+    pub thumbnail_cache_limit_gb: Option<u32>,
+    #[serde(default)]
+    pub ai_maps_cache_limit_gb: Option<u32>,
+    #[serde(default)]
     pub export_worker_threads: Option<u32>,
     #[serde(default)]
     pub export_memory_limit: Option<u32>,
@@ -687,6 +705,8 @@ pub struct AppSettings {
     pub workspace: WorkspaceState,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub topaz_path: Option<String>,
+    #[serde(default)]
+    pub immich: crate::immich::ImmichSettings,
 }
 
 impl AppSettings {
@@ -772,6 +792,9 @@ impl Default for AppSettings {
             image_cache_size: Some(2),
             #[cfg(not(target_os = "android"))]
             image_cache_size: Some(5),
+            ai_cache_limit_gb: Some(default_ai_cache_limit_gb()),
+            thumbnail_cache_limit_gb: Some(default_thumbnail_cache_limit_gb()),
+            ai_maps_cache_limit_gb: Some(default_ai_maps_cache_limit_gb()),
             export_worker_threads: None,
             export_memory_limit: None,
             enable_baseline_exposure: false,
@@ -802,6 +825,7 @@ impl Default for AppSettings {
             adjustment_layout: AdjustmentLayout::default(),
             workspace: WorkspaceState::default(),
             topaz_path: None,
+            immich: crate::immich::ImmichSettings::default(),
         }
     }
 }
@@ -916,6 +940,7 @@ pub fn save_settings(settings: AppSettings, app_handle: AppHandle) -> Result<(),
     let json_string = serde_json::to_string_pretty(&settings).map_err(|e| e.to_string())?;
     fs::write(path, json_string).map_err(|e| e.to_string())?;
     *settings_cache() = None;
+    crate::immich::apply_settings(&settings.immich);
 
     let state = app_handle.state::<AppState>();
     let cache_size = settings.image_cache_size.unwrap_or(5) as usize;
@@ -924,6 +949,7 @@ pub fn save_settings(settings: AppSettings, app_handle: AppHandle) -> Result<(),
         .lock()
         .unwrap()
         .set_capacity(cache_size);
+    crate::storage::apply_cache_limits(&settings);
 
     if previous_gpu_acceleration != Some(settings.ai_gpu_acceleration) {
         crate::ai_processing::reset_ai_sessions(&state.ai_state);

@@ -818,21 +818,14 @@ export interface AdjustmentGroup {
 
 export const ADJUSTMENT_GROUPS: Record<string, AdjustmentGroup[]> = {
   basic: [
-    {
-      label: 'modals.copyPaste.groups.exposureToneMapper',
-      keys: [BasicAdjustment.Exposure, 'toneMapper'],
-    },
-    {
-      label: 'modals.copyPaste.groups.tone',
-      keys: [
-        BasicAdjustment.Brightness,
-        BasicAdjustment.Contrast,
-        BasicAdjustment.Highlights,
-        BasicAdjustment.Shadows,
-        BasicAdjustment.Whites,
-        BasicAdjustment.Blacks,
-      ],
-    },
+    { label: 'adjustments.basic.toneMapper', keys: ['toneMapper'] },
+    { label: 'adjustments.basic.exposure', keys: [BasicAdjustment.Exposure] },
+    { label: 'adjustments.basic.contrast', keys: [BasicAdjustment.Contrast] },
+    { label: 'adjustments.basic.highlights', keys: [BasicAdjustment.Highlights] },
+    { label: 'adjustments.basic.shadows', keys: [BasicAdjustment.Shadows] },
+    { label: 'adjustments.basic.whites', keys: [BasicAdjustment.Whites] },
+    { label: 'adjustments.basic.blacks', keys: [BasicAdjustment.Blacks] },
+    { label: 'adjustments.basic.brightness', keys: [BasicAdjustment.Brightness] },
     {
       label: 'modals.copyPaste.groups.curves',
       keys: ['curves', 'pointCurves', 'parametricCurve', 'curveMode'],

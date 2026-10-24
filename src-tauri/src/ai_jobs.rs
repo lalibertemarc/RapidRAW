@@ -293,6 +293,13 @@ fn strip_mask_result(params: &mut Value) {
     }
 }
 
+fn same_mask_inputs(a: &Value, b: &Value) -> bool {
+    let (mut a, mut b) = (a.clone(), b.clone());
+    strip_mask_result(&mut a);
+    strip_mask_result(&mut b);
+    a == b
+}
+
 fn box_space(params: &Value) -> Option<(f64, f64)> {
     Some((
         params.get("boxSpaceWidth")?.as_f64()?,
@@ -774,6 +781,7 @@ pub fn ensure_ready(app_handle: &AppHandle, path: &str) -> Result<(), String> {
 #[derive(Default)]
 struct JobResults {
     sub_masks: HashMap<String, (Value, Value)>,
+    no_results: HashMap<String, String>,
     maps: Vec<(EffectMapKind, String)>,
 }
 
@@ -909,7 +917,10 @@ fn process_path(
                     warped,
                     &source_id,
                 )
-                .map(|(original, result)| {
+                .map(|(original, result, no_result)| {
+                    if let Some(no_result) = no_result {
+                        results.no_results.insert(sub_mask_id.clone(), no_result);
+                    }
                     results
                         .sub_masks
                         .insert(sub_mask_id.clone(), (original, result));
@@ -954,7 +965,7 @@ fn generate_mask(
     kind: MaskKind,
     warped_image: &DynamicImage,
     source_id: &str,
-) -> Result<(Value, Value), String> {
+) -> Result<(Value, Value, Option<String>), String> {
     let state = app_handle.state::<AppState>();
     let original = ai_sub_masks(adjustments)
         .find(|(_, sub_mask)| sub_mask_id(sub_mask) == Some(id))
@@ -984,57 +995,62 @@ fn generate_mask(
     );
 
     let result = match kind {
-        MaskKind::Foreground => serde_json::to_value(ai_commands::generate_foreground_mask(
+        MaskKind::Foreground => ai_commands::generate_foreground_mask(
             &models,
             warped_image,
             transform,
-            ai_source,
-        )?),
-        MaskKind::Sky => serde_json::to_value(ai_commands::generate_sky_mask(
+            ai_source.clone(),
+        )
+        .and_then(ai_commands::to_json),
+        MaskKind::Sky => ai_commands::generate_sky_mask(
             &state.ai_state,
             &models,
             &cache_key,
             warped_image,
             transform,
-            ai_source,
-        )?),
-        MaskKind::Text => serde_json::to_value(ai_commands::generate_text_mask(
+            ai_source.clone(),
+        )
+        .and_then(ai_commands::to_json),
+        MaskKind::Text => ai_commands::generate_text_mask(
             &state.ai_state,
             &models,
             &cache_key,
             warped_image,
             text_prompt(&original).ok_or("Text prompt missing")?,
             transform,
-            ai_source,
-        )?),
-        MaskKind::Face => serde_json::to_value(ai_commands::generate_face_mask(
+            ai_source.clone(),
+        )
+        .and_then(ai_commands::to_json),
+        MaskKind::Face => ai_commands::generate_face_mask(
             &state.ai_state,
             &models,
             &cache_key,
             warped_image,
             &face_parts(&original),
             transform,
-            ai_source,
-        )?),
+            ai_source.clone(),
+        )
+        .and_then(ai_commands::to_json),
         MaskKind::Depth => {
             let params: AiDepthMaskParameters =
                 serde_json::from_value(original.clone()).unwrap_or_default();
-            serde_json::to_value(ai_commands::generate_depth_mask(
+            ai_commands::generate_depth_mask(
                 &state.ai_state,
                 &models,
                 &cache_key,
                 warped_image,
                 params,
                 transform,
-                ai_source,
-            )?)
+                ai_source.clone(),
+            )
+            .and_then(ai_commands::to_json)
         }
         MaskKind::Subject => {
             let (width, height) = transform.box_space(warped_image.dimensions());
             let [start_x, start_y, end_x, end_y] =
                 scaled_subject_box(&original, Some((width as f64, height as f64)))
                     .ok_or("Subject box missing")?;
-            serde_json::to_value(ai_commands::generate_subject_mask(
+            ai_commands::generate_subject_mask(
                 &state.ai_state,
                 &models,
                 &cache_key,
@@ -1043,13 +1059,14 @@ fn generate_mask(
                 (end_x, end_y),
                 false,
                 transform,
-                ai_source,
-            )?)
+                ai_source.clone(),
+            )
+            .and_then(ai_commands::to_json)
         }
-    }
-    .map_err(|e| e.to_string())?;
+    };
+    let (result, no_result) = ai_commands::or_empty_mask(result, transform, ai_source)?;
 
-    Ok((original, result))
+    Ok((original, result, no_result))
 }
 
 fn geometry_adjustments(adjustments: &Value) -> Value {
@@ -1087,7 +1104,8 @@ fn apply_results(
             continue;
         };
         if let Some((original, result)) = results.sub_masks.get(&id)
-            && sub_mask["parameters"] == *original
+            && !is_mask_valid_for(&sub_mask["parameters"], source_id, true)
+            && same_mask_inputs(&sub_mask["parameters"], original)
         {
             copy_mask_result(kind, &mut sub_mask["parameters"], result);
             let mut committed = json!({});
@@ -1113,9 +1131,15 @@ fn commit_results(
     .map_err(|e| e.to_string())?;
 
     let (sub_masks, maps) = committed;
+    let no_results: Vec<&String> = results
+        .no_results
+        .iter()
+        .filter(|(id, _)| sub_masks.contains_key(*id))
+        .map(|(_, no_result)| no_result)
+        .collect();
     let _ = app_handle.emit(
         "ai-job-result",
-        json!({ "path": path, "subMasks": sub_masks, "maps": maps }),
+        json!({ "path": path, "subMasks": sub_masks, "maps": maps, "noResults": no_results }),
     );
     Ok(())
 }

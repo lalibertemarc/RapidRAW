@@ -359,7 +359,13 @@ export function useTauriListeners({
         }
       }),
       listen<AiJobsStatus>('ai-jobs-status', (event) => {
-        if (isEffectActive) useProcessStore.getState().setProcess({ aiJobs: event.payload });
+        if (!isEffectActive) return;
+        const { aiJobs, setProcess } = useProcessStore.getState();
+        const selectedPath = useEditorStore.getState().selectedImage?.path;
+        event.payload.failed
+          .filter((job) => job.path === selectedPath && !aiJobs.failed.some((prev) => prev.path === job.path))
+          .forEach((job) => toast.error(`AI Processing Failed: ${job.error}`));
+        setProcess({ aiJobs: event.payload });
       }),
       listen<{ added: string[]; removed: string[]; resolved: boolean }>('ai-jobs-pending', (event) => {
         if (!isEffectActive) return;
@@ -379,13 +385,14 @@ export function useTauriListeners({
           });
         }
       }),
-      listen<{ path: string; subMasks: Record<string, any>; maps: Record<string, string> }>(
+      listen<{ path: string; subMasks: Record<string, any>; maps: Record<string, string>; noResults: string[] }>(
         'ai-job-result',
         (event) => {
-          const { path, subMasks, maps } = event.payload;
+          const { path, subMasks, maps, noResults } = event.payload;
           const { selectedImage, patchesSentToBackend, setEditor } = useEditorStore.getState();
           if (!isEffectActive || selectedImage?.path !== path) return;
 
+          noResults.forEach((noResult) => toast.error(`AI Mask: ${noResult}`));
           Object.keys(subMasks).forEach((id) => patchesSentToBackend.delete(id));
           setEditor((state) => ({
             adjustments: {
