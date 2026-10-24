@@ -17,8 +17,8 @@ use std::sync::{Arc, LazyLock, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::{Emitter, Manager};
 
-const MODEL_TAG: &str = "nind-v4";
-const BM3D_TAG: &str = "bm3d-v2";
+const MODEL_TAG: &str = "nind-v5";
+const BM3D_TAG: &str = "bm3d-v3";
 const BM3D_INTENSITY: f32 = 0.15;
 const FILE_MAGIC: &[u8; 8] = b"RRDN0002";
 const MEMORY_CACHE_CAPACITY: usize = 2;
