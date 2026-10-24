@@ -1376,19 +1376,11 @@ pub fn apply_cpu_default_raw_processing(image: &mut DynamicImage) {
     });
 }
 
-pub(crate) fn srgb_channel_to_linear(c: f32) -> f32 {
+fn srgb_channel_to_linear(c: f32) -> f32 {
     if c <= 0.04045 {
         c / 12.92
     } else {
         ((c + 0.055) / 1.055).powf(2.4)
-    }
-}
-
-pub(crate) fn linear_channel_to_srgb(c: f32) -> f32 {
-    if c <= 0.0031308 {
-        c * 12.92
-    } else {
-        1.055 * c.powf(1.0 / 2.4) - 0.055
     }
 }
 
@@ -1425,7 +1417,14 @@ pub fn apply_srgb_to_linear(image: DynamicImage) -> DynamicImage {
 }
 
 pub fn apply_linear_to_srgb(image: DynamicImage) -> DynamicImage {
-    map_color_channels(image, |x| linear_channel_to_srgb(x.max(0.0)))
+    map_color_channels(image, |x| {
+        let x = x.max(0.0);
+        if x <= 0.0031308 {
+            x * 12.92
+        } else {
+            1.055 * x.powf(1.0 / 2.4) - 0.055
+        }
+    })
 }
 
 pub fn apply_orientation(image: DynamicImage, orientation: Orientation) -> DynamicImage {
@@ -3239,7 +3238,7 @@ impl ChromaPlanes {
     }
 
     fn upsample_eps(&self, amount: f32) -> f32 {
-        ((1.5 + 2.0 * amount) * self.noise_q).powi(2)
+        16.0 * ((1.5 + 2.0 * amount) * self.noise_q).powi(2)
     }
 
     fn upsample(
@@ -3280,6 +3279,7 @@ impl ChromaPlanes {
     }
 
     fn core(
+        &self,
         (mut fr, mut fb): (Vec<f32>, Vec<f32>),
         (rr, rb): &(Vec<f32>, Vec<f32>),
         amount: f32,
@@ -3290,15 +3290,31 @@ impl ChromaPlanes {
             .collect();
         let mid = mags.len() / 2;
         let core = (*mags.select_nth_unstable_by(mid, f32::total_cmp).1 * (1.5 + amount)).max(1e-6);
-        let inv_core = 1.0 / core;
-        fr.par_iter_mut()
-            .zip(fb.par_iter_mut())
-            .zip(rr.par_iter().zip(rb.par_iter()))
-            .for_each(|((r, b), (ref_r, ref_b))| {
-                let (er, eb) = (*r - ref_r, *b - ref_b);
-                let keep = ((er * er + eb * eb).sqrt() * inv_core - 1.0).clamp(0.0, 1.0);
-                *r = ref_r + er * keep;
-                *b = ref_b + eb * keep;
+        let texture = 4.0 * (0.5 + amount);
+        let (w, pw) = (self.w, self.stride());
+        fr.par_chunks_mut(w)
+            .zip(fb.par_chunks_mut(w))
+            .zip(rr.par_chunks(w).zip(rb.par_chunks(w)))
+            .enumerate()
+            .for_each(|(y, ((r, b), (ref_r, ref_b)))| {
+                let rows: [&[f32]; 3] = std::array::from_fn(|j| {
+                    let o = (y + Self::PAD + j - 1) * pw + Self::PAD;
+                    &self.q[o - 1..o + w + 1]
+                });
+                for x in 0..w {
+                    let (mut lo, mut hi) = (f32::MAX, f32::MIN);
+                    for row in rows {
+                        for &v in &row[x..x + 3] {
+                            lo = lo.min(v);
+                            hi = hi.max(v);
+                        }
+                    }
+                    let (er, eb) = (r[x] - ref_r[x], b[x] - ref_b[x]);
+                    let keep = ((er * er + eb * eb).sqrt() / (core + texture * (hi - lo)) - 1.0)
+                        .clamp(0.0, 1.0);
+                    r[x] = ref_r[x] + er * keep;
+                    b[x] = ref_b[x] + eb * keep;
+                }
             });
         (fr, fb)
     }
@@ -3400,15 +3416,14 @@ fn reduce_raw_chroma_noise(buffer: &mut Rgb32FImage, amount: f32) -> Vec<f32> {
     let half = ChromaPlanes::from_rgb(src, w, h);
     let quarter = half.downsample();
     let reference = half.upsample(&quarter, &quarter.filter(amount, None), amount);
-    let (fr, fb) = ChromaPlanes::core(half.filter(amount, Some(&reference)), &reference, amount);
+    let (fr, fb) = half.core(half.filter(amount, Some(&reference)), &reference, amount);
 
     let pixel = |i: usize| ChromaPlanes::stabilize([src[i * 3], src[i * 3 + 1], src[i * 3 + 2]]);
     let noise_c_full = estimate_noise(w, h, &[&|i| pixel(i).1, &|i| pixel(i).2]).max(1e-3);
     let eps = half.upsample_eps(amount);
     let edge_scale = 0.5 / eps.sqrt();
-    let inv_core = 1.0 / ((2.0 + 2.0 * amount) * noise_c_full);
-    let retain = 0.6 * (1.0 - amount);
-    let retain_limit = 4.0 * noise_c_full;
+    let core = (2.0 + 2.0 * amount) * noise_c_full;
+    let texture = 4.0 * (0.5 + amount);
     let (hw, hh) = (half.w, half.h);
 
     let mut luma = vec![0.0f32; w * h];
@@ -3455,20 +3470,12 @@ fn reduce_raw_chroma_noise(buffer: &mut Rgb32FImage, amount: f32) -> Vec<f32> {
                     let er = cr[k] - up.r[k];
                     let eb = cb[k] - up.b[k];
                     let edge = up.q_range[k] * edge_scale;
-                    let keep = ((er * er + eb * eb).sqrt() * inv_core - 1.0).clamp(0.0, 1.0)
+                    let keep = ((er * er + eb * eb).sqrt() / (core + texture * up.q_range[k])
+                        - 1.0)
+                        .clamp(0.0, 1.0)
                         / (1.0 + edge * edge);
-                    let fr = (up.r[k] + er * keep).max(up.r_min[k]).min(up.r_max[k]);
-                    let fb = (up.b[k] + eb * keep).max(up.b_min[k]).min(up.b_max[k]);
-                    let (rr, rb) = (cr[k] - fr, cb[k] - fb);
-                    let residual = (rr * rr + rb * rb).sqrt().max(1e-6);
-                    let texture = ((edge - 0.75) * 0.8).clamp(0.0, 1.0);
-                    let back = retain
-                        * texture
-                        * texture
-                        * (3.0 - 2.0 * texture)
-                        * (retain_limit / residual).min(1.0);
-                    let nr = fr + rr * back;
-                    let nb = fb + rb * back;
+                    let nr = (up.r[k] + er * keep).max(up.r_min[k]).min(up.r_max[k]);
+                    let nb = (up.b[k] + eb * keep).max(up.b_min[k]).min(up.b_max[k]);
                     let vr = (qc[k] + nr).max(0.0);
                     let vb = (qc[k] + nb).max(0.0);
                     let lk = l[k];
