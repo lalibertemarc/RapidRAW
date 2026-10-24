@@ -453,37 +453,50 @@ fn dilate_max(plane: &mut [f32], w: usize, h: usize, radius: usize) {
         });
 }
 
-fn highlight_envelope(image: &Rgb32FImage) -> Vec<f32> {
-    let (w, h) = (image.width() as usize, image.height() as usize);
-    let (sw, sh) = (w.div_ceil(ENVELOPE_BLOCK), h.div_ceil(ENVELOPE_BLOCK));
-    let raw = image.as_raw();
-    let mut plane = reduce_blocks(w, h, ENVELOPE_BLOCK, |x_range, y_range| {
-        let mut peak = 1.0f32;
-        for y in y_range {
-            for x in x_range.clone() {
-                let i = (y * w + x) * 3;
-                peak = peak.max(raw[i]).max(raw[i + 1]).max(raw[i + 2]);
+struct HighlightEnvelope {
+    plane: Vec<f32>,
+    sw: usize,
+    sh: usize,
+}
+
+impl HighlightEnvelope {
+    fn new(image: &Rgb32FImage) -> Self {
+        let (w, h) = (image.width() as usize, image.height() as usize);
+        let (sw, sh) = (w.div_ceil(ENVELOPE_BLOCK), h.div_ceil(ENVELOPE_BLOCK));
+        let raw = image.as_raw();
+        let mut plane = reduce_blocks(w, h, ENVELOPE_BLOCK, |x_range, y_range| {
+            let mut peak = 1.0f32;
+            for y in y_range {
+                for x in x_range.clone() {
+                    let i = (y * w + x) * 3;
+                    peak = peak.max(raw[i]).max(raw[i + 1]).max(raw[i + 2]);
+                }
             }
+            peak
+        });
+        dilate_max(&mut plane, sw, sh, 3 * ENVELOPE_RADIUS);
+        for _ in 0..2 {
+            crate::lens_blur::dof_box_filter(&mut plane, sw, sh, 1, ENVELOPE_RADIUS);
         }
-        peak
-    });
-    dilate_max(&mut plane, sw, sh, 3 * ENVELOPE_RADIUS);
-    for _ in 0..2 {
-        crate::lens_blur::dof_box_filter(&mut plane, sw, sh, 1, ENVELOPE_RADIUS);
+        Self { plane, sw, sh }
     }
 
-    let (span_x, span_y) = ((sw * ENVELOPE_BLOCK) as f32, (sh * ENVELOPE_BLOCK) as f32);
-    let mut envelope = vec![1.0f32; w * h];
-    envelope
-        .par_chunks_exact_mut(w)
-        .enumerate()
-        .for_each(|(y, row)| {
-            let v = (y as f32 + 0.5) / span_y;
-            for (x, out) in row.iter_mut().enumerate() {
-                *out = RelightTap::new((x as f32 + 0.5) / span_x, v, sw, sh).sample(&plane);
-            }
-        });
-    envelope
+    fn apply(&self, image: &mut Rgb32FImage, op: impl Fn(f32, f32) -> f32 + Sync) {
+        let w = image.width() as usize;
+        let span_x = (self.sw * ENVELOPE_BLOCK) as f32;
+        let span_y = (self.sh * ENVELOPE_BLOCK) as f32;
+        image
+            .par_chunks_exact_mut(w * 3)
+            .enumerate()
+            .for_each(|(y, row)| {
+                let v = (y as f32 + 0.5) / span_y;
+                for (x, px) in row.as_chunks_mut::<3>().0.iter_mut().enumerate() {
+                    let scale = RelightTap::new((x as f32 + 0.5) / span_x, v, self.sw, self.sh)
+                        .sample(&self.plane);
+                    px.iter_mut().for_each(|value| *value = op(*value, scale));
+                }
+            });
+    }
 }
 
 fn run_denoiser(
@@ -492,36 +505,42 @@ fn run_denoiser(
     on_progress: &(dyn Fn(f32) + Sync),
 ) -> Result<Rgb32FImage, String> {
     let mut source = base.to_rgb32f();
-    let envelope = highlight_envelope(&source);
-    scale_pixels(&mut source, &envelope, |value, scale| value / scale);
+    let envelope = HighlightEnvelope::new(&source);
+    envelope.apply(&mut source, |value, scale| value / scale);
 
-    let mut encoded = source.clone();
-    encoded
+    let excess: Vec<(usize, f32)> = source
+        .par_iter()
+        .enumerate()
+        .filter_map(|(i, &value)| {
+            let excess = value - value.clamp(0.0, 1.0);
+            (excess != 0.0).then_some((i, excess))
+        })
+        .collect();
+    source
         .par_iter_mut()
         .for_each(|value| *value = linear_channel_to_srgb(value.clamp(0.0, 1.0)));
+
     let mut output = match session {
-        Some(session) => crate::ai_processing::run_ai_denoise(&encoded, session, on_progress)
+        Some(session) => crate::ai_processing::run_ai_denoise(&source, session, on_progress)
             .map_err(|e| e.to_string())?
             .into_rgb32f(),
-        None => crate::bm3d::denoise(&encoded, BM3D_INTENSITY, on_progress),
+        None => crate::bm3d::denoise(&source, BM3D_INTENSITY, on_progress),
     };
-    drop(encoded);
 
-    output
-        .par_iter_mut()
-        .zip(source.as_raw().par_iter())
-        .for_each(|(dn, &src)| *dn = srgb_channel_to_linear(*dn) + src - src.clamp(0.0, 1.0));
-
+    for image in [&mut output, &mut source] {
+        image
+            .par_iter_mut()
+            .for_each(|value| *value = srgb_channel_to_linear(*value));
+    }
     restore_low_frequencies(&mut output, &source);
-    scale_pixels(&mut output, &envelope, |value, scale| value * scale);
-    Ok(output)
-}
+    drop(source);
 
-fn scale_pixels(image: &mut Rgb32FImage, envelope: &[f32], op: impl Fn(f32, f32) -> f32 + Sync) {
-    image
-        .par_chunks_exact_mut(3)
-        .zip(envelope.par_iter())
-        .for_each(|(px, &scale)| px.iter_mut().for_each(|value| *value = op(*value, scale)));
+    let values: &mut [f32] = &mut output;
+    for (i, excess) in excess {
+        values[i] += excess;
+    }
+    envelope.apply(&mut output, |value, scale| value * scale);
+    Ok(output)
 }
 
 fn denoise_into_cache(
