@@ -15,8 +15,8 @@ use std::sync::{Arc, LazyLock, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::{Emitter, Manager};
 
-const MODEL_TAG: &str = "nind-v3";
-const BM3D_TAG: &str = "bm3d-v1";
+const MODEL_TAG: &str = "nind-v4";
+const BM3D_TAG: &str = "bm3d-v2";
 const BM3D_INTENSITY: f32 = 0.15;
 const FILE_MAGIC: &[u8; 8] = b"RRDN0002";
 const MEMORY_CACHE_CAPACITY: usize = 2;
@@ -417,7 +417,13 @@ fn run_denoiser(
     session: Option<&Session>,
     on_progress: &(dyn Fn(f32) + Sync),
 ) -> Result<Rgb32FImage, String> {
-    let source = base.to_rgb32f();
+    let mut source = base.to_rgb32f();
+    let peaks: Vec<f32> = source
+        .par_chunks_exact(3)
+        .map(|px| px[0].max(px[1]).max(px[2]).max(1.0))
+        .collect();
+    scale_pixels(&mut source, &peaks, |value, peak| value / peak);
+
     let mut output = match session {
         Some(session) => crate::ai_processing::run_ai_denoise(&source, session, on_progress)
             .map_err(|e| e.to_string())?
@@ -431,7 +437,15 @@ fn run_denoiser(
         .for_each(|(dn, &src)| *dn += src - src.clamp(0.0, 1.0));
 
     restore_low_frequencies(&mut output, &source);
+    scale_pixels(&mut output, &peaks, |value, peak| value * peak);
     Ok(output)
+}
+
+fn scale_pixels(image: &mut Rgb32FImage, peaks: &[f32], op: impl Fn(f32, f32) -> f32 + Sync) {
+    image
+        .par_chunks_exact_mut(3)
+        .zip(peaks.par_iter())
+        .for_each(|(px, &peak)| px.iter_mut().for_each(|value| *value = op(*value, peak)));
 }
 
 fn denoise_into_cache(
