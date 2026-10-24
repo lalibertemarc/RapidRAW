@@ -1,5 +1,6 @@
 use crate::app_state::{AppState, LoadedImage};
 use crate::file_management::parse_virtual_path;
+use crate::image_processing::{linear_channel_to_srgb, srgb_channel_to_linear};
 use crate::relight::RelightTap;
 use half::f16;
 use half::slice::HalfFloatSliceExt;
@@ -494,17 +495,22 @@ fn run_denoiser(
     let envelope = highlight_envelope(&source);
     scale_pixels(&mut source, &envelope, |value, scale| value / scale);
 
+    let mut encoded = source.clone();
+    encoded
+        .par_iter_mut()
+        .for_each(|value| *value = linear_channel_to_srgb(value.clamp(0.0, 1.0)));
     let mut output = match session {
-        Some(session) => crate::ai_processing::run_ai_denoise(&source, session, on_progress)
+        Some(session) => crate::ai_processing::run_ai_denoise(&encoded, session, on_progress)
             .map_err(|e| e.to_string())?
             .into_rgb32f(),
-        None => crate::bm3d::denoise(&source, BM3D_INTENSITY, on_progress),
+        None => crate::bm3d::denoise(&encoded, BM3D_INTENSITY, on_progress),
     };
+    drop(encoded);
 
     output
         .par_iter_mut()
         .zip(source.as_raw().par_iter())
-        .for_each(|(dn, &src)| *dn += src - src.clamp(0.0, 1.0));
+        .for_each(|(dn, &src)| *dn = srgb_channel_to_linear(*dn) + src - src.clamp(0.0, 1.0));
 
     restore_low_frequencies(&mut output, &source);
     scale_pixels(&mut output, &envelope, |value, scale| value * scale);
