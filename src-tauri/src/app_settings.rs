@@ -86,6 +86,25 @@ pub struct CustomAspectRatio {
     pub height: f64,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, Default, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub enum EditInMode {
+    #[default]
+    Original,
+    Rendered,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct EditInApp {
+    pub name: String,
+    pub path: String,
+    #[serde(default)]
+    pub args: String,
+    #[serde(default)]
+    pub mode: EditInMode,
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct CustomTheme {
     pub id: String,
@@ -697,14 +716,14 @@ pub struct AppSettings {
     pub always_decode_raw_thumbnails: Option<bool>,
     #[serde(default)]
     pub custom_aspect_ratios: Vec<CustomAspectRatio>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub edit_in_apps: Vec<EditInApp>,
     #[serde(default)]
     pub custom_themes: Vec<CustomTheme>,
     #[serde(default)]
     pub adjustment_layout: AdjustmentLayout,
     #[serde(default)]
     pub workspace: WorkspaceState,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub topaz_path: Option<String>,
     #[serde(default)]
     pub immich: crate::immich::ImmichSettings,
 }
@@ -822,9 +841,9 @@ impl Default for AppSettings {
             always_decode_raw_thumbnails: Some(false),
             custom_aspect_ratios: Vec::new(),
             custom_themes: Vec::new(),
+            edit_in_apps: Vec::new(),
             adjustment_layout: AdjustmentLayout::default(),
             workspace: WorkspaceState::default(),
-            topaz_path: None,
             immich: crate::immich::ImmichSettings::default(),
         }
     }

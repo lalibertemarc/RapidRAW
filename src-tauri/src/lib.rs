@@ -36,6 +36,7 @@ mod bm3d;
 mod cache_utils;
 mod camera_tethering;
 mod culling;
+mod edit_in;
 mod effect_maps;
 mod exif_processing;
 mod export_processing;
@@ -69,7 +70,6 @@ mod relight;
 mod storage;
 mod tagging;
 mod tagging_utils;
-mod topaz;
 mod viewer_window;
 mod white_balance;
 mod window_customizer;
@@ -2743,7 +2743,6 @@ pub fn run() {
             inpainting::generate_manual_cleanup_patch,
             inpainting::generate_liquify_patch,
             inpainting::generate_retouch_patch,
-            topaz::edit_in_topaz,
             focus_stacking::stitch_focus_stack,
             focus_stacking::save_focus_stack,
             image_loader::load_image,
@@ -2754,6 +2753,8 @@ pub fn run() {
             export_processing::cancel_export,
             export_processing::estimate_export_sizes,
             filename_template::preview_export_filename,
+            edit_in::edit_in_app,
+            edit_in::cancel_edit_in_app,
             image_processing::calculate_auto_adjustments,
             image_processing::sample_white_balance,
             auto_straighten::calculate_auto_straighten,

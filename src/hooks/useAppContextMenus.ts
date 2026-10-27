@@ -47,9 +47,9 @@ import {
   User,
   Album as AlbumIcon,
   PencilSparkles,
-  Sparkles,
   ScanLine,
   MonitorUp,
+  AppWindow,
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
@@ -68,6 +68,7 @@ import {
   AlbumItem,
   Album,
   AlbumGroup,
+  EditInApp,
 } from '../components/ui/AppProperties';
 import {
   AutoAdjustMode,
@@ -77,7 +78,12 @@ import {
   INITIAL_ADJUSTMENTS,
 } from '../utils/adjustments';
 import TaggingSubMenu from '../context/TaggingSubMenu';
-import { buildAutoAdjustModeOptions, reloadAdjustmentsForPaths, useEditorActions } from './useEditorActions';
+import {
+  buildAutoAdjustModeOptions,
+  debouncedSave,
+  reloadAdjustmentsForPaths,
+  useEditorActions,
+} from './useEditorActions';
 import { useLibraryActions } from './useLibraryActions';
 import { transferFiles } from './useFileOperations';
 import { globalImageCache } from '../utils/ImageLRUCache';
@@ -226,30 +232,60 @@ export function useAppContextMenus(latestProps: UseAppContextMenusProps) {
     [albumIcons, t],
   );
 
-  const handleEditInTopaz = useCallback(
-    async (path: string) => {
-      toast.info(t('contextMenus.toasts.topazWaiting'));
+  const handleEditInApp = useCallback(
+    async (path: string, app: EditInApp) => {
+      const { selectedImage, adjustments } = useEditorStore.getState();
+      const sessionId = crypto.randomUUID();
+      let running = true;
+      let cancelled = false;
+      debouncedSave.flush();
+      const toastId = toast.info(t('contextMenus.toasts.editInWaiting', { app: app.name }), {
+        autoClose: false,
+        closeOnClick: false,
+        onClose: () => {
+          if (!running) return;
+          cancelled = true;
+          invoke(Invokes.CancelEditInApp, { sessionId });
+        },
+      });
       try {
-        const newPath = await invoke<string | null>(Invokes.EditInTopaz, { path });
-        if (!newPath) {
-          toast.info(t('contextMenus.toasts.topazNoOutput'));
-          return;
-        }
+        const newPath = await invoke<string | null>(Invokes.EditInApp, {
+          path,
+          app,
+          sessionId,
+          currentEditAdjustments: selectedImage?.path === path ? adjustments : null,
+        });
+        running = false;
+        toast.dismiss(toastId);
         await props.refreshImageList();
-        props.handleImageSelect(newPath);
+        if (newPath) {
+          props.handleImageSelect(newPath);
+        } else if (!cancelled) {
+          toast.info(t('contextMenus.toasts.editInNoOutput', { app: app.name }));
+        }
       } catch (err) {
-        toast.error(t('contextMenus.toasts.topazFailed', { err }));
+        running = false;
+        toast.dismiss(toastId);
+        await props.refreshImageList();
+        toast.error(t('contextMenus.toasts.editInFailed', { app: app.name, err }));
       }
     },
     [props, t],
   );
 
-  const buildTopazOptions = useCallback(
-    (path: string, isRaw: boolean): Option[] =>
-      isRaw && !path.split('?')[0].toLowerCase().endsWith('.dng')
-        ? [{ label: t('contextMenus.editor.editInTopaz'), icon: Sparkles, onClick: () => handleEditInTopaz(path) }]
-        : [],
-    [handleEditInTopaz, t],
+  const buildEditInOptions = useCallback(
+    (path: string): Option[] => {
+      const apps = useSettingsStore.getState().appSettings?.editInApps ?? [];
+      if (apps.length === 0) return [];
+      return [
+        {
+          label: t('contextMenus.editor.editIn'),
+          icon: AppWindow,
+          submenu: apps.map((app) => ({ label: app.name, onClick: () => handleEditInApp(path, app) })),
+        },
+      ];
+    },
+    [handleEditInApp, t],
   );
 
   const handleEditorContextMenu = useCallback(
@@ -283,7 +319,7 @@ export function useAppContextMenus(latestProps: UseAppContextMenusProps) {
           icon: FileInput,
           onClick: () => setPanel(Panel.Export),
         },
-        ...buildTopazOptions(selectedImage.path, selectedImage.isRaw),
+        ...buildEditInOptions(selectedImage.path),
         ...(osPlatform !== 'android'
           ? [
               {
@@ -446,7 +482,7 @@ export function useAppContextMenus(latestProps: UseAppContextMenusProps) {
       buildFlagMenu,
       handleSetColorLabel,
       handleTagsChanged,
-      buildTopazOptions,
+      buildEditInOptions,
       showContextMenu,
       t,
     ],
@@ -665,13 +701,10 @@ export function useAppContextMenus(latestProps: UseAppContextMenusProps) {
                 onClick: () => props.handleImageSelect(finalSelection[0]),
               },
               { icon: FileInput, label: exportLabel, onClick: onExportClick },
-              { type: OPTION_SEPARATOR },
             ]
-          : [{ icon: FileInput, label: exportLabel, onClick: onExportClick }, { type: OPTION_SEPARATOR }]),
-        ...buildTopazOptions(
-          finalSelection[0],
-          isSingleSelection && !!imageList.find((img) => img.path === finalSelection[0])?.is_raw,
-        ).flatMap((option) => [option, { type: OPTION_SEPARATOR }]),
+          : [{ icon: FileInput, label: exportLabel, onClick: onExportClick }]),
+        ...(isSingleSelection ? buildEditInOptions(finalSelection[0]) : []),
+        { type: OPTION_SEPARATOR },
         {
           icon: Copy,
           label: t('contextMenus.editor.copyAdjustments'),
@@ -973,7 +1006,7 @@ export function useAppContextMenus(latestProps: UseAppContextMenusProps) {
       handleSetColorLabel,
       handleTagsChanged,
       handleResetAdjustments,
-      buildTopazOptions,
+      buildEditInOptions,
       showContextMenu,
       props,
       t,
