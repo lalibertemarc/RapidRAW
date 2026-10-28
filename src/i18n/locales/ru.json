@@ -57,6 +57,55 @@
         "yellows": "Желтые"
       },
       "mixerPickerTooltip": "Пипетка смешения цветов: нажмите на фото и перетащите вверх или вниз",
+      "monochrome": {
+        "badge": "Ч/Б",
+        "balance": "Баланс",
+        "blackWhite": "Черно-белое",
+        "film": "Пленка",
+        "filmDescriptions": {
+          "balanced": "Равномерная чувствительность ко всем цветам, более светлые красные и кожа",
+          "extendedRed": "Пленка, чувствительная к красному: светящаяся кожа и более темное небо",
+          "infrared": "Светящаяся листва и почти черное небо",
+          "neutral": "Соответствует воспринимаемой яркости каждого цвета",
+          "orthoPanchromatic": "Немного более темные красные и четкие зеленые",
+          "orthochromatic": "Не чувствительна к красному: темные красные и светлое небо",
+          "panchromatic": "Классический отклик пленки с более светлым голубым небом"
+        },
+        "films": {
+          "balanced": "Сбалансированная",
+          "extendedRed": "Расширенный красный",
+          "infrared": "Инфракрасная",
+          "neutral": "Нейтральная",
+          "orthoPanchromatic": "Орто-пан",
+          "orthochromatic": "Ортохроматическая",
+          "panchromatic": "Панхроматическая"
+        },
+        "filter": "Фильтр",
+        "filters": {
+          "blue": "Синий",
+          "green": "Зеленый",
+          "none": "Нет",
+          "orange": "Оранжевый",
+          "red": "Красный",
+          "yellow": "Желтый"
+        },
+        "highlights": "Света",
+        "hue": "Цветовой тон",
+        "mix": "Ч/Б микшер",
+        "saturation": "Насыщенность",
+        "shadows": "Тени",
+        "strength": "Сила",
+        "toning": "Тонирование",
+        "tonings": {
+          "cyanotype": "Цианотипия",
+          "gold": "Золото",
+          "none": "Нет",
+          "platinum": "Платина",
+          "selenium": "Селен",
+          "sepia": "Сепия",
+          "split": "Раздельное тонирование"
+        }
+      },
       "presence": "Внешний вид",
       "saturation": "Насыщенность",
       "temperature": "Температура",
@@ -232,6 +281,7 @@
       "closeViewer": "Закрыть второе окно",
       "colorLabel": "Цветовая метка",
       "confirmReset": "Подтвердить сброс",
+      "convertBlackWhite": "Преобразовать в черно-белое",
       "convertNegative": "Преобразовать негатив",
       "copyAdjustments": "Копировать настройки",
       "cullImage": "Автосортировка",
@@ -255,6 +305,7 @@
       "ratingLabel_one": "{{count}} звезда",
       "ratingLabel_other": "{{count}} звезд",
       "redo": "Повторить",
+      "removeBlackWhite": "Убрать черно-белое",
       "removeDenoise": "Убрать шумоподавление",
       "removeNegativeConversion": "Убрать преобразование негатива",
       "resetAdjustments": "Сбросить настройки",
@@ -310,6 +361,8 @@
       "autoAdjust_many": "Автонастройка",
       "autoAdjust_one": "Автонастройка",
       "autoAdjust_other": "Автонастройка",
+      "autoLensCorrection_few": "Автокоррекция объектива",
+      "autoLensCorrection_many": "Автокоррекция объектива",
       "autoLensCorrection_one": "Автокоррекция объектива",
       "autoLensCorrection_other": "Автокоррекция объектива",
       "autoStraighten_few": "Автовыравнивание",
@@ -506,6 +559,8 @@
         "heal_other": "Восстановление {{count}}",
         "invertedName": "{{name}} (инвертировано)",
         "liquify": "Пластика {{count}}",
+        "liquify_few": "Пластика {{count}}",
+        "liquify_many": "Пластика {{count}}",
         "liquify_one": "Пластика {{count}}",
         "liquify_other": "Пластика {{count}}",
         "quickErase": "Быстрое стирание {{count}}",
@@ -513,7 +568,11 @@
         "quickErase_many": "Быстрое стирание {{count}}",
         "quickErase_one": "Быстрое стирание {{count}}",
         "quickErase_other": "Быстрое стирание {{count}}",
-        "retouch": "Ретушь {{count}}"
+        "retouch": "Ретушь {{count}}",
+        "retouch_few": "Ретушь {{count}}",
+        "retouch_many": "Ретушь {{count}}",
+        "retouch_one": "Ретушь {{count}}",
+        "retouch_other": "Ретушь {{count}}"
       },
       "resetInpaintingTooltip": "Сбросить восстановление",
       "settings": {
@@ -1498,6 +1557,11 @@
       "goHome": "На главную",
       "importImages": "Импортировать изображения",
       "select": "Выбрать"
+    },
+    "viewMode": {
+      "culling": "Режим отбора",
+      "grid": "Сетка",
+      "list": "Список"
     }
   },
   "masks": {
@@ -1578,6 +1642,7 @@
       "descReplace": "Перезаписывает все выбранные параметры, сбрасывая остальные к значениям по умолчанию.",
       "groups": {
         "aiDenoise": "ИИ-шумоподавление",
+        "blackWhite": "Черно-белое",
         "chromaticAberration": "Хроматическая аберрация",
         "clarityDehaze": "Четкость и удаление дымки",
         "colorCalibration": "Калибровка цвета",
@@ -2032,6 +2097,7 @@
         "toggle_adjustments": "Панель коррекции",
         "toggle_ai": "Панель ИИ",
         "toggle_analytics": "Показать/скрыть панель гистограммы",
+        "toggle_black_white": "Черно-белый режим",
         "toggle_bottom_panel": "Показать/скрыть ленту кадров",
         "toggle_crop": "Режим обрезки / выравнивания",
         "toggle_crop_panel": "Панель обрезки",

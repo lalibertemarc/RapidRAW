@@ -15,8 +15,9 @@ use std::thread;
 use anyhow::Result;
 use image::codecs::jpeg::JpegEncoder;
 use image::{DynamicImage, GenericImageView};
+use quick_xml::escape::{escape, unescape};
 use rayon::prelude::*;
-use regex::regex;
+use regex::{NoExpand, regex};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sysinfo::Disks;
@@ -1400,7 +1401,7 @@ pub fn write_file_atomic(path: &Path, contents: &[u8]) -> std::io::Result<()> {
         .suffix(".tmp")
         .tempfile_in(dir)?;
     tmp.write_all(contents)?;
-    tmp.as_file().sync_all()?;
+    sync_file(tmp.as_file())?;
 
     let mut tmp = tmp.into_temp_path();
     let mut attempt = 0;
@@ -1415,6 +1416,31 @@ pub fn write_file_atomic(path: &Path, contents: &[u8]) -> std::io::Result<()> {
             Err(e) => return Err(e.error),
         }
     }
+}
+
+fn sync_file(file: &fs::File) -> std::io::Result<()> {
+    match file.sync_all() {
+        #[cfg(unix)]
+        Err(e) if is_sync_unsupported(&e) => {
+            #[cfg(target_vendor = "apple")]
+            {
+                use std::os::fd::AsRawFd;
+                if unsafe { libc::fsync(file.as_raw_fd()) } != 0 {
+                    let e = std::io::Error::last_os_error();
+                    if !is_sync_unsupported(&e) {
+                        return Err(e);
+                    }
+                }
+            }
+            Ok(())
+        }
+        result => result,
+    }
+}
+
+#[cfg(unix)]
+fn is_sync_unsupported(e: &std::io::Error) -> bool {
+    matches!(e.raw_os_error(), Some(code) if code == libc::ENOTSUP || code == libc::EOPNOTSUPP)
 }
 
 fn find_embedded_jpeg(exif: &exif::Exif, ifd: exif::In) -> Option<&[u8]> {
@@ -2479,9 +2505,6 @@ fn find_all_associated_files(source_image_path: &Path) -> Result<Vec<PathBuf>, S
         .ok_or("Could not get source filename")?
         .to_string_lossy();
 
-    let primary_sidecar_name = format!("{}.rrdata", source_filename);
-    let virtual_copy_prefix = format!("{}.", source_filename);
-
     if let Ok(entries) = fs::read_dir(parent_dir) {
         for entry in entries.filter_map(Result::ok) {
             let entry_path = entry.path();
@@ -2492,9 +2515,7 @@ fn find_all_associated_files(source_image_path: &Path) -> Result<Vec<PathBuf>, S
             let entry_os_filename = entry.file_name();
             let entry_filename = entry_os_filename.to_string_lossy();
 
-            if entry_filename == primary_sidecar_name
-                || (entry_filename.starts_with(&virtual_copy_prefix)
-                    && entry_filename.ends_with(".rrdata"))
+            if parse_sidecar_name(&entry_filename).is_some_and(|(name, _)| name == source_filename)
             {
                 associated_files.push(entry_path);
             }
@@ -2571,7 +2592,11 @@ pub async fn copy_files(
                 if let Some(file_name) = file_to_copy.file_name() {
                     let dest_file_path = dest_path.join(file_name);
 
-                    if dest_file_path.exists() {
+                    if dest_file_path.exists()
+                        || operations_to_perform
+                            .iter()
+                            .any(|(_, dest)| *dest == dest_file_path)
+                    {
                         return Err(format!(
                             "Copy aborted: File already exists at destination: {}",
                             dest_file_path.display()
@@ -2634,7 +2659,11 @@ pub async fn move_files(
             if let Some(file_name) = file_to_move.file_name() {
                 let dest_file_path = dest_path.join(file_name);
 
-                if dest_file_path.exists() {
+                if dest_file_path.exists()
+                    || operations_to_perform
+                        .iter()
+                        .any(|(_, dest, _)| *dest == dest_file_path)
+                {
                     return Err(format!(
                         "Move aborted: File already exists at destination: {}",
                         dest_file_path.display()
@@ -3816,28 +3845,30 @@ pub fn delete_files_with_associated(
         return Ok(());
     }
 
-    let mut stems_to_delete = HashSet::new();
-    let mut parent_dirs = HashSet::new();
+    let mut stems_by_dir: HashMap<PathBuf, HashSet<String>> = HashMap::new();
     let mut deletions = HashSet::new();
 
     for path_str in &paths {
         deletions.insert(path_str.clone());
         let (source_path, _) = parse_virtual_path(path_str);
-        if let Some(stem) = source_path.file_stem().and_then(|s| s.to_str()) {
-            stems_to_delete.insert(stem.to_string());
-        }
-        if let Some(parent) = source_path.parent() {
-            parent_dirs.insert(parent.to_path_buf());
+        if let (Some(stem), Some(parent)) = (
+            source_path.file_stem().and_then(|s| s.to_str()),
+            source_path.parent(),
+        ) {
+            stems_by_dir
+                .entry(parent.to_path_buf())
+                .or_default()
+                .insert(stem.to_string());
         }
     }
 
-    if stems_to_delete.is_empty() {
+    if stems_by_dir.is_empty() {
         return Ok(());
     }
 
     let mut files_to_trash = HashSet::new();
 
-    for parent_dir in parent_dirs {
+    for (parent_dir, stems_to_delete) in stems_by_dir {
         if let Ok(entries) = fs::read_dir(parent_dir) {
             for entry in entries.filter_map(Result::ok) {
                 let entry_path = entry.path();
@@ -4123,6 +4154,9 @@ pub async fn import_files(
                             );
                             fs::remove_file(&source_sidecar).map_err(|e| e.to_string())?;
                         }
+                        if source_rrexif.exists() {
+                            let _ = fs::remove_file(&source_rrexif);
+                        }
                     }
 
                     #[cfg(not(any(
@@ -4171,14 +4205,22 @@ pub fn rename_files(
         return Ok(Vec::new());
     }
 
+    // An image and its virtual copies share one file, so rename each file once.
+    let mut original_paths: Vec<(PathBuf, PathBuf)> = Vec::new();
+    for path_str in &paths {
+        let (original_path, sidecar_path) = parse_virtual_path(path_str);
+        if !original_paths.iter().any(|(path, _)| *path == original_path) {
+            original_paths.push((original_path, sidecar_path));
+        }
+    }
+
     let mut operations: Vec<(PathBuf, PathBuf)> = Vec::new();
-    let mut final_new_paths = Vec::with_capacity(paths.len());
     let mut renames = HashMap::new();
 
-    for (i, path_str) in paths.iter().enumerate() {
-        let (original_path, sidecar_path) = parse_virtual_path(path_str);
+    for (i, (original_path, sidecar_path)) in original_paths.iter().enumerate() {
+        let original_path = original_path.clone();
         if !original_path.exists() {
-            return Err(format!("File not found: {}", path_str));
+            return Err(format!("File not found: {}", original_path.display()));
         }
 
         let parent = original_path
@@ -4195,9 +4237,9 @@ pub fn rename_files(
             &name_template,
             &FilenameContext::new(
                 &original_path,
-                Some(&sidecar_path),
+                Some(sidecar_path),
                 i,
-                paths.len(),
+                original_paths.len(),
                 &file_date,
             ),
         );
@@ -4237,18 +4279,12 @@ pub fn rename_files(
                 let entry_os_filename = entry.file_name();
                 let entry_filename = entry_os_filename.to_string_lossy();
 
-                if entry_filename.starts_with(&format!("{}.", original_filename_str))
-                    && entry_filename.ends_with(".rrdata")
+                if parse_sidecar_name(&entry_filename)
+                    .is_some_and(|(name, _)| name == original_filename_str)
                 {
                     let new_sidecar_filename =
                         entry_filename.replacen(&*original_filename_str, &new_filename_str, 1);
                     let new_sidecar_path = parent.join(new_sidecar_filename);
-                    sidecar_operations.push((entry_path, new_sidecar_path));
-                } else if entry_filename == format!("{}.rrdata", original_filename_str) {
-                    let mut new_sidecar_name = new_path.file_name().unwrap().to_os_string();
-                    new_sidecar_name.push(".rrdata");
-                    let new_sidecar_path = new_path.with_file_name(new_sidecar_name);
-
                     sidecar_operations.push((entry_path, new_sidecar_path));
                 }
             }
@@ -4281,14 +4317,23 @@ pub fn rename_files(
         let old_str = old_path.to_string_lossy().into_owned();
         let new_str = new_path.to_string_lossy().into_owned();
 
-        renames.insert(old_str, new_str.clone());
-
-        if is_supported_image_file(&new_path) {
-            final_new_paths.push(new_str);
-        }
+        renames.insert(old_str, new_str);
     }
 
     sync_album_path_changes(&app_handle, Some(&renames), None, None);
+
+    // One entry per input path, in order, keeping virtual copy ids; unrenamed files keep their path.
+    let final_new_paths = paths
+        .iter()
+        .map(|path_str| {
+            let (base, copy_suffix) = match path_str.rsplit_once("?vc=") {
+                Some((base, id)) => (base, format!("?vc={}", id)),
+                None => (path_str.as_str(), String::new()),
+            };
+            let new_base = renames.get(base).map_or(base, String::as_str);
+            format!("{}{}", new_base, copy_suffix)
+        })
+        .collect();
 
     Ok(final_new_paths)
 }
@@ -4472,12 +4517,14 @@ pub fn sync_metadata_from_xmp(source_path: &Path, metadata: &mut ImageMetadata) 
         let had_no_tags = metadata.tags.is_none();
 
         for tag in xmp_tags {
+            let tag = unescape(&tag).map_or(tag.clone(), Cow::into_owned);
             if !current_tags.contains(&tag) {
                 current_tags.push(tag);
             }
         }
 
         if let Some(label) = xmp_label {
+            let label = unescape(&label).map_or(label.clone(), Cow::into_owned);
             let label_tag = format!("{}{}", COLOR_TAG_PREFIX, label.to_lowercase());
             if !current_tags.contains(&label_tag) {
                 current_tags.retain(|t| !t.starts_with(COLOR_TAG_PREFIX));
@@ -4553,16 +4600,20 @@ pub fn sync_metadata_to_xmp(source_path: &Path, metadata: &ImageMetadata, create
             .collect();
 
         if let Some(lbl) = label {
+            let lbl = escape(lbl.as_str());
             let re_label_attr = regex!(r#"xmp:Label\s*=\s*"[^"]*""#);
             let re_label_tag = regex!(r#"<xmp:Label\s*>[^<]*</xmp:Label>"#);
 
             if re_label_attr.is_match(&content) {
                 content = re_label_attr
-                    .replace(&content, format!("xmp:Label=\"{}\"", lbl))
+                    .replace(&content, NoExpand(&format!("xmp:Label=\"{}\"", lbl)))
                     .to_string();
             } else if re_label_tag.is_match(&content) {
                 content = re_label_tag
-                    .replace(&content, format!("<xmp:Label>{}</xmp:Label>", lbl))
+                    .replace(
+                        &content,
+                        NoExpand(&format!("<xmp:Label>{}</xmp:Label>", lbl)),
+                    )
                     .to_string();
             } else if let Some(last_index) = content.rfind("</rdf:Description>") {
                 let (start, end) = content.split_at(last_index);
@@ -4579,10 +4630,11 @@ pub fn sync_metadata_to_xmp(source_path: &Path, metadata: &ImageMetadata, create
         if normal_tags.is_empty() {
             content = re_subject.replace_all(&content, "").to_string();
         } else {
-            let bag = xmp_subject_bag(&normal_tags);
+            let escaped: Vec<Cow<str>> = normal_tags.iter().map(|t| escape(t.as_str())).collect();
+            let bag = xmp_subject_bag(&escaped);
 
             if re_subject.is_match(&content) {
-                content = re_subject.replace(&content, bag).to_string();
+                content = re_subject.replace(&content, NoExpand(&bag)).to_string();
             } else if let Some(last_index) = content.rfind("</rdf:Description>") {
                 let (start, end) = content.split_at(last_index);
                 content = format!("{} {}\n  {}", start, bag, end);

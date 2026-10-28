@@ -519,7 +519,7 @@ Explore example edits processed entirely within RapidRAW. You can download the `
 
 <table width="100%">
   <tr>
-    <td width="25%" valign="top" align="center">
+    <td width="25%" valign="middle" align="center">
       <br>
       <img src="https://raw.githubusercontent.com/CyberTimon/RapidRAW/assets/.github/assets/portrait.jpg" alt="Timon Käch" width="100%" style="border-radius: 8px;">
       <br><br>
@@ -538,6 +538,9 @@ Explore example edits processed entirely within RapidRAW. You can download the `
       </p>
       <p>
         The foundation is built on Rust for its safety and performance, and Tauri for its ability to create lightweight, cross-platform desktop apps with a web frontend. The entire image processing pipeline is offloaded to the GPU via WGPU and a custom WGSL shader, ensuring that even on complex edits with multiple masks, the UI remains fluid.
+      </p>
+      <p>
+        Curious how it works under the hood? The <strong><a href="https://www.getrapidraw.com/docs/technical/pipeline">Technical Reference</a></strong> explains the whole pipeline and the math behind it, from RAW decoding, demosaicing and highlight reconstruction to every slider, the AI models and the depth effects, with formulas and example images.
       </p>
       <br>
     </td>
@@ -785,15 +788,21 @@ You have two options to run RapidRAW:
 
 **1. Download the Latest Release (Recommended)**
 
+The [**download page**](https://www.getrapidraw.com/download) picks the right file for your system. All builds are also on the [**Releases**](https://github.com/CyberTimon/RapidRAW/releases) page.
+
 **Windows & macOS:**
 
-- Grab the pre-built installer or application bundle for your operating system from the [**Releases**](https://github.com/CyberTimon/RapidRAW/releases) page.
+- Grab the installer or application bundle for your operating system from the [**download page**](https://www.getrapidraw.com/download).
 
 **Linux:**
 
 - The official Flatpak package supports all Linux distributions and is available on [**Flathub**](https://flathub.org/apps/io.github.CyberTimon.RapidRAW).
-- On Debian-based distributions, install the `.deb` package from the [**Releases**](https://github.com/CyberTimon/RapidRAW/releases) page.
+- On Debian-based distributions, install the `.deb` package from the [**download page**](https://www.getrapidraw.com/download).
 - On Arch-based distributions, use the [`rapidraw-bin`](https://aur.archlinux.org/packages/rapidraw-bin) package from the AUR.
+
+**Android:**
+
+- Install the `.apk` from the [**download page**](https://www.getrapidraw.com/download). Requires a 64-bit ARM device with Android 7.0 or newer.
 
 **2. Build from Source**
 
@@ -936,7 +945,7 @@ sudo dnf install libgphoto2-devel pkgconf-pkg-config
 
 </details>
 
-After installing the system dependencies, download the corresponding `_tethering` build from the [Releases](https://github.com/CyberTimon/RapidRAW/releases) page, or run/build from source using the `tethering` feature flag.
+After installing the system dependencies, download the corresponding tethering build from the [download page](https://www.getrapidraw.com/download#tethering), or run/build from source using the `tethering` feature flag.
 
 ## Command Line Interface (CLI)
 
@@ -1033,6 +1042,8 @@ See [#306](https://github.com/CyberTimon/RapidRAW/issues/306) for more informati
 
 I’m really grateful for any contributions you make to RapidRAW! Whether you’re reporting a bug, suggesting a new feature, or submitting a pull request - your input helps shape the project and makes it better for everyone. Don’t hesitate to open an issue or share your ideas.
 
+Before diving into the code, the **[Technical Reference](https://www.getrapidraw.com/docs/technical/pipeline)** is a good starting point. It describes every stage of the processing pipeline, which source files implement it, and how the individual algorithms work.
+
 ### Image format issues
 
 If your camera’s RAW files aren’t supported, please open an issue here first: [rawler issues](https://github.com/dnglab/dnglab/issues). Once support is added in rawler, create an issue for RapidRAW so I can update the packages and keep everything in sync.
@@ -1074,7 +1085,7 @@ A huge thank you to the following projects and tools that were very important in
 
 ## Support the Project
 
-As a young developer balancing this project with an apprenticeship, your support means the world. If you find RapidRAW useful or exciting, please consider donating to help me dedicate more time to its development and cover any associated costs.
+As a young developer balancing this project with an apprenticeship, your support means the world. If RapidRAW has a place in your workflow, a donation buys me more time to work on it, new gear to test it with, and days outdoors with my camera, which is where most new ideas for RapidRAW start.
 
 - **Ko-fi:** [Donate on Ko-fi](https://ko-fi.com/cybertimon)
 - **Crypto:**

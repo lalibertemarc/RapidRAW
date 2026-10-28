@@ -1173,6 +1173,7 @@ const F_VIGNETTE: u32 = 128;
 const F_LUT: u32 = 256;
 const F_CA: u32 = 512;
 const F_AGX: u32 = 1024;
+const F_MONOCHROME: u32 = 2048;
 
 fn shader_features(adjustments: &AllAdjustments) -> u32 {
     let g = &adjustments.global;
@@ -1219,6 +1220,7 @@ fn shader_features(adjustments: &AllAdjustments) -> u32 {
             || g.chromatic_aberration_blue_yellow.abs() > 0.000001,
     );
     set(F_AGX, g.tonemapper_mode == 1);
+    set(F_MONOCHROME, g.monochrome.enabled == 1);
     features
 }
 

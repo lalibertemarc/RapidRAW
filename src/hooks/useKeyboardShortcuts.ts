@@ -38,8 +38,14 @@ export const useKeyboardShortcuts = ({
   handlePasteFiles,
   handleZoomChange,
 }: KeyboardShortcutsProps) => {
-  const { handleRotate, handleAutoStraighten, handleCopyAdjustments, handlePasteAdjustments, toggleCompare } =
-    useEditorActions();
+  const {
+    handleRotate,
+    handleAutoStraighten,
+    handleCopyAdjustments,
+    handlePasteAdjustments,
+    handleEnableAdjustments,
+    toggleCompare,
+  } = useEditorActions();
   const { handleRate, handleSetFlag, handleToggleFlag, handleSetColorLabel } = useLibraryActions();
 
   const sortedListRef = useRef(sortedImageList);
@@ -479,6 +485,15 @@ export const useKeyboardShortcuts = ({
           handleAutoStraighten();
         },
       },
+      toggle_black_white: {
+        shouldFire: (s: ShortcutState) => s.ui.activeView === 'editor' && !!s.editor.selectedImage,
+        execute: (e: KeyboardEvent, s: ShortcutState) => {
+          e.preventDefault();
+          handleEnableAdjustments([s.editor.selectedImage!.path], {
+            monochromeEnabled: !s.editor.adjustments.monochromeEnabled,
+          });
+        },
+      },
       rate_0: {
         shouldFire: () => true,
         execute: (e: any) => {
@@ -776,6 +791,7 @@ export const useKeyboardShortcuts = ({
     handleCopyAdjustments,
     handleCopyImagePaths,
     handlePasteAdjustments,
+    handleEnableAdjustments,
     handleRate,
     handleSetFlag,
     handleToggleFlag,

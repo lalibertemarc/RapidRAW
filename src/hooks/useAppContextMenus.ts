@@ -35,6 +35,7 @@ import {
   Layers,
   Grip,
   Film,
+  Contrast,
   Home,
   Plane,
   Mountain,
@@ -378,6 +379,17 @@ export function useAppContextMenus(latestProps: UseAppContextMenusProps) {
                     ? { aiDenoiseEnabled: false }
                     : getAiDenoiseEnablePatch(useSettingsStore.getState().appSettings?.aiProvider),
                 ),
+              disabled: !selectedImage?.isReady,
+            },
+            {
+              label: adjustments.monochromeEnabled
+                ? t('contextMenus.editor.removeBlackWhite')
+                : t('contextMenus.editor.convertBlackWhite'),
+              icon: Contrast,
+              onClick: () =>
+                handleEnableAdjustments([selectedImage.path], {
+                  monochromeEnabled: !adjustments.monochromeEnabled,
+                }),
               disabled: !selectedImage?.isReady,
             },
             {
@@ -753,6 +765,23 @@ export function useAppContextMenus(latestProps: UseAppContextMenusProps) {
                   label: t('contextMenus.thumbnail.remove'),
                   icon: X,
                   onClick: () => handleEnableAdjustments(finalSelection, { aiDenoiseEnabled: false }),
+                },
+              ],
+            },
+            {
+              label: t('contextMenus.editor.convertBlackWhite'),
+              icon: Contrast,
+              disabled: selectionCount === 0,
+              submenu: [
+                {
+                  label: t('contextMenus.thumbnail.enable'),
+                  icon: Check,
+                  onClick: () => handleEnableAdjustments(finalSelection, { monochromeEnabled: true }),
+                },
+                {
+                  label: t('contextMenus.thumbnail.remove'),
+                  icon: X,
+                  onClick: () => handleEnableAdjustments(finalSelection, { monochromeEnabled: false }),
                 },
               ],
             },

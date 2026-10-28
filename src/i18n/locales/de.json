@@ -57,6 +57,55 @@
         "yellows": "Gelb"
       },
       "mixerPickerTooltip": "Farbmischer-Pipette: Auf das Foto klicken und nach oben oder unten ziehen",
+      "monochrome": {
+        "badge": "S/W",
+        "balance": "Abgleich",
+        "blackWhite": "Schwarzweiß",
+        "film": "Film",
+        "filmDescriptions": {
+          "balanced": "Gleichmäßige Empfindlichkeit für alle Farben, mit helleren Rottönen und Haut",
+          "extendedRed": "Rotempfindlicher Film mit leuchtender Haut und dunkleren Himmeln",
+          "infrared": "Leuchtendes Laub und fast schwarze Himmel",
+          "neutral": "Entspricht der wahrgenommenen Helligkeit jeder Farbe",
+          "orthoPanchromatic": "Etwas dunklere Rottöne mit klaren Grüntönen",
+          "orthochromatic": "Rotblind, mit dunklen Rottönen und hellen Himmeln",
+          "panchromatic": "Klassische Filmwiedergabe mit helleren blauen Himmeln"
+        },
+        "films": {
+          "balanced": "Ausgewogen",
+          "extendedRed": "Erweitertes Rot",
+          "infrared": "Infrarot",
+          "neutral": "Neutral",
+          "orthoPanchromatic": "Ortho-Pan",
+          "orthochromatic": "Orthochromatisch",
+          "panchromatic": "Panchromatisch"
+        },
+        "filter": "Filter",
+        "filters": {
+          "blue": "Blau",
+          "green": "Grün",
+          "none": "Kein",
+          "orange": "Orange",
+          "red": "Rot",
+          "yellow": "Gelb"
+        },
+        "highlights": "Lichter",
+        "hue": "Farbton",
+        "mix": "S/W-Mischer",
+        "saturation": "Sättigung",
+        "shadows": "Tiefen",
+        "strength": "Stärke",
+        "toning": "Tonung",
+        "tonings": {
+          "cyanotype": "Cyanotypie",
+          "gold": "Gold",
+          "none": "Keine",
+          "platinum": "Platin",
+          "selenium": "Selen",
+          "sepia": "Sepia",
+          "split": "Teiltonung"
+        }
+      },
       "presence": "Präsenz",
       "saturation": "Sättigung",
       "temperature": "Temperatur",
@@ -232,6 +281,7 @@
       "closeViewer": "Zweites Fenster schließen",
       "colorLabel": "Farbmarkierung",
       "confirmReset": "Zurücksetzen bestätigen",
+      "convertBlackWhite": "In Schwarzweiß umwandeln",
       "convertNegative": "Negativ umwandeln",
       "copyAdjustments": "Einstellungen kopieren",
       "cullImage": "Autom. aussortieren",
@@ -253,6 +303,7 @@
       "ratingLabel_one": "{{count}} Stern",
       "ratingLabel_other": "{{count}} Sterne",
       "redo": "Wiederholen",
+      "removeBlackWhite": "Schwarzweiß entfernen",
       "removeDenoise": "Entrauschen entfernen",
       "removeNegativeConversion": "Negativumwandlung entfernen",
       "resetAdjustments": "Einstellungen zurücksetzen",
@@ -473,7 +524,9 @@
         "quickErase": "Schnelles Löschen {{count}}",
         "quickErase_one": "Schnelles Löschen {{count}}",
         "quickErase_other": "Schnelles Löschen {{count}}",
-        "retouch": "Retusche {{count}}"
+        "retouch": "Retusche {{count}}",
+        "retouch_one": "Retusche {{count}}",
+        "retouch_other": "Retusche {{count}}"
       },
       "resetInpaintingTooltip": "Reparieren zurücksetzen",
       "settings": {
@@ -1440,6 +1493,11 @@
       "goHome": "Zur Startseite",
       "importImages": "Bilder importieren",
       "select": "Auswählen"
+    },
+    "viewMode": {
+      "culling": "Aussortieransicht",
+      "grid": "Rasteransicht",
+      "list": "Listenansicht"
     }
   },
   "masks": {
@@ -1520,6 +1578,7 @@
       "descReplace": "Überschreibt alle ausgewählten Einstellungen und setzt den Rest auf Standardwerte zurück.",
       "groups": {
         "aiDenoise": "KI-Entrauschen",
+        "blackWhite": "Schwarzweiß",
         "chromaticAberration": "Chromatische Aberration",
         "clarityDehaze": "Klarheit & Dunst entfernen",
         "colorCalibration": "Farbkalibrierung",
@@ -1956,6 +2015,7 @@
         "toggle_adjustments": "Anpassungen-Panel ein-/ausblenden",
         "toggle_ai": "KI-Panel ein-/ausblenden",
         "toggle_analytics": "Analyseanzeige ein-/ausblenden",
+        "toggle_black_white": "Schwarzweiß umschalten",
         "toggle_bottom_panel": "Filmstreifen ein-/ausblenden",
         "toggle_crop": "Zuschnitt / Gerade ausrichten umschalten",
         "toggle_crop_panel": "Zuschneiden-Panel ein-/ausblenden",
