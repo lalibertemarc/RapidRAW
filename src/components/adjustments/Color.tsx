@@ -1073,19 +1073,24 @@ function ColorPanel({
             <div style={mixerTrackStyle}>
               {isMixerExpanded ? (
                 <>
-                  <div className="flex items-center gap-1 p-1 mb-3 rounded-lg bg-surface-secondary">
+                  <div className="flex p-1 mb-3 rounded-lg bg-bg-primary">
                     {mixerTabs.map(({ id, label }) => (
                       <button
                         key={id}
-                        className={`flex-1 h-7 rounded-md text-xs transition-all ${
-                          mixerTab === id
-                            ? 'bg-surface text-text-primary'
-                            : 'text-text-secondary hover:text-text-primary'
+                        className={`relative flex-1 min-w-0 h-7 px-1 rounded-md text-xs font-medium transition-colors ${
+                          mixerTab === id ? 'text-text-primary' : 'text-text-secondary hover:text-text-primary'
                         }`}
                         onClick={() => selectMixerTab(id)}
                         type="button"
                       >
-                        {label}
+                        {mixerTab === id && (
+                          <motion.span
+                            layoutId="color-mixer-tab-bubble"
+                            className="absolute inset-0 rounded-md bg-card-active"
+                            transition={{ type: 'spring', bounce: 0.2, duration: 0.4 }}
+                          />
+                        )}
+                        <span className="relative block truncate">{label}</span>
                       </button>
                     ))}
                   </div>

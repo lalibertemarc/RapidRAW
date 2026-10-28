@@ -3652,7 +3652,12 @@ const ImageCanvas = memo(
             </div>
           </div>
 
-          {(isMasking || isAiEditing || isWbPickerActive || isMixerPickerActive || showRelightLights || showCenterMarker) &&
+          {(isMasking ||
+            isAiEditing ||
+            isWbPickerActive ||
+            isMixerPickerActive ||
+            showRelightLights ||
+            showCenterMarker) &&
             stageWidth > 0 &&
             stageHeight > 0 && (
               <div

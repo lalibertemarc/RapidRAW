@@ -367,6 +367,7 @@ function EffectsPanel({
       activeRelightLightId: light.id,
       isRelightPickerActive: true,
       isWbPickerActive: false,
+      mixerPickerProperty: null,
       activeCenterMarker: null,
     });
   };
