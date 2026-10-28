@@ -88,7 +88,12 @@ import {
 import { useLibraryActions } from './useLibraryActions';
 import { transferFiles } from './useFileOperations';
 import { globalImageCache } from '../utils/ImageLRUCache';
-import { immichAlbumOf, isImmichAlbumId, removeFromImmichAlbum } from '../components/immich/immichApi';
+import {
+  immichAlbumOf,
+  isImmichAlbumId,
+  isImmichImagePath,
+  removeFromImmichAlbum,
+} from '../components/immich/immichApi';
 import { useImmichStore } from '../components/immich/useImmichStore';
 
 export interface UseAppContextMenusProps {
@@ -1187,6 +1192,7 @@ export function useAppContextMenus(latestProps: UseAppContextMenusProps) {
             },
             {
               label: movePastedLabel,
+              disabled: copiedFilePaths.some(isImmichImagePath),
               onClick: async () => {
                 try {
                   await transferFiles(JobKind.Move, copiedFilePaths, targetPath);
@@ -1547,6 +1553,7 @@ export function useAppContextMenus(latestProps: UseAppContextMenusProps) {
               },
               {
                 label: movePastedLabel,
+                disabled: copiedFilePaths.some(isImmichImagePath),
                 onClick: async () => {
                   try {
                     await transferFiles(JobKind.Move, copiedFilePaths, currentFolderPath as string);
