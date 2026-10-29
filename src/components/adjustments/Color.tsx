@@ -54,7 +54,7 @@ interface ColorPanelProps {
   onDragStateChange?: (isDragging: boolean) => void;
 }
 
-interface ToggleIconButtonProps {
+interface HeaderToggleButtonProps {
   isActive: boolean;
   onClick: () => void;
   tooltip: string;
@@ -74,10 +74,10 @@ const MIXER_SWATCHES: Record<HslMixerBand, { color: string; hue: number }> = {
 
 const MIXER_TRACK_PREFIX: Record<HslMixerProperty, string> = { hue: 'hue', saturation: 'sat', luminance: 'lum' };
 
-const ToggleIconButton = ({ isActive, onClick, tooltip, children }: ToggleIconButtonProps) => (
+const HeaderToggleButton = ({ isActive, onClick, tooltip, children }: HeaderToggleButtonProps) => (
   <button
     onClick={onClick}
-    className={`w-6 h-6 flex items-center justify-center rounded-md transition-colors ${
+    className={`min-w-6 h-6 px-1 flex items-center justify-center rounded-md text-xs font-semibold whitespace-nowrap transition-colors ${
       isActive ? 'bg-accent text-button-text' : 'hover:bg-bg-secondary text-text-secondary'
     }`}
     data-tooltip={tooltip}
@@ -857,14 +857,14 @@ function ColorPanel({
     });
   };
 
-  const handleHslChange = (color: string, key: HslMixerProperty, value: string) => {
+  const handleHslChange = (color: string, key: HslMixerProperty, value: number | string) => {
     setAdjustments((prev: Partial<Adjustments>) => ({
       ...prev,
       hsl: {
         ...(prev.hsl || {}),
         [color]: {
           ...(prev.hsl?.[color] || {}),
-          [key]: parseFloat(value),
+          [key]: Number(value),
         },
       },
     }));
@@ -877,7 +877,7 @@ function ColorPanel({
       label={label}
       max={100}
       min={-100}
-      onChange={(e: any) => handleHslChange(color, property, e.target.value)}
+      onChange={(e: SliderChangeEvent) => handleHslChange(color, property, e.target.value)}
       step={1}
       value={hsl[color][property]}
       trackClassName={`${MIXER_TRACK_PREFIX[property]}-slider-${color}`}
@@ -892,23 +892,21 @@ function ColorPanel({
           actions={
             !isForMask && (
               <div className="flex items-center gap-1">
-                <button
+                <HeaderToggleButton
+                  isActive={isKelvinMode}
                   onClick={toggleWhiteBalanceMode}
-                  className={`w-6 h-6 flex items-center justify-center rounded-md text-xs font-semibold transition-colors ${
-                    isKelvinMode ? 'bg-accent text-button-text' : 'hover:bg-bg-secondary text-text-secondary'
-                  }`}
-                  data-tooltip={t('adjustments.color.kelvinModeTooltip')}
+                  tooltip={t('adjustments.color.kelvinModeTooltip')}
                 >
                   K
-                </button>
+                </HeaderToggleButton>
                 {toggleWbPicker && (
-                  <ToggleIconButton
+                  <HeaderToggleButton
                     isActive={isWbPickerActive}
                     onClick={toggleWbPicker}
                     tooltip={t('adjustments.color.wbPickerTooltip')}
                   >
                     <Pipette size={16} />
-                  </ToggleIconButton>
+                  </HeaderToggleButton>
                 )}
               </div>
             )
@@ -950,15 +948,13 @@ function ColorPanel({
         <AdjustmentSubSection
           actions={
             !isForMask && (
-              <button
+              <HeaderToggleButton
+                isActive={isMonochrome}
                 onClick={toggleMonochrome}
-                className={`min-w-6 h-6 px-1 flex items-center justify-center rounded-md text-xs font-semibold whitespace-nowrap transition-colors ${
-                  isMonochrome ? 'bg-accent text-button-text' : 'hover:bg-bg-secondary text-text-secondary'
-                }`}
-                data-tooltip={t('adjustments.color.monochrome.blackWhite')}
+                tooltip={t('adjustments.color.monochrome.blackWhite')}
               >
                 {t('adjustments.color.monochrome.badge')}
-              </button>
+              </HeaderToggleButton>
             )
           }
           id="colorPresence"
@@ -1046,21 +1042,21 @@ function ColorPanel({
             !showMonochromeMix && (
               <div className="flex items-center gap-1">
                 {isMixerExpanded && !isForMask && (
-                  <ToggleIconButton
+                  <HeaderToggleButton
                     isActive={mixerPickerProperty !== null}
                     onClick={toggleMixerPicker}
                     tooltip={t('adjustments.color.mixerPickerTooltip')}
                   >
                     <Pipette size={16} />
-                  </ToggleIconButton>
+                  </HeaderToggleButton>
                 )}
-                <ToggleIconButton
+                <HeaderToggleButton
                   isActive={isMixerExpanded}
                   onClick={toggleMixerExpanded}
                   tooltip={t('adjustments.color.toggleMixerExpanded')}
                 >
                   <Sliders size={16} />
-                </ToggleIconButton>
+                </HeaderToggleButton>
               </div>
             )
           }

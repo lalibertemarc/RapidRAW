@@ -53,18 +53,25 @@ export function useHslMixerPicker({
   const bitmapRef = useRef<{ url: string; bitmap: Promise<ImageBitmap> } | null>(null);
   const detachRef = useRef<(() => void) | null>(null);
 
-  const getBitmap = useCallback((url: string) => {
-    if (bitmapRef.current?.url !== url) {
-      bitmapRef.current?.bitmap.then((bitmap) => bitmap.close()).catch(() => {});
-      bitmapRef.current = {
-        url,
-        bitmap: fetch(url)
-          .then((res) => res.blob())
-          .then((blob) => createImageBitmap(blob)),
-      };
-    }
-    return bitmapRef.current.bitmap;
+  const releaseBitmap = useCallback(() => {
+    bitmapRef.current?.bitmap.then((bitmap) => bitmap.close()).catch(() => {});
   }, []);
+
+  const getBitmap = useCallback(
+    (url: string) => {
+      if (bitmapRef.current?.url !== url) {
+        releaseBitmap();
+        bitmapRef.current = {
+          url,
+          bitmap: fetch(url)
+            .then((res) => res.blob())
+            .then((blob) => createImageBitmap(blob)),
+        };
+      }
+      return bitmapRef.current.bitmap;
+    },
+    [releaseBitmap],
+  );
 
   const sampleArea = useCallback(
     async (u: number, v: number, radius: number): Promise<Uint8ClampedArray> => {
@@ -188,9 +195,9 @@ export function useHslMixerPicker({
   useEffect(
     () => () => {
       end();
-      bitmapRef.current?.bitmap.then((bitmap) => bitmap.close()).catch(() => {});
+      releaseBitmap();
     },
-    [end],
+    [end, releaseBitmap],
   );
 
   return { isActive: property !== null, isDragging, start };
