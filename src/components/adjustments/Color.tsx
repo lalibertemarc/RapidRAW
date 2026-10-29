@@ -496,7 +496,7 @@ const MONOCHROME_TONINGS = [
 ] as const satisfies ReadonlyArray<{ name: string; color: string; toning: Partial<MonochromeToning> }>;
 
 const chipClassName = (isActive: boolean) =>
-  `px-2 py-1.5 rounded-md text-xs truncate transition-colors ${
+  `px-2 py-1.5 rounded-md text-xs transition-colors ${
     isActive
       ? 'bg-accent text-button-text font-semibold'
       : 'bg-bg-secondary text-text-secondary hover:text-text-primary hover:bg-bg-secondary/80'
@@ -538,7 +538,7 @@ const MonochromePanel = ({ adjustments, setAdjustments, onDragStateChange }: Col
           <button
             key={film}
             onClick={() => handleChange('monochromeFilm', film)}
-            className={`${chipClassName(activeFilm === film)} text-left`}
+            className={`${chipClassName(activeFilm === film)} text-left truncate`}
             data-tooltip={t(`adjustments.color.monochrome.filmDescriptions.${film}`)}
           >
             {t(`adjustments.color.monochrome.films.${film}`)}
@@ -1076,11 +1076,11 @@ function ColorPanel({
             <div style={mixerTrackStyle}>
               {isMixerExpanded ? (
                 <>
-                  <div className="grid grid-cols-3 gap-1.5 mb-3">
+                  <div className="flex gap-1.5 mb-3">
                     {mixerTabs.map(({ id, label }) => (
                       <button
                         key={id}
-                        className={chipClassName(mixerTab === id)}
+                        className={`${chipClassName(mixerTab === id)} flex-1 whitespace-nowrap`}
                         onClick={() => selectMixerTab(id)}
                         type="button"
                       >
