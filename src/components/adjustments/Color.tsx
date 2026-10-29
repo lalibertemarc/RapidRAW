@@ -495,6 +495,13 @@ const MONOCHROME_TONINGS = [
   },
 ] as const satisfies ReadonlyArray<{ name: string; color: string; toning: Partial<MonochromeToning> }>;
 
+const chipClassName = (isActive: boolean) =>
+  `px-2 py-1.5 rounded-md text-xs truncate transition-colors ${
+    isActive
+      ? 'bg-accent text-button-text font-semibold'
+      : 'bg-bg-secondary text-text-secondary hover:text-text-primary hover:bg-bg-secondary/80'
+  }`;
+
 const MonochromePanel = ({ adjustments, setAdjustments, onDragStateChange }: ColorPanelProps) => {
   const { t } = useTranslation();
   const filterHue = adjustments.monochromeFilterHue ?? 0;
@@ -531,11 +538,7 @@ const MonochromePanel = ({ adjustments, setAdjustments, onDragStateChange }: Col
           <button
             key={film}
             onClick={() => handleChange('monochromeFilm', film)}
-            className={`px-2 py-1.5 rounded-md text-xs text-left truncate transition-colors ${
-              activeFilm === film
-                ? 'bg-accent text-button-text font-semibold'
-                : 'bg-bg-secondary text-text-secondary hover:text-text-primary hover:bg-bg-secondary/80'
-            }`}
+            className={`${chipClassName(activeFilm === film)} text-left`}
             data-tooltip={t(`adjustments.color.monochrome.filmDescriptions.${film}`)}
           >
             {t(`adjustments.color.monochrome.films.${film}`)}
@@ -1073,24 +1076,15 @@ function ColorPanel({
             <div style={mixerTrackStyle}>
               {isMixerExpanded ? (
                 <>
-                  <div className="flex p-1 mb-3 rounded-lg bg-bg-primary">
+                  <div className="grid grid-cols-3 gap-1.5 mb-3">
                     {mixerTabs.map(({ id, label }) => (
                       <button
                         key={id}
-                        className={`relative flex-1 min-w-0 h-7 px-1 rounded-md text-xs font-medium transition-colors ${
-                          mixerTab === id ? 'text-text-primary' : 'text-text-secondary hover:text-text-primary'
-                        }`}
+                        className={chipClassName(mixerTab === id)}
                         onClick={() => selectMixerTab(id)}
                         type="button"
                       >
-                        {mixerTab === id && (
-                          <motion.span
-                            layoutId="color-mixer-tab-bubble"
-                            className="absolute inset-0 rounded-md bg-card-active"
-                            transition={{ type: 'spring', bounce: 0.2, duration: 0.4 }}
-                          />
-                        )}
-                        <span className="relative block truncate">{label}</span>
+                        {label}
                       </button>
                     ))}
                   </div>
