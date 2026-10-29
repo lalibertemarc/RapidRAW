@@ -12,8 +12,8 @@ import { useProcessStore } from '../store/useProcessStore';
 import { useUIStore } from '../store/useUIStore';
 import {
   Adjustments,
-  CROP_GEOMETRY_KEYS,
   AutoAdjustMode,
+  CROP_GEOMETRY_KEYS,
   INITIAL_ADJUSTMENTS,
   COPYABLE_ADJUSTMENT_KEYS,
   PasteMode,
@@ -27,8 +27,8 @@ import { calculateAutoCropForRotation, calculateCenteredCrop } from '../utils/cr
 import { CompareMode, Invokes, Option, Panel, SelectedImage } from '../components/ui/AppProperties';
 import { globalImageCache } from '../utils/ImageLRUCache';
 
-export const debouncedSetHistory = debounce((newAdj: Adjustments) => {
-  useEditorStore.getState().pushHistory(newAdj);
+export const debouncedSetHistory = debounce((newAdj: Adjustments, label?: string) => {
+  useEditorStore.getState().pushHistory(newAdj, label);
 }, 500);
 
 export const debouncedSave = debounce((path: string, adjustmentsToSave: Adjustments) => {
@@ -37,32 +37,6 @@ export const debouncedSave = debounce((path: string, adjustmentsToSave: Adjustme
     toast.error(`Failed to save changes: ${err}`);
   });
 }, 300);
-
-export const applyCrop = () => {
-  useEditorStore.getState().setEditor({ isStraightenActive: false, liveRotation: null });
-  useUIStore.getState().setPanel(Panel.Adjustments);
-};
-
-export const cancelCrop = () => {
-  const { cropSessionSnapshot, selectedImage, adjustments, setEditor } = useEditorStore.getState();
-  applyCrop();
-  if (cropSessionSnapshot && cropSessionSnapshot.path === (selectedImage?.path ?? null)) {
-    const { geometry } = cropSessionSnapshot;
-    const hasChanged = CROP_GEOMETRY_KEYS.some(
-      (key) => JSON.stringify(adjustments[key]) !== JSON.stringify(geometry[key]),
-    );
-    if (hasChanged) {
-      setEditor((state) => {
-        const newAdjustments = { ...state.adjustments, ...geometry };
-        debouncedSetHistory(newAdjustments);
-        return {
-          adjustments: newAdjustments,
-          ...(state.showOriginal ? { showOriginal: false, previewOverride: null } : {}),
-        };
-      });
-    }
-  }
-};
 
 const AUTO_ADJUST_MODE_ICONS: Record<AutoAdjustMode, any> = {
   [AutoAdjustMode.Subtle]: SignalLow,
@@ -166,22 +140,51 @@ export const reloadAdjustmentsForPaths = async (paths: string[]) => {
   }
 };
 
-export function useEditorActions() {
-  const { t } = useTranslation();
-  const setEditor = useEditorStore((s) => s.setEditor);
+export const applyCrop = () => {
+  useEditorStore.getState().setEditor({ isStraightenActive: false, liveRotation: null });
+  useUIStore.getState().setPanel(Panel.Adjustments);
+};
 
-  const setAdjustments = useCallback(
-    (value: Partial<Adjustments> | ((prev: Adjustments) => Adjustments)) => {
+export const cancelCrop = () => {
+  const { cropSessionSnapshot, selectedImage, adjustments, setEditor } = useEditorStore.getState();
+  applyCrop();
+  if (cropSessionSnapshot && cropSessionSnapshot.path === (selectedImage?.path ?? null)) {
+    const { geometry } = cropSessionSnapshot;
+    const hasChanged = CROP_GEOMETRY_KEYS.some(
+      (key) => JSON.stringify(adjustments[key]) !== JSON.stringify(geometry[key]),
+    );
+    if (hasChanged) {
       setEditor((state) => {
-        const prev = state.adjustments;
-        const newAdjustments = typeof value === 'function' ? value(prev) : { ...prev, ...value };
-        if (newAdjustments === prev) return state;
+        const newAdjustments = { ...state.adjustments, ...geometry };
         debouncedSetHistory(newAdjustments);
         return {
           adjustments: newAdjustments,
           ...(state.showOriginal ? { showOriginal: false, previewOverride: null } : {}),
         };
       });
+    }
+  }
+};
+
+export function useEditorActions() {
+  const { t } = useTranslation();
+  const setEditor = useEditorStore((s) => s.setEditor);
+
+  const setAdjustments = useCallback(
+    (value: Partial<Adjustments> | ((prev: Adjustments) => Adjustments), label?: string) => {
+      // A labelled action gets its own history step instead of merging with pending slider edits.
+      if (label) debouncedSetHistory.flush();
+      setEditor((state) => {
+        const prev = state.adjustments;
+        const newAdjustments = typeof value === 'function' ? value(prev) : { ...prev, ...value };
+        if (newAdjustments === prev) return state;
+        debouncedSetHistory(newAdjustments, label);
+        return {
+          adjustments: newAdjustments,
+          ...(state.showOriginal ? { showOriginal: false, previewOverride: null } : {}),
+        };
+      });
+      if (label) debouncedSetHistory.flush();
     },
     [setEditor],
   );
@@ -217,16 +220,19 @@ export function useEditorActions() {
           jsAdjustments: useEditorStore.getState().adjustments,
           mode,
         });
-        setAdjustments((prev: Adjustments) => ({
-          ...prev,
-          ...autoAdjustments,
-          activeTools: mergeActiveTools(prev, autoAdjustments),
-        }));
+        setAdjustments(
+          (prev: Adjustments) => ({
+            ...prev,
+            ...autoAdjustments,
+            activeTools: mergeActiveTools(prev, autoAdjustments),
+          }),
+          t('contextMenus.editor.autoAdjust'),
+        );
       } catch (err) {
         toast.error(`Failed to apply auto adjustments: ${err}`);
       }
     },
-    [setAdjustments],
+    [setAdjustments, t],
   );
 
   const handleAutoStraighten = useCallback(async () => {
@@ -490,13 +496,13 @@ export function useEditorActions() {
 
           const pastedKeys = [...Object.keys(adjustmentsToApply), 'lensMaker', 'lensModel', 'lensDistortionParams'];
           const pasted = Object.fromEntries(pastedKeys.map((key) => [key, meta.adjustments[key]]));
-          setAdjustments((prev: any) => ({ ...prev, ...pasted }));
+          setAdjustments((prev: any) => ({ ...prev, ...pasted }), t('contextMenus.editor.pasteAdjustments'));
         })
         .catch((err) => toast.error(`Failed to paste adjustments: ${err}`));
 
       setProcess({ isPasted: true });
     },
-    [setAdjustments],
+    [setAdjustments, t],
   );
 
   const handleZoomChange = useCallback((zoomValue: number, fitToWindow: boolean = false) => {
