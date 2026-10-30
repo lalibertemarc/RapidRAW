@@ -766,7 +766,7 @@ function ColorPanel({
   const isMixerExpanded = useUIStore((state) => state.isColorMixerExpanded);
   const setUI = useUIStore((state) => state.setUI);
   const [mixerTab, setMixerTab] = useState<HslMixerProperty>('hue');
-  const mixerPickerProperty = useEditorStore((state) => (isForMask ? null : state.mixerPickerProperty));
+  const mixerPickerProperty = useEditorStore((state) => state.mixerPickerProperty);
   const isMixerPickerDragging = useEditorStore((state) => mixerPickerProperty !== null && state.isSliderDragging);
   const setEditor = useEditorStore((state) => state.setEditor);
 
@@ -1058,7 +1058,7 @@ function ColorPanel({
             ) : (
               !showMonochromeMix && (
                 <div className="flex items-center gap-1">
-                  {isMixerExpanded && !isForMask && (
+                  {isMixerExpanded && (
                     <HeaderToggleButton
                       isActive={mixerPickerProperty !== null}
                       onClick={() => toggleMixerPicker(mixerTab)}
