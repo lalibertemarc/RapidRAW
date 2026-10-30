@@ -8,7 +8,7 @@ import { prepareAdjustmentsPayload } from '../utils/backendPayload';
 import { HSL_MIXER_BANDS, HslMixerBand, HslPresence, MixerPickerTarget, sampleHslPresence } from '../utils/hslMixer';
 import { RenderSize } from './useImageRenderSize';
 import { Invokes } from '../components/ui/AppProperties';
-import { FINE_ADJUSTMENT_MULTIPLIER } from '../components/ui/Slider';
+import { FINE_ADJUSTMENT_MULTIPLIER } from '../utils/keyboardUtils';
 
 const SAMPLE_SCREEN_SIZE = 16;
 const DRAG_GAIN = 0.5;
