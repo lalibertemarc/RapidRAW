@@ -3172,24 +3172,38 @@ pub fn read_display_area(
         .ok_or("GPU processor is not initialized")?
         .processor;
 
-    let half = (radius * width).max(1.0);
-    let x0 = (center.0 * width - half).clamp(0.0, width - 1.0) as u32;
-    let y0 = (center.1 * height - half).clamp(0.0, height - 1.0) as u32;
-    let x1 = ((center.0 * width + half).ceil() as u32).clamp(x0 + 1, width as u32);
-    let y1 = ((center.1 * height + half).ceil() as u32).clamp(y0 + 1, height as u32);
+    let area = sample_roi([width, height], center, radius);
 
     read_texture_data_roi(
         &context.device,
         &context.queue,
         &processor.display_textures().output_texture,
-        wgpu::Origin3d { x: x0, y: y0, z: 0 },
+        wgpu::Origin3d {
+            x: area.x,
+            y: area.y,
+            z: 0,
+        },
         wgpu::Extent3d {
-            width: x1 - x0,
-            height: y1 - y0,
+            width: area.width,
+            height: area.height,
             depth_or_array_layers: 1,
         },
         4,
     )
+}
+
+pub fn sample_roi([width, height]: [f32; 2], center: (f32, f32), radius: f32) -> Roi {
+    let half = (radius * width).max(1.0);
+    let x0 = (center.0 * width - half).clamp(0.0, width - 1.0) as u32;
+    let y0 = (center.1 * height - half).clamp(0.0, height - 1.0) as u32;
+    let x1 = ((center.0 * width + half).ceil() as u32).clamp(x0 + 1, width as u32);
+    let y1 = ((center.1 * height + half).ceil() as u32).clamp(y0 + 1, height as u32);
+    Roi {
+        x: x0,
+        y: y0,
+        width: x1 - x0,
+        height: y1 - y0,
+    }
 }
 
 pub fn process_and_get_dynamic_image(

@@ -11,6 +11,7 @@ export const HSL_MIXER_BANDS = [
 
 export type HslMixerBand = (typeof HSL_MIXER_BANDS)[number];
 export type HslMixerProperty = 'hue' | 'saturation' | 'luminance';
+export type MixerPickerTarget = HslMixerProperty | 'monochrome';
 export type HslPresence = Partial<Record<HslMixerBand, number>>;
 
 const HSL_RANGES: Array<[number, number]> = [
@@ -31,7 +32,7 @@ const smoothstep = (edge0: number, edge1: number, x: number) => {
   return t * t * (3 - 2 * t);
 };
 
-const rgbToHueSat = (r: number, g: number, b: number): [number, number] => {
+const rgbToHsv = (r: number, g: number, b: number): [number, number, number] => {
   const max = Math.max(r, g, b);
   const delta = max - Math.min(r, g, b);
   let hue = 0;
@@ -41,7 +42,13 @@ const rgbToHueSat = (r: number, g: number, b: number): [number, number] => {
     else hue = 60 * ((r - g) / delta + 4);
   }
   if (hue < 0) hue += 360;
-  return [hue, max > 0 ? delta / max : 0];
+  return [hue, max > 0 ? delta / max : 0, max];
+};
+
+const presenceGate = (saturation: number, value: number, target: MixerPickerTarget) => {
+  if (target === 'monochrome') return smoothstep(0.05, 0.4, saturation) * smoothstep(0, 0.1, saturation * value);
+  if (target === 'luminance') return smoothstep(0, 1, saturation);
+  return smoothstep(0.05, 0.2, saturation);
 };
 
 const bandInfluence = (hue: number, center: number, width: number) => {
@@ -50,20 +57,20 @@ const bandInfluence = (hue: number, center: number, width: number) => {
   return Math.exp(-1.5 * falloff * falloff);
 };
 
-export const hslBandWeights = (r: number, g: number, b: number, property: HslMixerProperty): number[] => {
+export const hslBandWeights = (r: number, g: number, b: number, target: MixerPickerTarget): number[] => {
   if (Math.abs(r - g) < 0.001 && Math.abs(g - b) < 0.001) return HSL_RANGES.map(() => 0);
-  const [hue, saturation] = rgbToHueSat(Math.max(r, 0), Math.max(g, 0), Math.max(b, 0));
-  const gate = property === 'luminance' ? smoothstep(0, 1, saturation) : smoothstep(0.05, 0.2, saturation);
+  const [hue, saturation, value] = rgbToHsv(Math.max(r, 0), Math.max(g, 0), Math.max(b, 0));
+  const gate = presenceGate(saturation, value, target);
   const raw = HSL_RANGES.map(([center, width]) => bandInfluence(hue, center, width));
   const total = raw.reduce((sum, v) => sum + v, 0);
   return raw.map((v) => (v / total) * gate);
 };
 
-export const sampleHslPresence = (rgba: Uint8ClampedArray, property: HslMixerProperty): HslPresence => {
+export const sampleHslPresence = (rgba: Uint8ClampedArray, target: MixerPickerTarget): HslPresence => {
   const totals = HSL_RANGES.map(() => 0);
   const count = rgba.length / 4;
   for (let i = 0; i < rgba.length; i += 4) {
-    hslBandWeights(rgba[i] / 255, rgba[i + 1] / 255, rgba[i + 2] / 255, property).forEach((w, band) => {
+    hslBandWeights(rgba[i] / 255, rgba[i + 1] / 255, rgba[i + 2] / 255, target).forEach((w, band) => {
       totals[band] += w;
     });
   }

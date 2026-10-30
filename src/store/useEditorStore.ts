@@ -12,7 +12,7 @@ import { ChannelConfig } from '../components/adjustments/Curves';
 import { ImageDimensions } from '../hooks/useImageRenderSize';
 import { ToolType } from '../components/panel/right/Masks';
 import { OverlayMode } from '../components/panel/right/CropPanel';
-import { HslMixerProperty } from '../utils/hslMixer';
+import { MixerPickerTarget } from '../utils/hslMixer';
 import { describeHistoryChange } from '../utils/editHistory';
 
 export type CenterMarker = 'vignette' | 'centre';
@@ -74,7 +74,7 @@ interface EditorState {
   isStraightenActive: boolean;
   isAutoStraightening: boolean;
   isWbPickerActive: boolean;
-  mixerPickerProperty: HslMixerProperty | null;
+  mixerPickerProperty: MixerPickerTarget | null;
   isRelightPickerActive: boolean;
   activeRelightLightId: string | null;
   activeCenterMarker: CenterMarker | null;

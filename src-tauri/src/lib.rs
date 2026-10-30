@@ -638,6 +638,97 @@ async fn release_original_preview(state: tauri::State<'_, AppState>) -> Result<(
     .map_err(|e| format!("Task panicked: {}", e))
 }
 
+#[tauri::command]
+async fn sample_monochrome_source(
+    x: f32,
+    y: f32,
+    radius: f32,
+    js_adjustments: serde_json::Value,
+    app_handle: tauri::AppHandle,
+) -> Result<Vec<u8>, String> {
+    tokio::task::spawn_blocking(move || {
+        let state = app_handle.state::<AppState>();
+        let context = get_or_init_gpu_context(&state, &app_handle)?;
+        let loaded_image = state
+            .original_image
+            .lock()
+            .unwrap()
+            .as_ref()
+            .ok_or("No original image loaded")?
+            .clone();
+
+        let mut adjustments = js_adjustments;
+        hydrate_adjustments(&state, &mut adjustments);
+        let transform_hash = calculate_transform_hash(&adjustments);
+        let (image, scale, unscaled_crop_offset) = state
+            .cached_preview_for(PreviewTarget::Editor)
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .as_ref()
+            .filter(|cached| cached.transform_hash == transform_hash)
+            .map(|cached| {
+                (
+                    Arc::clone(&cached.image),
+                    cached.scale,
+                    cached.unscaled_crop_offset,
+                )
+            })
+            .ok_or("No preview is cached for these adjustments")?;
+        let (width, height) = image.dimensions();
+
+        let mask_definitions: Vec<MaskDefinition> = adjustments
+            .get("masks")
+            .and_then(|m| serde_json::from_value(m.clone()).ok())
+            .unwrap_or_default();
+        let masks = get_cached_or_generate_masks(
+            &state,
+            &loaded_image.path,
+            &mask_definitions,
+            width,
+            height,
+            scale,
+            (
+                unscaled_crop_offset.0 * scale,
+                unscaled_crop_offset.1 * scale,
+            ),
+            &adjustments,
+        );
+
+        let render = resolve_render_options_from_handle(&app_handle, loaded_image.is_raw);
+        let mut source_adjustments = get_all_adjustments_from_json(
+            &adjustments,
+            loaded_image.is_raw,
+            loaded_image.as_shot,
+            render,
+        );
+        source_adjustments.global.show_clipping = 0;
+        source_adjustments.global.monochrome = Default::default();
+        let image_generation = state.load_image_generation.load(Ordering::SeqCst);
+
+        let sample = process_and_get_dynamic_image(
+            &context,
+            &state,
+            &image,
+            transform_hash,
+            RenderRequest {
+                adjustments: source_adjustments,
+                mask_bitmaps: &masks.bitmaps,
+                mask_cache_key: Some(masks.cache_key ^ image_generation as u64),
+                lut: None,
+                roi: Some(crate::gpu_processing::sample_roi(
+                    [width as f32, height as f32],
+                    (x, y),
+                    radius,
+                )),
+            },
+            "sample_monochrome_source",
+        )?;
+        Ok(sample.to_rgba8().into_raw())
+    })
+    .await
+    .map_err(|e| format!("Task panicked: {}", e))?
+}
+
 #[allow(clippy::too_many_arguments)]
 fn process_preview_job(
     app_handle: &tauri::AppHandle,
@@ -2726,6 +2817,7 @@ pub fn run() {
             viewer_window::set_viewer_view,
             viewer_window::get_viewer_info,
             viewer_window::get_viewer_frame,
+            sample_monochrome_source,
             android_integration::resolve_android_content_uri_name,
             cache_utils::clear_session_caches,
             cache_utils::clear_image_caches,
