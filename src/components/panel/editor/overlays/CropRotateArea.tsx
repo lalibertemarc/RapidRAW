@@ -1,6 +1,9 @@
 import React, { useRef } from 'react';
+import { Crop } from 'react-image-crop';
 import { MAX_FINE_ROTATION } from '../../../../utils/cropUtils';
 import { FINE_ADJUSTMENT_MULTIPLIER, hasFineAdjustmentModifier } from '../../../../utils/keyboardUtils';
+
+export const CROP_ROTATE_MARGIN = 40;
 
 const BAND_EXTENT = 10000;
 const CURSOR_STEP = 45;
@@ -21,6 +24,7 @@ const BANDS: Array<React.CSSProperties> = [
 ];
 
 interface CropRotateAreaProps {
+  crop: Crop | null;
   rotation: number;
   onRotate(rotation: number): void;
   onRotateEnd(rotation: number | null): void;
@@ -33,14 +37,18 @@ interface RotateDrag {
   rotation: number | null;
 }
 
-export default function CropRotateArea({ rotation, onRotate, onRotateEnd }: CropRotateAreaProps) {
+export default function CropRotateArea({ crop, rotation, onRotate, onRotateEnd }: CropRotateAreaProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<RotateDrag | null>(null);
 
-  const pointerAngle = (e: React.PointerEvent) => {
-    const rect = containerRef.current!.getBoundingClientRect();
-    const dx = e.clientX - (rect.left + rect.width / 2);
-    const dy = e.clientY - (rect.top + rect.height / 2);
+  const pointerAngle = (e: React.PointerEvent, container: HTMLDivElement) => {
+    const rect = container.getBoundingClientRect();
+    const scaleX = crop?.unit === '%' ? rect.width / 100 : 1;
+    const scaleY = crop?.unit === '%' ? rect.height / 100 : 1;
+    const centerX = crop ? (crop.x + crop.width / 2) * scaleX : rect.width / 2;
+    const centerY = crop ? (crop.y + crop.height / 2) * scaleY : rect.height / 2;
+    const dx = e.clientX - (rect.left + centerX);
+    const dy = e.clientY - (rect.top + centerY);
     return (Math.atan2(dy, dx) * 180) / Math.PI;
   };
 
@@ -58,7 +66,7 @@ export default function CropRotateArea({ rotation, onRotate, onRotateEnd }: Crop
     e.stopPropagation();
 
     dragRef.current = {
-      lastAngle: pointerAngle(e),
+      lastAngle: pointerAngle(e, containerRef.current),
       angleDelta: 0,
       startRotation: rotation,
       rotation: null,
@@ -68,7 +76,7 @@ export default function CropRotateArea({ rotation, onRotate, onRotateEnd }: Crop
 
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!containerRef.current) return;
-    const angle = pointerAngle(e);
+    const angle = pointerAngle(e, containerRef.current);
     updateCursor(e, angle);
 
     const drag = dragRef.current;

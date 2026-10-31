@@ -452,11 +452,6 @@
 }
 
 .ReactCrop .ReactCrop__drag-handle,
-.ReactCrop .ReactCrop__drag-bar {
-  z-index: 1;
-}
-
-.ReactCrop .ReactCrop__drag-handle,
 .ReactCrop .ReactCrop__drag-handle:focus {
   background: none;
   border: none;
