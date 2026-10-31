@@ -92,7 +92,6 @@
         "highlights": "亮部",
         "hue": "色相",
         "mix": "黑白混合",
-        "mixPickerTooltip": "黑白混合滴管：在相片上按住並上下拖曳",
         "saturation": "飽和度",
         "shadows": "陰影",
         "strength": "強度",
@@ -111,7 +110,6 @@
       "saturation": "飽和度",
       "temperature": "色溫",
       "tint": "色調",
-      "toggleMixerExpanded": "展開顏色混合器",
       "toggleSliders": "切換滑桿",
       "vibrance": "鮮豔度",
       "wbPickerTooltip": "白平衡選取器",
@@ -895,6 +893,9 @@
         "tool": "工具"
       }
     },
+    "speedEdit": {
+      "noTarget": "請先使用一個滑桿"
+    },
     "switcher": {
       "tooltips": {
         "adjust": "調整",
@@ -1176,6 +1177,7 @@
       "pending": "等待同步到 Immich 的編輯：{{number}}"
     },
     "toasts": {
+      "editsStayLocal": "{{fileName}} 屬於其他人，因此 Immich 不接受對它的編輯。你的編輯會保留在這台電腦上。",
       "backOnline": "Immich 已重新連線，所有編輯內容都已儲存。",
       "downloadFailed": "無法從 Immich 下載：{{error}}",
       "editsConflict": "{{fileName}} 也在另一台電腦上被編輯過。你的編輯內容會保留，另一個版本已儲存為虛擬副本。",
@@ -2018,6 +2020,7 @@
         "rotate_right": "順時針旋轉 90°",
         "select_all": "選擇所有影像",
         "show_original": "顯示原始影像（前後對比）",
+        "speed_edit": "快速編輯上次使用的滑桿（按住並拖曳）",
         "toggle_adjustments": "切換調整面板",
         "toggle_ai": "切換 AI 面板",
         "toggle_analytics": "切換分析顯示",

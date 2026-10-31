@@ -92,7 +92,6 @@
         "highlights": "Highlights",
         "hue": "Hue",
         "mix": "B&W Mix",
-        "mixPickerTooltip": "B&W Mix Picker: click and drag up or down on the photo",
         "saturation": "Saturation",
         "shadows": "Shadows",
         "strength": "Strength",
@@ -111,7 +110,6 @@
       "saturation": "Saturation",
       "temperature": "Temperature",
       "tint": "Tint",
-      "toggleMixerExpanded": "Expanded Color Mixer",
       "toggleSliders": "Toggle Sliders",
       "vibrance": "Vibrance",
       "wbPickerTooltip": "White Balance Picker",
@@ -898,6 +896,9 @@
         "tool": "Tool"
       }
     },
+    "speedEdit": {
+      "noTarget": "Use a slider first"
+    },
     "switcher": {
       "tooltips": {
         "adjust": "Adjust",
@@ -1179,6 +1180,7 @@
       "pending": "Edits waiting for Immich: {{number}}"
     },
     "toasts": {
+      "editsStayLocal": "{{fileName}} belongs to someone else, so Immich doesn't accept edits for it. Your edits stay on this computer.",
       "backOnline": "Immich is reachable again, and all edits are saved there.",
       "downloadFailed": "Could not download from Immich: {{error}}",
       "editsConflict": "{{fileName}} was also edited on another computer. Your edits stay, and the other version is kept as a virtual copy.",
@@ -2024,6 +2026,7 @@
         "rotate_right": "Rotate 90° clockwise",
         "select_all": "Select all images",
         "show_original": "Show original (before/after)",
+        "speed_edit": "Speed edit last used slider (hold and drag)",
         "toggle_adjustments": "Toggle Adjustments panel",
         "toggle_ai": "Toggle AI panel",
         "toggle_analytics": "Toggle Analytics display",

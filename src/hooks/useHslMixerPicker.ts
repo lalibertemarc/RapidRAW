@@ -3,12 +3,12 @@ import { invoke } from '@tauri-apps/api/core';
 import type Konva from 'konva';
 import type { KonvaEventObject } from 'konva/lib/Node';
 import { useEditorStore } from '../store/useEditorStore';
-import { Adjustments, INITIAL_ADJUSTMENTS, INITIAL_MASK_ADJUSTMENTS } from '../utils/adjustments';
-import { prepareAdjustmentsPayload } from '../utils/backendPayload';
-import { HSL_MIXER_BANDS, HslMixerBand, HslPresence, MixerPickerTarget, sampleHslPresence } from '../utils/hslMixer';
+import { Adjustments, HueSatLum, INITIAL_ADJUSTMENTS, INITIAL_MASK_ADJUSTMENTS } from '../utils/adjustments';
+import { HslMixerBand, HslMixerProperty, HslPresence, sampleHslPresence } from '../utils/hslMixer';
 import { RenderSize } from './useImageRenderSize';
 import { Invokes } from '../components/ui/AppProperties';
 import { FINE_ADJUSTMENT_MULTIPLIER } from '../utils/keyboardUtils';
+import { prepareAdjustmentsPayload } from '../utils/backendPayload';
 
 const SAMPLE_SCREEN_SIZE = 16;
 const DRAG_GAIN = 0.5;
@@ -19,12 +19,12 @@ interface Coord {
 }
 
 interface PickerDrag {
-  target: MixerPickerTarget;
+  property: HslMixerProperty;
   maskId: string | null;
   lastY: number;
   offset: number;
   appliedKey: string | null;
-  base: Record<HslMixerBand, number>;
+  base: Record<string, HueSatLum>;
   presence: HslPresence | null;
   offsetRange: [number, number];
 }
@@ -34,7 +34,6 @@ interface HslMixerPickerOptions {
   getCanvasPointer(stage: Konva.Stage): Coord | null;
   imageRenderSize: RenderSize;
   isMasking: boolean;
-  previewUrl: string | null;
   zoomScale: number;
   setAdjustments(fn: (prev: Adjustments) => Adjustments): void;
 }
@@ -48,127 +47,52 @@ const getTargetHsl = (adjustments: Adjustments, maskId: string | null): Adjustme
     ? { ...INITIAL_MASK_ADJUSTMENTS.hsl, ...adjustments.masks.find((mask) => mask.id === maskId)?.adjustments.hsl }
     : { ...INITIAL_ADJUSTMENTS.hsl, ...adjustments.hsl };
 
-const getMixerValues = (
-  adjustments: Adjustments,
-  target: MixerPickerTarget,
-  maskId: string | null,
-): Record<HslMixerBand, number> => {
-  if (target === 'monochrome') return { ...INITIAL_ADJUSTMENTS.monochromeMix, ...adjustments.monochromeMix };
-  const hsl = getTargetHsl(adjustments, maskId);
-  return Object.fromEntries(HSL_MIXER_BANDS.map((band) => [band, hsl[band][target]])) as Record<HslMixerBand, number>;
-};
-
-const withMixerValues = (
-  adjustments: Adjustments,
-  target: MixerPickerTarget,
-  values: Array<[string, number]>,
-  maskId: string | null,
-): Adjustments => {
-  if (target === 'monochrome') {
-    return {
-      ...adjustments,
-      monochromeMix: {
-        ...(adjustments.monochromeMix || INITIAL_ADJUSTMENTS.monochromeMix),
-        ...Object.fromEntries(values),
-      },
-    };
-  }
-  const hsl = getTargetHsl(adjustments, maskId);
-  values.forEach(([band, value]) => {
-    hsl[band] = { ...hsl[band], [target]: value };
-  });
-  return maskId
-    ? {
-        ...adjustments,
-        masks: adjustments.masks.map((mask) =>
-          mask.id === maskId ? { ...mask, adjustments: { ...mask.adjustments, hsl } } : mask,
-        ),
-      }
-    : { ...adjustments, hsl };
-};
-
 export function useHslMixerPicker({
   activeMaskContainerId,
   getCanvasPointer,
   imageRenderSize,
   isMasking,
-  previewUrl,
   zoomScale,
   setAdjustments,
 }: HslMixerPickerOptions) {
-  const target = useEditorStore((state) => state.mixerPickerProperty);
-  const isMonochrome = useEditorStore((state) => !!state.adjustments.monochromeEnabled);
+  const property = useEditorStore((state) => state.mixerPickerProperty);
   const setEditor = useEditorStore((state) => state.setEditor);
   const [isDragging, setIsDragging] = useState(false);
   const dragRef = useRef<PickerDrag | null>(null);
-  const bitmapRef = useRef<{ url: string; bitmap: Promise<ImageBitmap> } | null>(null);
   const detachRef = useRef<(() => void) | null>(null);
 
-  const releaseBitmap = useCallback(() => {
-    bitmapRef.current?.bitmap.then((bitmap) => bitmap.close()).catch(() => {});
+  const sampleArea = useCallback(async (u: number, v: number, radius: number): Promise<Uint8Array> => {
+    const { payload, markSent } = prepareAdjustmentsPayload(useEditorStore.getState().adjustments);
+    const probe = await invoke<ArrayBuffer>(Invokes.SampleHslMixerArea, { jsAdjustments: payload, x: u, y: v, radius });
+    markSent();
+    return new Uint8Array(probe);
   }, []);
-
-  const getBitmap = useCallback(
-    (url: string) => {
-      if (bitmapRef.current?.url !== url) {
-        releaseBitmap();
-        bitmapRef.current = {
-          url,
-          bitmap: fetch(url)
-            .then((res) => res.blob())
-            .then((blob) => createImageBitmap(blob)),
-        };
-      }
-      return bitmapRef.current.bitmap;
-    },
-    [releaseBitmap],
-  );
-
-  const sampleArea = useCallback(
-    async (u: number, v: number, radius: number, sampleTarget: MixerPickerTarget): Promise<Uint8ClampedArray> => {
-      if (sampleTarget === 'monochrome') {
-        const { payload, markSent } = prepareAdjustmentsPayload(useEditorStore.getState().adjustments);
-        const pixels = await invoke<number[]>(Invokes.SampleMonochromeSource, {
-          x: u,
-          y: v,
-          radius,
-          jsAdjustments: payload,
-        });
-        markSent();
-        return Uint8ClampedArray.from(pixels);
-      }
-      if (!previewUrl) {
-        return Uint8ClampedArray.from(await invoke<number[]>(Invokes.SampleDisplayArea, { x: u, y: v, radius }));
-      }
-      const bitmap = await getBitmap(previewUrl);
-      const half = Math.max(1, radius * bitmap.width);
-      const x0 = Math.max(0, Math.floor(u * bitmap.width - half));
-      const y0 = Math.max(0, Math.floor(v * bitmap.height - half));
-      const w = Math.max(1, Math.min(bitmap.width, Math.ceil(u * bitmap.width + half)) - x0);
-      const h = Math.max(1, Math.min(bitmap.height, Math.ceil(v * bitmap.height + half)) - y0);
-      const canvas = document.createElement('canvas');
-      canvas.width = w;
-      canvas.height = h;
-      const ctx = canvas.getContext('2d', { willReadFrequently: true });
-      if (!ctx) return new Uint8ClampedArray();
-      ctx.drawImage(bitmap, x0, y0, w, h, 0, 0, w, h);
-      return ctx.getImageData(0, 0, w, h).data;
-    },
-    [previewUrl, getBitmap],
-  );
 
   const applyDrag = useCallback(
     (drag: PickerDrag) => {
-      const { presence, base } = drag;
+      const { presence, base, property: key, maskId } = drag;
       if (!presence) return;
       const values = Object.entries(presence).map(([band, weight]): [string, number] => [
         band,
-        Math.max(-100, Math.min(100, Math.round(base[band as HslMixerBand] + drag.offset * (weight as number)))),
+        Math.max(-100, Math.min(100, Math.round(base[band][key] + drag.offset * (weight as number)))),
       ]);
       const appliedKey = values.join();
       if (appliedKey === drag.appliedKey) return;
       drag.appliedKey = appliedKey;
-      setAdjustments((prev) => withMixerValues(prev, drag.target, values, drag.maskId));
+      setAdjustments((prev) => {
+        const hsl = getTargetHsl(prev, maskId);
+        values.forEach(([band, value]) => {
+          hsl[band] = { ...hsl[band], [key]: value };
+        });
+        return maskId
+          ? {
+              ...prev,
+              masks: prev.masks.map((mask) =>
+                mask.id === maskId ? { ...mask, adjustments: { ...mask.adjustments, hsl } } : mask,
+              ),
+            }
+          : { ...prev, hsl };
+      });
     },
     [setAdjustments],
   );
@@ -188,17 +112,17 @@ export function useHslMixerPicker({
       const pos = stage && getCanvasPointer(stage);
       const clientY = getClientY(e.evt);
       const maskId = isMasking ? activeMaskContainerId : null;
-      if (!target || !pos || clientY === undefined || (isMasking && !maskId)) return;
+      if (!property || !pos || clientY === undefined || (isMasking && !maskId)) return;
       if (pos.x < 0 || pos.y < 0 || pos.x > imageRenderSize.width || pos.y > imageRenderSize.height) return;
 
       end();
       const drag: PickerDrag = {
-        target,
+        property,
         maskId,
         lastY: clientY,
         offset: 0,
         appliedKey: null,
-        base: getMixerValues(useEditorStore.getState().adjustments, target, maskId),
+        base: getTargetHsl(useEditorStore.getState().adjustments, maskId),
         presence: null,
         offsetRange: [-Infinity, Infinity],
       };
@@ -229,13 +153,13 @@ export function useHslMixerPicker({
       };
 
       const radius = SAMPLE_SCREEN_SIZE / 2 / zoomScale / imageRenderSize.width;
-      sampleArea(pos.x / imageRenderSize.width, pos.y / imageRenderSize.height, radius, target)
+      sampleArea(pos.x / imageRenderSize.width, pos.y / imageRenderSize.height, radius)
         .then((pixels) => {
           if (dragRef.current !== drag) return;
-          drag.presence = sampleHslPresence(pixels, drag.target);
+          drag.presence = sampleHslPresence(pixels, drag.property);
           const dominant = Object.keys(drag.presence).find((band) => drag.presence?.[band as HslMixerBand] === 1);
           if (dominant) {
-            const value = drag.base[dominant as HslMixerBand];
+            const value = drag.base[dominant][drag.property];
             drag.offsetRange = [-100 - value, 100 - value];
             drag.offset = clampOffset(drag, drag.offset);
           }
@@ -244,7 +168,7 @@ export function useHslMixerPicker({
         .catch((err) => console.error('Failed to sample preview for color mixer picker:', err));
     },
     [
-      target,
+      property,
       isMasking,
       activeMaskContainerId,
       imageRenderSize,
@@ -258,20 +182,10 @@ export function useHslMixerPicker({
   );
 
   useEffect(() => {
-    if (!target) end();
-  }, [target, end]);
+    if (!property) end();
+  }, [property, end]);
 
-  useEffect(() => {
-    if (target && (target === 'monochrome') !== isMonochrome) setEditor({ mixerPickerProperty: null });
-  }, [target, isMonochrome, setEditor]);
+  useEffect(() => end, [end]);
 
-  useEffect(
-    () => () => {
-      end();
-      releaseBitmap();
-    },
-    [end, releaseBitmap],
-  );
-
-  return { isActive: target !== null, isDragging, start };
+  return { isActive: property !== null, isDragging, start };
 }

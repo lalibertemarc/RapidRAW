@@ -1,3 +1,4 @@
+import { RefObject } from 'react';
 import { create } from 'zustand';
 import {
   Adjustments,
@@ -12,8 +13,9 @@ import { ChannelConfig } from '../components/adjustments/Curves';
 import { ImageDimensions } from '../hooks/useImageRenderSize';
 import { ToolType } from '../components/panel/right/Masks';
 import { OverlayMode } from '../components/panel/right/CropPanel';
-import { MixerPickerTarget } from '../utils/hslMixer';
 import { describeHistoryChange } from '../utils/editHistory';
+import { HslMixerProperty } from '../utils/hslMixer';
+import type { SpeedEditTarget } from '../components/ui/Slider';
 
 export type CenterMarker = 'vignette' | 'centre';
 
@@ -61,6 +63,7 @@ interface EditorState {
 
   // Interaction State
   isSliderDragging: boolean;
+  speedEditTarget: RefObject<SpeedEditTarget | null> | null;
   zoom: number;
   displaySize: ImageDimensions;
   previewSize: ImageDimensions;
@@ -74,10 +77,10 @@ interface EditorState {
   isStraightenActive: boolean;
   isAutoStraightening: boolean;
   isWbPickerActive: boolean;
-  mixerPickerProperty: MixerPickerTarget | null;
   isRelightPickerActive: boolean;
   activeRelightLightId: string | null;
   activeCenterMarker: CenterMarker | null;
+  mixerPickerProperty: HslMixerProperty | null;
   isGuidedPerspectiveActive: boolean;
   liveRotation: number | null;
   cropSessionSnapshot: { path: string | null; geometry: CropGeometry } | null;
@@ -110,6 +113,19 @@ interface EditorState {
   goToHistoryIndex: (index: number) => void;
 }
 
+type CanvasToolState = Pick<
+  EditorState,
+  'isWbPickerActive' | 'isRelightPickerActive' | 'activeCenterMarker' | 'mixerPickerProperty'
+>;
+
+export const canvasToolState = (activeTool: Partial<CanvasToolState> = {}): CanvasToolState => ({
+  isWbPickerActive: false,
+  isRelightPickerActive: false,
+  activeCenterMarker: null,
+  mixerPickerProperty: null,
+  ...activeTool,
+});
+
 export const useEditorStore = create<EditorState>((set) => ({
   selectedImage: null,
   adjustments: INITIAL_ADJUSTMENTS,
@@ -131,6 +147,7 @@ export const useEditorStore = create<EditorState>((set) => ({
   waveformHeight: 220,
 
   isSliderDragging: false,
+  speedEditTarget: null,
   interactivePatch: null,
   activeMaskContainerId: null,
   activeMaskId: null,
@@ -149,10 +166,10 @@ export const useEditorStore = create<EditorState>((set) => ({
   isStraightenActive: false,
   isAutoStraightening: false,
   isWbPickerActive: false,
-  mixerPickerProperty: null,
   isRelightPickerActive: false,
   activeRelightLightId: null,
   activeCenterMarker: null,
+  mixerPickerProperty: null,
   isGuidedPerspectiveActive: false,
   liveRotation: null,
   cropSessionSnapshot: null,

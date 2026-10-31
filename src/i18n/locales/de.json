@@ -92,7 +92,6 @@
         "highlights": "Lichter",
         "hue": "Farbton",
         "mix": "S/W-Mischer",
-        "mixPickerTooltip": "S/W-Mischer-Pipette: Auf das Foto klicken und nach oben oder unten ziehen",
         "saturation": "Sättigung",
         "shadows": "Tiefen",
         "strength": "Stärke",
@@ -111,7 +110,6 @@
       "saturation": "Sättigung",
       "temperature": "Temperatur",
       "tint": "Tonung",
-      "toggleMixerExpanded": "Erweiterter Farbmischer",
       "toggleSliders": "Regler umschalten",
       "vibrance": "Dynamik",
       "wbPickerTooltip": "Weißabgleich-Pipette",
@@ -898,6 +896,9 @@
         "tool": "Werkzeug"
       }
     },
+    "speedEdit": {
+      "noTarget": "Zuerst einen Regler verwenden"
+    },
     "switcher": {
       "tooltips": {
         "adjust": "Anpassen",
@@ -1179,6 +1180,7 @@
       "pending": "Bearbeitungen, die auf Immich warten: {{number}}"
     },
     "toasts": {
+      "editsStayLocal": "{{fileName}} gehört jemand anderem, deshalb nimmt Immich keine Bearbeitungen dafür an. Deine Bearbeitung bleibt auf diesem Computer.",
       "backOnline": "Immich ist wieder erreichbar, alle Bearbeitungen sind dort gespeichert.",
       "downloadFailed": "Download aus Immich fehlgeschlagen: {{error}}",
       "editsConflict": "{{fileName}} wurde auch auf einem anderen Rechner bearbeitet. Deine Bearbeitung bleibt, die andere Fassung liegt als virtuelle Kopie daneben.",
@@ -2024,6 +2026,7 @@
         "rotate_right": "90° im Uhrzeigersinn drehen",
         "select_all": "Alle Bilder auswählen",
         "show_original": "Original anzeigen (Vorher/Nachher)",
+        "speed_edit": "Schnellbearbeitung des letzten Reglers (halten und ziehen)",
         "toggle_adjustments": "Anpassungen-Panel ein-/ausblenden",
         "toggle_ai": "KI-Panel ein-/ausblenden",
         "toggle_analytics": "Analyseanzeige ein-/ausblenden",

@@ -92,7 +92,6 @@
         "highlights": "Altes llums",
         "hue": "To",
         "mix": "Mescla B/N",
-        "mixPickerTooltip": "Selector de la mescla B/N: feu clic i arrossegueu amunt o avall a la foto",
         "saturation": "Saturació",
         "shadows": "Ombres",
         "strength": "Intensitat",
@@ -111,7 +110,6 @@
       "saturation": "Saturació",
       "temperature": "Temperatura",
       "tint": "Matís",
-      "toggleMixerExpanded": "Mesclador de colors ampliat",
       "toggleSliders": "Alternar controls",
       "vibrance": "Intensitat",
       "wbPickerTooltip": "Comptagotes de balanç de blancs",
@@ -922,6 +920,9 @@
         "tool": "Eina"
       }
     },
+    "speedEdit": {
+      "noTarget": "Fes servir primer un control lliscant"
+    },
     "switcher": {
       "tooltips": {
         "adjust": "Ajustar",
@@ -1205,6 +1206,7 @@
       "pending": "Edicions pendents d'enviar a Immich: {{number}}"
     },
     "toasts": {
+      "editsStayLocal": "{{fileName}} pertany a una altra persona, així que Immich no n'accepta edicions. Les teves edicions es queden en aquest ordinador.",
       "backOnline": "Immich torna a estar disponible i totes les edicions s'hi han desat.",
       "downloadFailed": "No s'ha pogut descarregar d'Immich: {{error}}",
       "editsConflict": "{{fileName}} també s'ha editat en un altre ordinador. Les teves edicions es mantenen i l'altra versió es conserva com a còpia virtual.",
@@ -2065,6 +2067,7 @@
         "rotate_right": "Girar 90° en sentit horari",
         "select_all": "Seleccionar totes les imatges",
         "show_original": "Mostrar original (abans/després)",
+        "speed_edit": "Edició ràpida de l'últim control lliscant (mantén i arrossega)",
         "toggle_adjustments": "Alternar tauler d'Ajustaments",
         "toggle_ai": "Alternar tauler d'IA",
         "toggle_analytics": "Alternar visualització d'anàlisi",

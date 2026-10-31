@@ -45,7 +45,7 @@ import {
   useUIStore,
 } from './store/useUIStore';
 import { useLibraryStore } from './store/useLibraryStore';
-import { useEditorStore } from './store/useEditorStore';
+import { canvasToolState, useEditorStore } from './store/useEditorStore';
 import { JobKind, useProcessStore } from './store/useProcessStore';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -534,10 +534,7 @@ function App() {
 
   useEffect(() => {
     setEditor({
-      isWbPickerActive: false,
-      mixerPickerProperty: null,
-      isRelightPickerActive: false,
-      activeCenterMarker: null,
+      ...canvasToolState(),
       isStraightenActive: false,
       isGuidedPerspectiveActive: false,
       activeMaskId: null,

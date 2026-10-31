@@ -343,6 +343,12 @@ export const KEYBIND_DEFINITIONS: KeybindDefinition[] = [
     defaultCombo: ['ctrl', 'ArrowDown'],
     section: 'editing',
   },
+  {
+    action: 'speed_edit',
+    description: 'settings.keybinds.actions.speed_edit',
+    defaultCombo: ['KeyW'],
+    section: 'editing',
+  },
 ];
 
 const symMap: Record<string, string> = {
@@ -386,6 +392,14 @@ const symMap: Record<string, string> = {
 
 export function getDefaultCombo(def: KeybindDefinition, osPlatform?: string): string[] {
   return (osPlatform === 'macos' && def.macDefaultCombo) || def.defaultCombo;
+}
+
+export function getEffectiveCombo(
+  def: KeybindDefinition,
+  keybinds: Record<string, string[]> | undefined,
+  osPlatform?: string,
+): string[] {
+  return keybinds?.[def.action] ?? getDefaultCombo(def, osPlatform);
 }
 
 // Canonical identifiers keep stored shortcuts compatible while the symbol

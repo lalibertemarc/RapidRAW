@@ -92,7 +92,6 @@
         "highlights": "Hooglichten",
         "hue": "Kleurtoon",
         "mix": "Z/W-mix",
-        "mixPickerTooltip": "Z/W-mix-pipet: klik en sleep omhoog of omlaag op de foto",
         "saturation": "Verzadiging",
         "shadows": "Schaduwen",
         "strength": "Sterkte",
@@ -111,7 +110,6 @@
       "saturation": "Verzadiging",
       "temperature": "Kleurtemperatuur",
       "tint": "Tint",
-      "toggleMixerExpanded": "Uitgebreide kleurenmixer",
       "toggleSliders": "Schuifregelaars aan/uit",
       "vibrance": "Levendigheid",
       "wbPickerTooltip": "Witbalans pipet",
@@ -898,6 +896,9 @@
         "tool": "Gereedschap"
       }
     },
+    "speedEdit": {
+      "noTarget": "Gebruik eerst een schuifregelaar"
+    },
     "switcher": {
       "tooltips": {
         "adjust": "Aanpassen",
@@ -1179,6 +1180,7 @@
       "pending": "Bewerkingen die op Immich wachten: {{number}}"
     },
     "toasts": {
+      "editsStayLocal": "{{fileName}} is van iemand anders, dus Immich accepteert er geen bewerkingen voor. Je bewerkingen blijven op deze computer.",
       "backOnline": "Immich is weer bereikbaar en alle bewerkingen zijn daar opgeslagen.",
       "downloadFailed": "Downloaden van Immich mislukt: {{error}}",
       "editsConflict": "{{fileName}} is ook op een andere computer bewerkt. Je bewerkingen blijven en de andere versie wordt bewaard als virtuele kopie.",
@@ -2023,6 +2025,7 @@
         "rotate_right": "90° met de klok mee roteren",
         "select_all": "Alle afbeeldingen selecteren",
         "show_original": "Origineel weergeven (voor/na)",
+        "speed_edit": "Laatste schuifregelaar snel bewerken (ingedrukt houden en slepen)",
         "toggle_adjustments": "Aanpassingspaneel aan/uit",
         "toggle_ai": "AI-paneel aan/uit",
         "toggle_analytics": "Analyseweergave aan/uit",

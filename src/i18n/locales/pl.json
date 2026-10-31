@@ -92,7 +92,6 @@
         "highlights": "Światła",
         "hue": "Odcień",
         "mix": "Mikser cz-b",
-        "mixPickerTooltip": "Pipeta miksera cz-b: kliknij i przeciągnij w górę lub w dół na zdjęciu",
         "saturation": "Nasycenie",
         "shadows": "Cienie",
         "strength": "Siła",
@@ -111,7 +110,6 @@
       "saturation": "Nasycenie",
       "temperature": "Temperatura",
       "tint": "Zabarwienie",
-      "toggleMixerExpanded": "Rozszerzony mikser kolorów",
       "toggleSliders": "Przełącz suwaki",
       "vibrance": "Jaskrawość",
       "wbPickerTooltip": "Próbnik balansu bieli",
@@ -946,6 +944,9 @@
         "tool": "Narzędzie"
       }
     },
+    "speedEdit": {
+      "noTarget": "Najpierw użyj suwaka"
+    },
     "switcher": {
       "tooltips": {
         "adjust": "Dopasuj",
@@ -1231,6 +1232,7 @@
       "pending": "Edycje czekające na Immich: {{number}}"
     },
     "toasts": {
+      "editsStayLocal": "{{fileName}} należy do kogoś innego, więc Immich nie przyjmuje dla niego edycji. Twoje edycje zostaną na tym komputerze.",
       "backOnline": "Immich jest znowu dostępny, a wszystkie edycje zostały w nim zapisane.",
       "downloadFailed": "Nie udało się pobrać z Immich: {{error}}",
       "editsConflict": "{{fileName}} edytowano także na innym komputerze. Twoje edycje pozostają, a druga wersja jest zachowana jako kopia wirtualna.",
@@ -2106,6 +2108,7 @@
         "rotate_right": "Obróć o 90° w prawo",
         "select_all": "Zaznacz wszystkie obrazy",
         "show_original": "Pokaż oryginał (przed/po)",
+        "speed_edit": "Szybka edycja ostatniego suwaka (przytrzymaj i przeciągnij)",
         "toggle_adjustments": "Przełącz panel Ustawienia",
         "toggle_ai": "Przełącz panel AI",
         "toggle_analytics": "Przełącz wyświetlanie analityki",

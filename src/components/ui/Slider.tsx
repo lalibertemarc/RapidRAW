@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { GLOBAL_KEYS } from './AppProperties';
+import { useEditorStore } from '../../store/useEditorStore';
 import { FINE_ADJUSTMENT_MULTIPLIER, hasFineAdjustmentModifier } from '../../utils/keyboardUtils';
 
 export type SliderChangeEvent =
@@ -19,6 +20,19 @@ export interface SliderMarker {
 export interface SliderScale {
   fromPosition(position: number): number;
   toPosition(value: number): number;
+}
+
+export interface SpeedEditTarget {
+  label: string | null;
+  value: number;
+  defaultValue: number;
+  position: number;
+  minPosition: number;
+  maxPosition: number;
+  format(value: number): string;
+  toValue(position: number): number;
+  onChange(value: number): void;
+  onDragStateChange(state: boolean): void;
 }
 
 const LINEAR_SCALE: SliderScale = {
@@ -129,6 +143,37 @@ const Slider = ({
     [min, max, step, decimalPlaces],
   );
 
+  const numericValue = isNaN(Number(value)) ? 0 : Number(value);
+  const formatValue = (val: number) => (decimalPlaces > 0 && val === 0 ? '0' : val.toFixed(decimalPlaces));
+
+  const speedEditTargetRef = useRef<SpeedEditTarget | null>(null);
+  speedEditTargetRef.current = disabled
+    ? null
+    : {
+        label: typeof label === 'string' ? label : null,
+        value: numericValue,
+        defaultValue,
+        position: scale.toPosition(numericValue),
+        minPosition,
+        maxPosition,
+        format: (val) => `${formatValue(val)}${suffix}`,
+        toValue: (position) => snapToStep(scale.fromPosition(position)),
+        onChange: (val) => onChange({ target: { value: val } }),
+        onDragStateChange: (state) => {
+          onDragStateChange(state);
+          if (!state) onPointerUp?.();
+        },
+      };
+
+  const claimSpeedEdit = () => useEditorStore.getState().setEditor({ speedEditTarget: speedEditTargetRef });
+
+  useEffect(() => {
+    return () => {
+      const { speedEditTarget, setEditor } = useEditorStore.getState();
+      if (speedEditTarget === speedEditTargetRef) setEditor({ speedEditTarget: null });
+    };
+  }, []);
+
   const onChangeRef = useRef(onChange);
   const snapToStepRef = useRef(snapToStep);
   const rangeRef = useRef({ min: minPosition, max: maxPosition });
@@ -197,6 +242,7 @@ const Slider = ({
       }
 
       event.preventDefault();
+      claimSpeedEdit();
       const direction = -Math.sign(event.deltaY || event.deltaX);
       const newValue = value + direction * step;
       const roundedNewValue = parseFloat(newValue.toFixed(decimalPlaces));
@@ -598,10 +644,12 @@ const Slider = ({
     }
   };
 
-  const numericValue = isNaN(Number(value)) ? 0 : Number(value);
-
   return (
-    <div className={`mb-2 group ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`} ref={containerRef}>
+    <div
+      className={`mb-2 group ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+      ref={containerRef}
+      onPointerDownCapture={disabled ? undefined : claimSpeedEdit}
+    >
       <div className="flex justify-between items-center mb-1">
         <div
           className={`grid ${typeof label === 'string' && !disabled ? 'cursor-pointer' : ''}`}
@@ -651,7 +699,7 @@ const Slider = ({
               onDoubleClick={disabled ? undefined : handleReset}
               data-tooltip={disabled ? undefined : t('ui.slider.clickToEdit')}
             >
-              {decimalPlaces > 0 && numericValue === 0 ? '0' : numericValue.toFixed(decimalPlaces)}
+              {formatValue(numericValue)}
               {suffix && <span className="text-[10px] align-top inline ml-0.5">{suffix}</span>}
             </span>
           )}

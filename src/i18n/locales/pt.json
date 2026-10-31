@@ -92,7 +92,6 @@
         "highlights": "Realces",
         "hue": "Matiz",
         "mix": "Mistura P&B",
-        "mixPickerTooltip": "Seletor da Mistura P&B: clique e arraste para cima ou para baixo na foto",
         "saturation": "Saturação",
         "shadows": "Sombras",
         "strength": "Intensidade",
@@ -111,7 +110,6 @@
       "saturation": "Saturação",
       "temperature": "Temperatura",
       "tint": "Tonalidade",
-      "toggleMixerExpanded": "Misturador de Cores expandido",
       "toggleSliders": "Alternar Controles",
       "vibrance": "Vibração",
       "wbPickerTooltip": "Seletor de Balanço de Branco",
@@ -922,6 +920,9 @@
         "tool": "Ferramenta"
       }
     },
+    "speedEdit": {
+      "noTarget": "Use primeiro um controle deslizante"
+    },
     "switcher": {
       "tooltips": {
         "adjust": "Ajustar",
@@ -1205,6 +1206,7 @@
       "pending": "Edições a aguardar envio para o Immich: {{number}}"
     },
     "toasts": {
+      "editsStayLocal": "{{fileName}} pertence a outra pessoa, por isso o Immich não aceita edições. As suas edições ficam neste computador.",
       "backOnline": "O Immich está novamente acessível e todas as edições estão guardadas lá.",
       "downloadFailed": "Não foi possível transferir do Immich: {{error}}",
       "editsConflict": "{{fileName}} também foi editada noutro computador. As suas edições mantêm-se e a outra versão é guardada como cópia virtual.",
@@ -2065,6 +2067,7 @@
         "rotate_right": "Girar 90° no sentido horário",
         "select_all": "Selecionar todas as imagens",
         "show_original": "Mostrar original (antes/depois)",
+        "speed_edit": "Edição rápida do último controle deslizante (segurar e arrastar)",
         "toggle_adjustments": "Alternar painel de Ajustes",
         "toggle_ai": "Alternar painel de IA",
         "toggle_analytics": "Alternar exibição de Análises",

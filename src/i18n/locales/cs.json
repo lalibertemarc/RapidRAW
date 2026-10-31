@@ -92,7 +92,6 @@
         "highlights": "Světla",
         "hue": "Odstín",
         "mix": "Č/B mix",
-        "mixPickerTooltip": "Pipeta Č/B mixu: klikněte na fotografii a táhněte nahoru nebo dolů",
         "saturation": "Sytost",
         "shadows": "Stíny",
         "strength": "Síla",
@@ -111,7 +110,6 @@
       "saturation": "Sytost",
       "temperature": "Teplota",
       "tint": "Nádech",
-      "toggleMixerExpanded": "Rozšířené míchání barev",
       "toggleSliders": "Přepnout posuvníky",
       "vibrance": "Živost",
       "wbPickerTooltip": "Výběr vyvážení bílé",
@@ -946,6 +944,9 @@
         "tool": "Nástroj"
       }
     },
+    "speedEdit": {
+      "noTarget": "Nejprve použijte posuvník"
+    },
     "switcher": {
       "tooltips": {
         "adjust": "Upravit",
@@ -1231,6 +1232,7 @@
       "pending": "Úpravy čekající na Immich: {{number}}"
     },
     "toasts": {
+      "editsStayLocal": "{{fileName}} patří někomu jinému, proto pro něj Immich nepřijímá úpravy. Tvé úpravy zůstanou v tomto počítači.",
       "backOnline": "Immich je opět dostupný a všechny úpravy jsou v něm uložené.",
       "downloadFailed": "Stažení z Immiche se nezdařilo: {{error}}",
       "editsConflict": "{{fileName}} byl upraven také na jiném počítači. Vaše úpravy zůstávají a druhá verze je uložena jako virtuální kopie.",
@@ -2106,6 +2108,7 @@
         "rotate_right": "Otočit o 90° ve směru hodinových ručiček",
         "select_all": "Vybrat všechny snímky",
         "show_original": "Zobrazit originál (před/po)",
+        "speed_edit": "Rychlá úprava posledního posuvníku (podržet a táhnout)",
         "toggle_adjustments": "Přepnout panel úprav",
         "toggle_ai": "Přepnout panel AI",
         "toggle_analytics": "Přepnout zobrazení analýzy",

@@ -92,7 +92,6 @@
         "highlights": "Hautes lumières",
         "hue": "Teinte",
         "mix": "Mélange N&B",
-        "mixPickerTooltip": "Pipette du mélange N&B : cliquez et faites glisser vers le haut ou le bas sur la photo",
         "saturation": "Saturation",
         "shadows": "Ombres",
         "strength": "Intensité",
@@ -111,7 +110,6 @@
       "saturation": "Saturation",
       "temperature": "Température",
       "tint": "Teinte",
-      "toggleMixerExpanded": "Mélangeur de couleurs étendu",
       "toggleSliders": "Basculer les curseurs",
       "vibrance": "Vibrance",
       "wbPickerTooltip": "Pipette de balance des blancs",
@@ -922,6 +920,9 @@
         "tool": "Outil"
       }
     },
+    "speedEdit": {
+      "noTarget": "Utilisez d'abord un curseur"
+    },
     "switcher": {
       "tooltips": {
         "adjust": "Ajuster",
@@ -1205,6 +1206,7 @@
       "pending": "Retouches en attente d'envoi vers Immich : {{number}}"
     },
     "toasts": {
+      "editsStayLocal": "{{fileName}} appartient à quelqu'un d'autre, Immich n'accepte donc pas de retouches pour cette image. Vos retouches restent sur cet ordinateur.",
       "backOnline": "Immich est de nouveau joignable et toutes les retouches y sont enregistrées.",
       "downloadFailed": "Échec du téléchargement depuis Immich : {{error}}",
       "editsConflict": "{{fileName}} a aussi été retouchée sur un autre ordinateur. Vos retouches sont conservées et l'autre version est gardée comme copie virtuelle.",
@@ -2066,6 +2068,7 @@
         "rotate_right": "Pivoter de 90° à droite",
         "select_all": "Sélectionner toutes les images",
         "show_original": "Afficher l'original (avant/après)",
+        "speed_edit": "Édition rapide du dernier curseur (maintenir et glisser)",
         "toggle_adjustments": "Basculer le panneau des ajustements",
         "toggle_ai": "Basculer le panneau IA",
         "toggle_analytics": "Basculer l'affichage des analyses",

@@ -92,7 +92,6 @@
         "highlights": "Luci",
         "hue": "Tonalità",
         "mix": "Mixer B/N",
-        "mixPickerTooltip": "Contagocce del Mixer B/N: fai clic e trascina in alto o in basso sulla foto",
         "saturation": "Saturazione",
         "shadows": "Ombre",
         "strength": "Intensità",
@@ -111,7 +110,6 @@
       "saturation": "Saturazione",
       "temperature": "Temperatura",
       "tint": "Tinta",
-      "toggleMixerExpanded": "Mixer Colori espanso",
       "toggleSliders": "Attiva/Disattiva Cursori",
       "vibrance": "Vividezza",
       "wbPickerTooltip": "Selettore Bilanciamento del Bianco",
@@ -922,6 +920,9 @@
         "tool": "Strumento"
       }
     },
+    "speedEdit": {
+      "noTarget": "Usa prima un cursore"
+    },
     "switcher": {
       "tooltips": {
         "adjust": "Regola",
@@ -1205,6 +1206,7 @@
       "pending": "Modifiche in attesa di Immich: {{number}}"
     },
     "toasts": {
+      "editsStayLocal": "{{fileName}} appartiene a un'altra persona, quindi Immich non accetta modifiche. Le tue modifiche restano su questo computer.",
       "backOnline": "Immich è di nuovo raggiungibile e tutte le modifiche sono salvate lì.",
       "downloadFailed": "Impossibile scaricare da Immich: {{error}}",
       "editsConflict": "{{fileName}} è stata modificata anche su un altro computer. Le tue modifiche restano e l'altra versione viene conservata come copia virtuale.",
@@ -2065,6 +2067,7 @@
         "rotate_right": "Ruota 90° in senso orario",
         "select_all": "Seleziona tutte le immagini",
         "show_original": "Mostra originale (prima/dopo)",
+        "speed_edit": "Modifica rapida dell'ultimo cursore (tieni premuto e trascina)",
         "toggle_adjustments": "Attiva/Disattiva pannello Regolazioni",
         "toggle_ai": "Attiva/Disattiva pannello AI",
         "toggle_analytics": "Attiva/Disattiva visualizzazione Analitiche",
