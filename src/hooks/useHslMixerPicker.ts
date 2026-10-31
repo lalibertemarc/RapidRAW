@@ -3,8 +3,8 @@ import { invoke } from '@tauri-apps/api/core';
 import type Konva from 'konva';
 import type { KonvaEventObject } from 'konva/lib/Node';
 import { useEditorStore } from '../store/useEditorStore';
-import { Adjustments, HueSatLum, INITIAL_ADJUSTMENTS, INITIAL_MASK_ADJUSTMENTS } from '../utils/adjustments';
-import { HslMixerBand, HslMixerProperty, HslPresence, sampleHslPresence } from '../utils/hslMixer';
+import { Adjustments, INITIAL_ADJUSTMENTS, INITIAL_MASK_ADJUSTMENTS } from '../utils/adjustments';
+import { HslMixerBand, HslMixerProperty, HslPresence, HslPresenceMode, sampleHslPresence } from '../utils/hslMixer';
 import { RenderSize } from './useImageRenderSize';
 import { Invokes } from '../components/ui/AppProperties';
 import { FINE_ADJUSTMENT_MULTIPLIER } from '../utils/keyboardUtils';
@@ -20,11 +20,13 @@ interface Coord {
 
 interface PickerDrag {
   property: HslMixerProperty;
+  presenceMode: HslPresenceMode;
   maskId: string | null;
+  editsMonochromeMix: boolean;
   lastY: number;
   offset: number;
   appliedKey: string | null;
-  base: Record<string, HueSatLum>;
+  base: Record<string, number>;
   presence: HslPresence | null;
   offsetRange: [number, number];
 }
@@ -46,6 +48,21 @@ const getTargetHsl = (adjustments: Adjustments, maskId: string | null): Adjustme
   maskId
     ? { ...INITIAL_MASK_ADJUSTMENTS.hsl, ...adjustments.masks.find((mask) => mask.id === maskId)?.adjustments.hsl }
     : { ...INITIAL_ADJUSTMENTS.hsl, ...adjustments.hsl };
+
+const getMonochromeMix = (adjustments: Adjustments) => ({
+  ...INITIAL_ADJUSTMENTS.monochromeMix,
+  ...adjustments.monochromeMix,
+});
+
+const getTargetValues = (
+  adjustments: Adjustments,
+  { editsMonochromeMix, maskId, property }: Pick<PickerDrag, 'editsMonochromeMix' | 'maskId' | 'property'>,
+): Record<string, number> =>
+  editsMonochromeMix
+    ? getMonochromeMix(adjustments)
+    : Object.fromEntries(
+        Object.entries(getTargetHsl(adjustments, maskId)).map(([band, values]) => [band, values[property]]),
+      );
 
 export function useHslMixerPicker({
   activeMaskContainerId,
@@ -74,12 +91,15 @@ export function useHslMixerPicker({
       if (!presence) return;
       const values = Object.entries(presence).map(([band, weight]): [string, number] => [
         band,
-        Math.max(-100, Math.min(100, Math.round(base[band][key] + drag.offset * (weight as number)))),
+        Math.max(-100, Math.min(100, Math.round(base[band] + drag.offset * (weight as number)))),
       ]);
       const appliedKey = values.join();
       if (appliedKey === drag.appliedKey) return;
       drag.appliedKey = appliedKey;
       setAdjustments((prev) => {
+        if (drag.editsMonochromeMix) {
+          return { ...prev, monochromeMix: { ...getMonochromeMix(prev), ...Object.fromEntries(values) } };
+        }
         const hsl = getTargetHsl(prev, maskId);
         values.forEach(([band, value]) => {
           hsl[band] = { ...hsl[band], [key]: value };
@@ -116,13 +136,20 @@ export function useHslMixerPicker({
       if (pos.x < 0 || pos.y < 0 || pos.x > imageRenderSize.width || pos.y > imageRenderSize.height) return;
 
       end();
-      const drag: PickerDrag = {
-        property,
+      const { adjustments } = useEditorStore.getState();
+      const isMonochrome = !!adjustments.monochromeEnabled;
+      const target = {
+        property: isMonochrome ? 'luminance' : property,
         maskId,
+        editsMonochromeMix: isMonochrome && !maskId,
+      } as const;
+      const drag: PickerDrag = {
+        ...target,
+        presenceMode: isMonochrome ? 'monochrome' : property,
         lastY: clientY,
         offset: 0,
         appliedKey: null,
-        base: getTargetHsl(useEditorStore.getState().adjustments, maskId),
+        base: getTargetValues(adjustments, target),
         presence: null,
         offsetRange: [-Infinity, Infinity],
       };
@@ -156,10 +183,10 @@ export function useHslMixerPicker({
       sampleArea(pos.x / imageRenderSize.width, pos.y / imageRenderSize.height, radius)
         .then((pixels) => {
           if (dragRef.current !== drag) return;
-          drag.presence = sampleHslPresence(pixels, drag.property);
+          drag.presence = sampleHslPresence(pixels, drag.presenceMode);
           const dominant = Object.keys(drag.presence).find((band) => drag.presence?.[band as HslMixerBand] === 1);
           if (dominant) {
-            const value = drag.base[dominant][drag.property];
+            const value = drag.base[dominant];
             drag.offsetRange = [-100 - value, 100 - value];
             drag.offset = clampOffset(drag, drag.offset);
           }
