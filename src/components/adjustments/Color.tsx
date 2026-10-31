@@ -924,6 +924,7 @@ function ColorPanel({
             min={kelvinAsShot ? MIN_TEMPERATURE : -RELATIVE_RANGE}
             onChange={(e: SliderChangeEvent) => handleWhiteBalanceChange('temperature', e.target.value)}
             scale={kelvinAsShot ? kelvinSliderScale : undefined}
+            speedEditId={ColorAdjustment.Temperature}
             step={kelvinAsShot ? 50 : 1}
             suffix={kelvinAsShot ? 'K' : undefined}
             value={displayedWhiteBalance.temperature}
@@ -937,6 +938,7 @@ function ColorPanel({
             max={tintRange}
             min={-tintRange}
             onChange={(e: SliderChangeEvent) => handleWhiteBalanceChange('tint', e.target.value)}
+            speedEditId={ColorAdjustment.Tint}
             step={1}
             value={displayedWhiteBalance.tint}
             trackClassName="tint-gradient-track"
@@ -976,6 +978,7 @@ function ColorPanel({
                 max={100}
                 min={-100}
                 onChange={(e: any) => handleAdjustmentChange(ColorAdjustment.Vibrance, e.target.value)}
+                speedEditId={ColorAdjustment.Vibrance}
                 step={1}
                 value={adjustments.vibrance || 0}
                 onDragStateChange={onDragStateChange}
@@ -985,6 +988,7 @@ function ColorPanel({
                 max={100}
                 min={-100}
                 onChange={(e: any) => handleAdjustmentChange(ColorAdjustment.Saturation, e.target.value)}
+                speedEditId={ColorAdjustment.Saturation}
                 step={1}
                 value={adjustments.saturation || 0}
                 onDragStateChange={onDragStateChange}
