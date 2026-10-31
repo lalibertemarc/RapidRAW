@@ -1,11 +1,9 @@
 import React, { useRef } from 'react';
-import clsx from 'clsx';
 import { MAX_FINE_ROTATION } from '../../../../utils/cropUtils';
 import { FINE_ADJUSTMENT_MULTIPLIER, hasFineAdjustmentModifier } from '../../../../utils/keyboardUtils';
 
-const ZONE_SIZE = 56;
-const ZONE_OFFSET = -ZONE_SIZE / 2;
-const MIN_CROP_SIZE = 96;
+const BAND_EXTENT = 10000;
+const CURSOR_STEP = 45;
 
 const rotateCursor = (angle: number) => {
   const arrow = 'M6 17A11 11 0 0 1 17 6M3 14L6 18L9 14M14 3L18 6L14 9';
@@ -13,50 +11,54 @@ const rotateCursor = (angle: number) => {
   return `url("data:image/svg+xml,${encodeURIComponent(svg)}") 12 12, grab`;
 };
 
-const CORNERS: Array<React.CSSProperties> = [
-  { top: ZONE_OFFSET, left: ZONE_OFFSET, cursor: rotateCursor(0) },
-  { top: ZONE_OFFSET, right: ZONE_OFFSET, cursor: rotateCursor(90) },
-  { bottom: ZONE_OFFSET, right: ZONE_OFFSET, cursor: rotateCursor(180) },
-  { bottom: ZONE_OFFSET, left: ZONE_OFFSET, cursor: rotateCursor(270) },
+const ROTATE_CURSORS = Array.from({ length: 360 / CURSOR_STEP }, (_, i) => rotateCursor(i * CURSOR_STEP));
+
+const BANDS: Array<React.CSSProperties> = [
+  { left: -BAND_EXTENT, right: -BAND_EXTENT, bottom: '100%', height: BAND_EXTENT, cursor: ROTATE_CURSORS[1] },
+  { left: -BAND_EXTENT, right: -BAND_EXTENT, top: '100%', height: BAND_EXTENT, cursor: ROTATE_CURSORS[5] },
+  { top: 0, bottom: 0, right: '100%', width: BAND_EXTENT, cursor: ROTATE_CURSORS[7] },
+  { top: 0, bottom: 0, left: '100%', width: BAND_EXTENT, cursor: ROTATE_CURSORS[3] },
 ];
 
-interface CropRotateHandlesProps {
-  width: number;
-  height: number;
+interface CropRotateAreaProps {
   rotation: number;
   onRotate(rotation: number): void;
   onRotateEnd(rotation: number | null): void;
 }
 
 interface RotateDrag {
-  centerX: number;
-  centerY: number;
   lastAngle: number;
   angleDelta: number;
   startRotation: number;
   rotation: number | null;
 }
 
-const pointerAngle = (e: React.PointerEvent, centerX: number, centerY: number) =>
-  (Math.atan2(e.clientY - centerY, e.clientX - centerX) * 180) / Math.PI;
-
-export default function CropRotateHandles({ width, height, rotation, onRotate, onRotateEnd }: CropRotateHandlesProps) {
+export default function CropRotateArea({ rotation, onRotate, onRotateEnd }: CropRotateAreaProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<RotateDrag | null>(null);
-  const isTooSmall = width < MIN_CROP_SIZE || height < MIN_CROP_SIZE;
+
+  const pointerAngle = (e: React.PointerEvent) => {
+    const rect = containerRef.current!.getBoundingClientRect();
+    const dx = e.clientX - (rect.left + rect.width / 2);
+    const dy = e.clientY - (rect.top + rect.height / 2);
+    return (Math.atan2(dy, dx) * 180) / Math.PI;
+  };
+
+  const updateCursor = (e: React.PointerEvent<HTMLDivElement>, angle: number) => {
+    const index = Math.round((angle + 135) / CURSOR_STEP);
+    const cursor = ROTATE_CURSORS[((index % ROTATE_CURSORS.length) + ROTATE_CURSORS.length) % ROTATE_CURSORS.length];
+    if (e.currentTarget.style.cursor !== cursor) {
+      e.currentTarget.style.cursor = cursor;
+    }
+  };
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (e.button !== 0 || !containerRef.current) return;
     e.preventDefault();
     e.stopPropagation();
 
-    const rect = containerRef.current.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
     dragRef.current = {
-      centerX,
-      centerY,
-      lastAngle: pointerAngle(e, centerX, centerY),
+      lastAngle: pointerAngle(e),
       angleDelta: 0,
       startRotation: rotation,
       rotation: null,
@@ -65,10 +67,13 @@ export default function CropRotateHandles({ width, height, rotation, onRotate, o
   };
 
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!containerRef.current) return;
+    const angle = pointerAngle(e);
+    updateCursor(e, angle);
+
     const drag = dragRef.current;
     if (!drag) return;
 
-    const angle = pointerAngle(e, drag.centerX, drag.centerY);
     let step = angle - drag.lastAngle;
     if (step > 180) step -= 360;
     if (step < -180) step += 360;
@@ -95,12 +100,12 @@ export default function CropRotateHandles({ width, height, rotation, onRotate, o
   };
 
   return (
-    <div ref={containerRef} className={clsx('absolute inset-0 pointer-events-none', isTooSmall && 'invisible')}>
-      {CORNERS.map((position, index) => (
+    <div ref={containerRef} className="absolute inset-0 pointer-events-none">
+      {BANDS.map((position, index) => (
         <div
           key={index}
           className="absolute pointer-events-auto touch-none"
-          style={{ ...position, width: ZONE_SIZE, height: ZONE_SIZE }}
+          style={position}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerEnd}

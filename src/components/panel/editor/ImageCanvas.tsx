@@ -26,7 +26,7 @@ import { useHslMixerPicker } from '../../../hooks/useHslMixerPicker';
 import { isPanelVisible, useUIStore } from '../../../store/useUIStore';
 import type { OverlayMode } from '../right/CropPanel';
 import CompositionOverlays from './overlays/CompositionOverlays';
-import CropRotateHandles from './overlays/CropRotateHandles';
+import CropRotateArea from './overlays/CropRotateArea';
 import RelightLightShape, { RelightBasis } from './overlays/RelightLightShape';
 import CenterMarkerShape, { CENTER_MARKERS } from './overlays/CenterMarkerShape';
 import { calculateStraightenAngle, resolveAspectRatio } from '../../../utils/cropUtils';
@@ -3946,9 +3946,7 @@ const ImageCanvas = memo(
                         denseVisible={showDenseGrid}
                       />
                       {!isStraightenActive && !isGuidedPerspectiveActive && (
-                        <CropRotateHandles
-                          width={width}
-                          height={height}
+                        <CropRotateArea
                           rotation={effectiveRotation}
                           onRotate={handleRotateHandleChange}
                           onRotateEnd={handleRotateHandleEnd}
