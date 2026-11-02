@@ -343,12 +343,6 @@ export const KEYBIND_DEFINITIONS: KeybindDefinition[] = [
     defaultCombo: ['ctrl', 'ArrowDown'],
     section: 'editing',
   },
-  {
-    action: 'speed_edit',
-    description: 'settings.keybinds.actions.speed_edit',
-    defaultCombo: ['KeyW'],
-    section: 'editing',
-  },
 ];
 
 const symMap: Record<string, string> = {

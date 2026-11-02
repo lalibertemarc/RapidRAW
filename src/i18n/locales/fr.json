@@ -222,7 +222,25 @@
       "roundness": "Arrondi",
       "size": "Taille",
       "spatial": "Spatial",
-      "vignette": "Vignettage"
+      "vignette": "Vignettage",
+      "motionBlur": "Flou de mouvement",
+      "motionBlurAngle": "Angle",
+      "motionBlurDepth": "Profondeur",
+      "motionBlurHighlights": "Hautes lumières",
+      "motionBlurLayer": "Mouvement",
+      "motionBlurLayers": {
+        "auto": "Auto",
+        "panning": "Filé",
+        "subject": "Sujet en mouvement",
+        "uniform": "Uniforme"
+      },
+      "motionBlurType": "Type",
+      "motionBlurTypes": {
+        "linear": "Linéaire",
+        "zoom": "Zoom",
+        "spin": "Rotation",
+        "smooth": "Lisse"
+      }
     }
   },
   "contextMenus": {
@@ -479,6 +497,15 @@
         "erase": "Gommer",
         "feather": "Contour progressif du pinceau",
         "size": "Taille du pinceau"
+      },
+      "cloneHeal": {
+        "cloneTooltip": "Copie la source à l'identique, luminosité et couleur comprises",
+        "dragSource": "Faites glisser pour déplacer la source",
+        "healTooltip": "Copie la texture de la source et l'adapte à la luminosité et à la couleur environnantes",
+        "hintActive": "Faites glisser le contour de la source pour choisir d'où proviennent les pixels. Chaque nouveau trait devient une zone distincte. Maintenez Maj pour compléter celle-ci.",
+        "hintEmpty": "Peignez sur une tache, un câble ou un élément gênant. Une source correspondante est trouvée automatiquement.",
+        "mode": "Mode",
+        "newSource": "Trouver une autre source"
       },
       "comingSoon": "Bientôt disponible",
       "connection": {
@@ -817,8 +844,7 @@
       "toggleAnalyticsTooltip": "Basculer l'affichage des analyses",
       "tooltips": {
         "addToCurrent": "Ajouter {{name}} au masque actuel ou en créer un nouveau (Clic-droit)",
-        "createNew": "Créer un nouveau masque {{name}}",
-        "selectNewSourcePoint": "{{modifier}} + Clic pour sélectionner un nouveau point source"
+        "createNew": "Créer un nouveau masque {{name}}"
       }
     },
     "metadata": {
@@ -1639,6 +1665,7 @@
         "halationGlow": "Halo & Lueur",
         "hueShift": "Décalage de teinte global",
         "lensBlur": "Flou d'objectif",
+        "motionBlur": "Flou de mouvement",
         "lensCorrection": "Correction de l'objectif",
         "lut": "LUT",
         "masks": "Masques",
@@ -1918,8 +1945,27 @@
       "pressKey": "Appuyez sur une touche... (Échap pour effacer)",
       "resetDefaults": "Réinitialiser aux valeurs par défaut",
       "speed": "Vitesse",
-      "speedEditAdjustments": "Réglages de l'édition rapide",
-      "speedEditAdjustmentsDesc": "En maintenant la touche d'édition rapide, appuyez sur A et D pour passer d'un réglage à l'autre, ← et → pour les ajuster pas à pas, Q et E pour changer d'image, R pour les réinitialiser et C et V pour copier et coller une valeur.",
+      "speedEdit": {
+        "adjustments": "Réglages",
+        "gestures": {
+          "doubleClick": "Double-clic pour réinitialiser",
+          "drag": "Glisser sur le canevas pour ajuster",
+          "fine": "Maj pour affiner"
+        },
+        "keys": {
+          "hold": "Appuyer / Maintenir",
+          "previousImage": "Image préc.",
+          "nextImage": "Image suiv.",
+          "reset": "Réinit.",
+          "previousAdjustment": "Curseur préc.",
+          "nextAdjustment": "Curseur suiv.",
+          "copy": "Copier",
+          "paste": "Coller",
+          "stepDown": "−1 pas",
+          "stepUp": "+1 pas"
+        },
+        "title": "Édition rapide"
+      },
       "title": "Contrôles de la souris",
       "zoom": "Multiplicateur de vitesse de zoom",
       "zoomClick": "Zoomer la photo à 100 %",
@@ -2072,7 +2118,6 @@
         "rotate_right": "Pivoter de 90° à droite",
         "select_all": "Sélectionner toutes les images",
         "show_original": "Afficher l'original (avant/après)",
-        "speed_edit": "Édition rapide du dernier curseur (maintenir et glisser)",
         "toggle_adjustments": "Basculer le panneau des ajustements",
         "toggle_ai": "Basculer le panneau IA",
         "toggle_analytics": "Basculer l'affichage des analyses",
@@ -2312,7 +2357,8 @@
       "title": "Moteur de traitement",
       "wgpu": "Rendu Direct WGPU",
       "wgpuDescAndroid": "Contourne l'encodage du navigateur pour des aperçus en direct instantanément réactifs. (Désactivé sur Android : La création native de surface WGPU n'est actuellement pas prise en charge avec le webview mobile.)",
-      "wgpuDescLinux": "Contourne l'encodage du navigateur pour des aperçus en direct instantanément réactifs. (Désactivé sur Linux : Tauri utilise GTK pour les webviews, ce qui entre en conflit avec WGPU sur la même surface X11 et provoque des clignotements.)",
+      "wgpuDescLinuxExperimental": "Expérimental sous Linux et peut être instable.",
+      "wgpuDescLinuxX11": "Non disponible sous X11.",
       "wgpuDescRecommended": "Contourne l'encodage du navigateur pour des aperçus en direct instantanément réactifs. Fortement recommandé pour les performances.",
       "wgpuLabel": "Activer le rendu direct WGPU",
       "workerThreads": "Threads de traitement des miniatures",

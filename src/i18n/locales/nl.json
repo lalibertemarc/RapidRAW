@@ -222,7 +222,25 @@
       "roundness": "Rondheid",
       "size": "Grootte",
       "spatial": "Ruimtelijk",
-      "vignette": "Vignet"
+      "vignette": "Vignet",
+      "motionBlur": "Bewegingsonscherpte",
+      "motionBlurAngle": "Hoek",
+      "motionBlurDepth": "Diepte",
+      "motionBlurHighlights": "Hoge lichten",
+      "motionBlurLayer": "Beweging",
+      "motionBlurLayers": {
+        "auto": "Automatisch",
+        "panning": "Meetrekken",
+        "subject": "Bewegend onderwerp",
+        "uniform": "Gelijkmatig"
+      },
+      "motionBlurType": "Type",
+      "motionBlurTypes": {
+        "linear": "Lineair",
+        "zoom": "Zoom",
+        "spin": "Draaiing",
+        "smooth": "Zacht"
+      }
     }
   },
   "contextMenus": {
@@ -462,6 +480,15 @@
         "erase": "Wissen",
         "feather": "Penseelrandvervaging",
         "size": "Penseelgrootte"
+      },
+      "cloneHeal": {
+        "cloneTooltip": "Kopieert de bron exact, inclusief helderheid en kleur",
+        "dragSource": "Sleep om de bron te verplaatsen",
+        "healTooltip": "Kopieert de textuur van de bron en past die aan de omliggende helderheid en kleur aan",
+        "hintActive": "Sleep de bronomtrek om te kiezen waar de pixels vandaan komen. Elke nieuwe streek wordt een eigen plek. Houd Shift ingedrukt om aan deze toe te voegen.",
+        "hintEmpty": "Schilder over een vlek, draad of storend element. Er wordt automatisch een passende bron gevonden.",
+        "mode": "Modus",
+        "newSource": "Andere bron zoeken"
       },
       "comingSoon": "Binnenkort beschikbaar",
       "connection": {
@@ -793,8 +820,7 @@
       "toggleAnalyticsTooltip": "Analytische weergave aan/uit",
       "tooltips": {
         "addToCurrent": "{{name}} toevoegen aan huidig masker of nieuw masker maken (rechtermuisknop)",
-        "createNew": "Nieuw {{name}} masker maken",
-        "selectNewSourcePoint": "{{modifier}} + klik om een nieuw bronpunt te selecteren"
+        "createNew": "Nieuw {{name}} masker maken"
       }
     },
     "metadata": {
@@ -1606,6 +1632,7 @@
         "halationGlow": "Halatie & gloed",
         "hueShift": "Globale kleurtoonwijziging",
         "lensBlur": "Lensvervaging",
+        "motionBlur": "Bewegingsonscherpte",
         "lensCorrection": "Lenscorrectie",
         "lut": "LUT",
         "masks": "Maskers",
@@ -1879,8 +1906,27 @@
       "pressKey": "Druk op een toets... (Esc om te wissen)",
       "resetDefaults": "Alles herstellen naar standaard",
       "speed": "Snelheid",
-      "speedEditAdjustments": "Aanpassingen voor snel bewerken",
-      "speedEditAdjustmentsDesc": "Houd de sneltoets voor snel bewerken ingedrukt en druk op A en D om tussen deze aanpassingen te wisselen, op ← en → om ze stapsgewijs aan te passen, op Q en E om van afbeelding te wisselen, op R om ze te herstellen en op C en V om een waarde te kopiëren en te plakken.",
+      "speedEdit": {
+        "adjustments": "Aanpassingen",
+        "gestures": {
+          "doubleClick": "Dubbelklik om te herstellen",
+          "drag": "Sleep op het canvas om aan te passen",
+          "fine": "Shift voor fijn"
+        },
+        "keys": {
+          "hold": "Tikken / Houden",
+          "previousImage": "Vorige afb.",
+          "nextImage": "Volgende afb.",
+          "reset": "Herstellen",
+          "previousAdjustment": "Vorige regelaar",
+          "nextAdjustment": "Volgende regelaar",
+          "copy": "Kopiëren",
+          "paste": "Plakken",
+          "stepDown": "−1 stap",
+          "stepUp": "+1 stap"
+        },
+        "title": "Snel bewerken"
+      },
       "title": "Muisbesturing",
       "zoom": "Zoomsnelheidsmultiplicator",
       "zoomClick": "Foto zoomen naar 100%",
@@ -2029,7 +2075,6 @@
         "rotate_right": "90° met de klok mee roteren",
         "select_all": "Alle afbeeldingen selecteren",
         "show_original": "Origineel weergeven (voor/na)",
-        "speed_edit": "Laatste schuifregelaar snel bewerken (ingedrukt houden en slepen)",
         "toggle_adjustments": "Aanpassingspaneel aan/uit",
         "toggle_ai": "AI-paneel aan/uit",
         "toggle_analytics": "Analyseweergave aan/uit",
@@ -2266,7 +2311,8 @@
       "title": "Verwerkingsmotor",
       "wgpu": "WGPU directe rendering",
       "wgpuDescAndroid": "Omzeilt browsercodering voor direct responsieve live voorbeelden. (Uitgeschakeld op Android: native WGPU-surface creatie wordt momenteel niet ondersteund naast de mobiele webweergave.)",
-      "wgpuDescLinux": "Omzeilt browsercodering voor direct responsieve live voorbeelden. (Uitgeschakeld op Linux: Tauri gebruikt GTK voor webweergaven, wat conflicteert met WGPU op hetzelfde X11-surface en flikkering veroorzaakt.)",
+      "wgpuDescLinuxExperimental": "Experimenteel op Linux en mogelijk instabiel.",
+      "wgpuDescLinuxX11": "Niet beschikbaar op X11.",
       "wgpuDescRecommended": "Omzeilt browsercodering voor direct responsieve live voorbeelden. Sterk aanbevolen voor prestaties.",
       "wgpuLabel": "Directe WGPU-rendering inschakelen",
       "workerThreads": "Miniatuurwerkerthreads",

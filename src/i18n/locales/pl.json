@@ -222,7 +222,25 @@
       "roundness": "Zaokrąglenie",
       "size": "Rozmiar",
       "spatial": "Przestrzenne",
-      "vignette": "Winieta"
+      "vignette": "Winieta",
+      "motionBlur": "Rozmycie ruchu",
+      "motionBlurAngle": "Kąt",
+      "motionBlurDepth": "Głębia",
+      "motionBlurHighlights": "Światła",
+      "motionBlurLayer": "Ruch",
+      "motionBlurLayers": {
+        "auto": "Automatycznie",
+        "panning": "Panoramowanie",
+        "subject": "Ruchomy obiekt",
+        "uniform": "Jednolite"
+      },
+      "motionBlurType": "Typ",
+      "motionBlurTypes": {
+        "linear": "Liniowe",
+        "zoom": "Zoom",
+        "spin": "Obrót",
+        "smooth": "Wygładzenie"
+      }
     }
   },
   "contextMenus": {
@@ -496,6 +514,15 @@
         "erase": "Wymaż",
         "feather": "Wtapianie pędzla",
         "size": "Rozmiar pędzla"
+      },
+      "cloneHeal": {
+        "cloneTooltip": "Kopiuje źródło dokładnie, łącznie z jasnością i kolorem",
+        "dragSource": "Przeciągnij, aby przesunąć źródło",
+        "healTooltip": "Kopiuje teksturę źródła i dopasowuje ją do jasności i koloru otoczenia",
+        "hintActive": "Przeciągnij obrys źródła, aby wybrać, skąd pochodzą piksele. Każde nowe pociągnięcie tworzy osobny obszar. Przytrzymaj Shift, aby dodać do tego.",
+        "hintEmpty": "Zamaluj plamkę, przewód lub rozpraszający element. Pasujące źródło zostanie znalezione automatycznie.",
+        "mode": "Tryb",
+        "newSource": "Znajdź inne źródło"
       },
       "comingSoon": "Wkrótce",
       "connection": {
@@ -841,8 +868,7 @@
       "toggleAnalyticsTooltip": "Przełącz widok analityki",
       "tooltips": {
         "addToCurrent": "Dodaj {{name}} do bieżącej maski lub utwórz nową (Prawy przycisk)",
-        "createNew": "Utwórz nową maskę {{name}}",
-        "selectNewSourcePoint": "{{modifier}} + Kliknij, aby wybrać nowy punkt źródłowy"
+        "createNew": "Utwórz nową maskę {{name}}"
       }
     },
     "metadata": {
@@ -1670,6 +1696,7 @@
         "halationGlow": "Halacja i Poświata",
         "hueShift": "Globalne przesunięcie odcienia",
         "lensBlur": "Rozmycie obiektywu",
+        "motionBlur": "Rozmycie ruchu",
         "lensCorrection": "Korekcja obiektywu",
         "lut": "LUT",
         "masks": "Maski",
@@ -1955,8 +1982,27 @@
       "pressKey": "Naciśnij klawisz... (Esc by anulować)",
       "resetDefaults": "Przywróć wszystkie domyślne",
       "speed": "Prędkość",
-      "speedEditAdjustments": "Korekty szybkiej edycji",
-      "speedEditAdjustmentsDesc": "Przytrzymując klawisz szybkiej edycji, naciskaj A i D, aby przełączać się między tymi korektami, ← i →, aby zmieniać je o krok, Q i E, aby zmieniać zdjęcie, R, aby je zresetować, oraz C i V, aby skopiować i wkleić wartość.",
+      "speedEdit": {
+        "adjustments": "Korekty",
+        "gestures": {
+          "doubleClick": "Dwuklik, aby zresetować",
+          "drag": "Przeciągnij po płótnie, aby zmienić",
+          "fine": "Shift – precyzyjnie"
+        },
+        "keys": {
+          "hold": "Stuknij / Trzymaj",
+          "previousImage": "Poprz. zdjęcie",
+          "nextImage": "Nast. zdjęcie",
+          "reset": "Resetuj",
+          "previousAdjustment": "Poprz. suwak",
+          "nextAdjustment": "Nast. suwak",
+          "copy": "Kopiuj",
+          "paste": "Wklej",
+          "stepDown": "−1 krok",
+          "stepUp": "+1 krok"
+        },
+        "title": "Szybka edycja"
+      },
       "title": "Sterowanie myszą",
       "zoom": "Mnożnik szybkości przybliżania",
       "zoomClick": "Powiększ zdjęcie do 100%",
@@ -2112,7 +2158,6 @@
         "rotate_right": "Obróć o 90° w prawo",
         "select_all": "Zaznacz wszystkie obrazy",
         "show_original": "Pokaż oryginał (przed/po)",
-        "speed_edit": "Szybka edycja ostatniego suwaka (przytrzymaj i przeciągnij)",
         "toggle_adjustments": "Przełącz panel Ustawienia",
         "toggle_ai": "Przełącz panel AI",
         "toggle_analytics": "Przełącz wyświetlanie analityki",
@@ -2352,7 +2397,8 @@
       "title": "Silnik przetwarzania",
       "wgpu": "Bezpośrednie renderowanie WGPU",
       "wgpuDescAndroid": "Omija enkoder przeglądarki dla najszybszego podglądu. (Wyłączone na Androidzie: Tworzenie powierzchni WGPU obecnie nie jest obsługiwane wraz z WebView.)",
-      "wgpuDescLinux": "Omija enkoder przeglądarki. (Wyłączone na Linuksie: Tauri używa GTK dla WebView, co wchodzi w konflikt z WGPU na tej samej powierzchni X11, wywołując migotanie.)",
+      "wgpuDescLinuxExperimental": "Funkcja eksperymentalna w systemie Linux, może działać niestabilnie.",
+      "wgpuDescLinuxX11": "Niedostępne w X11.",
       "wgpuDescRecommended": "Omija kodowanie w przeglądarce pozwalając na natychmiastowe reakcje podglądu. Wysoce zalecane dla zachowania płynności.",
       "wgpuLabel": "Włącz bezpośrednie renderowanie WGPU",
       "workerThreads": "Liczba wątków miniatur",
