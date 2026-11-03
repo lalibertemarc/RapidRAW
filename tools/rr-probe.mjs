@@ -65,10 +65,11 @@ function magick(args) {
   return execFileSync('magick', args, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }).trim();
 }
 
-function magickStderr(args) {
-  const result = spawnSync('magick', args, { encoding: 'utf8' });
-  if (result.status > 1) fail(`magick ${args[0]} failed: ${result.stderr}`);
-  return result.stderr.trim();
+function compareMetric(args) {
+  const result = spawnSync('magick', ['compare', ...args, 'null:'], { encoding: 'utf8' });
+  if (result.status > 1) fail(`magick compare failed: ${result.stderr}`);
+  const output = result.stderr.trim();
+  return Number(output.match(/\(([^)]+)\)/)?.[1] ?? output.split(' ')[0]);
 }
 
 function parseValue(raw) {
@@ -199,8 +200,8 @@ function diff(a, b, options) {
   const meansA = channelMeans(a);
   const meansB = channelMeans(b);
   const fuzz = options.fuzz ?? '0.5';
-  const changed = Number(magickStderr(['compare', '-metric', 'AE', '-fuzz', `${fuzz}%`, a, b, 'null:']).split(' ')[0]);
-  const psnr = magickStderr(['compare', '-metric', 'PSNR', a, b, 'null:']).split(' ')[0];
+  const changed = compareMetric(['-metric', 'AE', '-fuzz', `${fuzz}%`, a, b]);
+  const rmse = compareMetric(['-metric', 'RMSE', a, b]) * 255;
   const [w, h] = sizeA.split('x').map(Number);
 
   const result = {
@@ -213,7 +214,7 @@ function diff(a, b, options) {
       b: round(meansB[2] - meansA[2]),
     },
     changedPixels: { fuzzPercent: Number(fuzz), count: changed, percent: round((changed / (w * h)) * 100, 2) },
-    psnr: psnr === 'inf' ? 'identical' : Number(psnr),
+    rmse: round(rmse),
   };
 
   if (options.out) {
