@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fs;
 use std::path::PathBuf;
-use std::sync::{LazyLock, Mutex, OnceLock};
+use std::sync::{LazyLock, Mutex};
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -754,7 +754,7 @@ pub fn wgpu_renderer_available() -> bool {
 
 #[cfg(target_os = "linux")]
 pub fn wgpu_renderer_supported() -> bool {
-    static SUPPORTED: OnceLock<bool> = OnceLock::new();
+    static SUPPORTED: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
     *SUPPORTED.get_or_init(|| {
         let has_env = |name| std::env::var_os(name).is_some_and(|v| !v.is_empty());
         let preferred = std::env::var("GDK_BACKEND").ok().and_then(|list| {
@@ -1012,10 +1012,10 @@ pub fn save_settings(mut settings: AppSettings, app_handle: AppHandle) -> Result
     let previous_gpu_acceleration = load_settings(app_handle.clone())
         .map(|previous| previous.ai_gpu_acceleration)
         .ok();
-    if !wgpu_renderer_available() {
-        if let Some(stored) = settings_cache().as_ref() {
-            settings.use_wgpu_renderer = stored.use_wgpu_renderer;
-        }
+    if !wgpu_renderer_available()
+        && let Some(stored) = settings_cache().as_ref()
+    {
+        settings.use_wgpu_renderer = stored.use_wgpu_renderer;
     }
     let path = get_settings_path(&app_handle)?;
     let json_string = serde_json::to_string_pretty(&settings).map_err(|e| e.to_string())?;
