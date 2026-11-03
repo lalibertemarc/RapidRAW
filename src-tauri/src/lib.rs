@@ -68,6 +68,7 @@ mod panorama_stitching;
 mod panorama_utils;
 mod preset_converter;
 mod preview_jpeg;
+mod probe;
 mod raw_processing;
 mod relight;
 mod storage;
@@ -2339,6 +2340,9 @@ pub fn run() {
         .build_global();
 
     let args: Vec<String> = std::env::args().skip(1).collect();
+    if args.first().map(String::as_str) == Some("probe") {
+        std::process::exit(probe::run(&args[1..]));
+    }
     let launch_req = resolve_gui_launch_paths(
         parse_launch_args(&args),
         &std::env::current_dir().unwrap_or_default(),
