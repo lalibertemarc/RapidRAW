@@ -2527,6 +2527,7 @@ export default function Editor({ onBackToLibrary, onContextMenu, onImageSelect, 
           onSelectCompareMode={selectCompareMode}
           onUndo={undo}
           selectedImage={selectedImage}
+          outputDimensions={croppedDimensions}
           isComparing={showOriginal || compareView !== 'off'}
           compareMode={appSettings?.compareMode ?? 'toggle'}
           showDateView={showExifDateView}
