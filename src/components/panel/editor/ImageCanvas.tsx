@@ -951,6 +951,7 @@ const MaskOverlay = memo(
     if (
       subMask.type === Mask.Brush ||
       subMask.type === Mask.Flow ||
+      subMask.type === Mask.MatchBrush ||
       subMask.type === Mask.Clone ||
       subMask.type === Mask.Heal ||
       subMask.type === Mask.Liquify ||
@@ -1763,9 +1764,31 @@ const ImageCanvas = memo(
 
     const isBrushActive =
       (isMasking || isAiEditing) &&
-      (activeSubMask?.type === Mask.Brush || activeSubMask?.type === Mask.Flow || isDirectPatchActive);
+      (activeSubMask?.type === Mask.Brush ||
+        activeSubMask?.type === Mask.Flow ||
+        activeSubMask?.type === Mask.MatchBrush ||
+        isDirectPatchActive);
 
     const activeLineFlow = activeSubMask?.type === Mask.Flow ? (activeSubMask?.parameters?.flow ?? 10) : undefined;
+
+    const strokeTransformParams = useMemo(
+      () =>
+        activeSubMask?.type === Mask.MatchBrush
+          ? {
+              rotation: adjustments.rotation || 0,
+              flipHorizontal: adjustments.flipHorizontal || false,
+              flipVertical: adjustments.flipVertical || false,
+              orientationSteps: adjustments.orientationSteps || 0,
+            }
+          : null,
+      [
+        activeSubMask?.type,
+        adjustments.rotation,
+        adjustments.flipHorizontal,
+        adjustments.flipVertical,
+        adjustments.orientationSteps,
+      ],
+    );
 
     const brushCursorPreview = useMemo(() => {
       const radius = Math.max(0.1, brushStageSize / 2);
@@ -2560,9 +2583,14 @@ const ImageCanvas = memo(
             updateSubMask(activeId, {
               parameters: {
                 ...activeSubMask?.parameters,
+                ...strokeTransformParams,
                 lines: [...existingLines, imageSpaceLine],
               },
             });
+
+            if (isDirectPatchActive && activeId) {
+              triggerDirectPatch(activeId);
+            }
 
             lastBrushPoint.current = endImageSpace;
             isDrawing.current = false;
@@ -2631,6 +2659,8 @@ const ImageCanvas = memo(
         getCloneOffset,
         createCloneSpot,
         activeLineFlow,
+        strokeTransformParams,
+        triggerDirectPatch,
         isAiSubjectActive,
         isParametricActive,
         brushSettings,
@@ -3154,6 +3184,7 @@ const ImageCanvas = memo(
         updateSubMask(activeId, {
           parameters: {
             ...activeSubMask?.parameters,
+            ...strokeTransformParams,
             lines: existingLines,
           },
         });
@@ -3192,6 +3223,7 @@ const ImageCanvas = memo(
       commitCloneLines,
       getCloneOffset,
       activeLineFlow,
+      strokeTransformParams,
       isMasking,
       onGenerateAiMask,
       onQuickErase,

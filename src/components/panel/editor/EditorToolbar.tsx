@@ -22,6 +22,7 @@ import { TextColors, TextVariants, TextWeights } from '../../../types/typography
 import { useLibraryStore } from '../../../store/useLibraryStore';
 import { useSettingsStore } from '../../../store/useSettingsStore';
 import { findGroupVariants, getVariantLabel } from '../../../utils/imageGrouping';
+import { ImageDimensions } from '../../../hooks/useImageRenderSize';
 
 const COMPARE_MODES = [
   { mode: 'toggle', icon: Eye, label: 'editor.compare.toggle' },
@@ -99,6 +100,7 @@ interface EditorToolbarProps {
   onSelectCompareMode(mode: CompareMode): void;
   onUndo(): void;
   selectedImage: SelectedImage;
+  outputDimensions: ImageDimensions | null;
   isComparing: boolean;
   compareMode: CompareMode;
   showDateView: boolean;
@@ -122,6 +124,7 @@ const EditorToolbar = memo(
     onSelectCompareMode,
     onUndo,
     selectedImage,
+    outputDimensions,
     isComparing,
     compareMode,
     showDateView,
@@ -143,7 +146,9 @@ const EditorToolbar = memo(
     const historyButtonRef = useRef<HTMLDivElement>(null);
     useMenuDismiss(historyButtonRef, isHistoryVisible, setIsHistoryVisible);
 
-    const showResolution = !isAndroid && selectedImage.width > 0 && selectedImage.height > 0;
+    const outputWidth = Math.round(outputDimensions?.width ?? 0);
+    const outputHeight = Math.round(outputDimensions?.height ?? 0);
+    const showResolution = !isAndroid && outputWidth > 0 && outputHeight > 0;
     const [displayedResolution, setDisplayedResolution] = useState('');
 
     const imageList = useLibraryStore((s) => s.imageList);
@@ -205,9 +210,9 @@ const EditorToolbar = memo(
 
     useEffect(() => {
       if (showResolution) {
-        setDisplayedResolution(` - ${selectedImage.width} × ${selectedImage.height}`);
+        setDisplayedResolution(` - ${outputWidth} × ${outputHeight}`);
       }
-    }, [showResolution, selectedImage.width, selectedImage.height]);
+    }, [showResolution, outputWidth, outputHeight]);
 
     useEffect(() => {
       const wasLoadingResolution = prevIsLoadingRef.current && !isLoading;
