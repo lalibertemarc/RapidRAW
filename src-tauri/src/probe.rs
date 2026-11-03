@@ -1,6 +1,6 @@
 use crate::exif_processing::{read_exif_data_from_bytes, read_raw_metadata};
 use crate::formats::is_raw_file;
-use rawler::decoders::RawDecodeParams;
+use rawler::decoders::{RawDecodeParams, RawMetadata};
 use rawler::rawsource::RawSource;
 use serde_json::{Value, json};
 use std::collections::BTreeMap;
@@ -45,9 +45,19 @@ fn meta(path: &str) -> Result<Value, String> {
                 "highlightPreservation": as_shot.exposure.highlight_preservation,
             },
         })),
-        "rawMetadata": is_raw.then(|| read_raw_metadata(&bytes)).flatten(),
+        "rawMetadata": is_raw.then(|| read_raw_metadata(&bytes)).flatten().map(raw_metadata_json),
         "exif": exif,
     }))
+}
+
+fn raw_metadata_json(mut metadata: RawMetadata) -> Value {
+    let unique_image_id = metadata
+        .unique_image_id
+        .take()
+        .map(|id| format!("{:032x}", id));
+    let mut value = serde_json::to_value(metadata).unwrap_or_default();
+    value["unique_image_id"] = json!(unique_image_id);
+    value
 }
 
 fn decoder_info(bytes: &[u8]) -> Result<Value, String> {
