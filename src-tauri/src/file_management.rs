@@ -2331,8 +2331,12 @@ pub fn resolve_lens_params_in_adjustments(
                     let mut focal_length = 50.0;
                     let mut aperture = None;
                     let mut distance = None;
+                    let mut camera_maker = "";
+                    let mut camera_model = "";
 
                     if let Some(exif) = exif_data {
+                        camera_maker = exif.get("Make").map(|s| s.as_str()).unwrap_or("");
+                        camera_model = exif.get("Model").map(|s| s.as_str()).unwrap_or("");
                         if let Some(fl_str) = exif
                             .get("FocalLength")
                             .or(exif.get("FocalLengthIn35mmFilm"))
@@ -2356,6 +2360,8 @@ pub fn resolve_lens_params_in_adjustments(
                         db,
                         maker,
                         model,
+                        camera_maker,
+                        camera_model,
                         focal_length,
                         aperture,
                         distance,

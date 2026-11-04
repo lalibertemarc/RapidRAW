@@ -610,6 +610,8 @@ export default function CropPanel() {
         const distParams: any = await invoke('get_lens_distortion_params', {
           maker,
           model,
+          cameraMaker: selectedImage?.exif?.Make,
+          cameraModel: selectedImage?.exif?.Model,
           focalLength: parseExifNumber(selectedImage?.exif?.FocalLength),
           aperture: parseExifNumber(selectedImage?.exif?.FNumber),
           distance: parseExifNumber(selectedImage?.exif?.SubjectDistance),
