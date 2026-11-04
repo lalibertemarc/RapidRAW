@@ -5552,7 +5552,7 @@ dependencies = [
 [[package]]
 name = "rawler"
 version = "0.7.1"
-source = "git+https://github.com/CyberTimon/RapidRAW-DngLab.git#9dbcc5654ad4b15e2649e6636e96f1b49fc9cf0f"
+source = "git+https://github.com/lalibertemarc/RapidRAW-DngLab.git?branch=fix%2Ffuji-compressed-active-area#40cc7a1c74f7fcebce9080c5e8496a294f89a498"
 dependencies = [
  "backtrace",
  "bitstream-io",
