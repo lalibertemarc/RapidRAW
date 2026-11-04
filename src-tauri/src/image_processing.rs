@@ -215,6 +215,8 @@ pub struct GeometryParams {
     pub lens_dist_k2: f32,
     pub lens_dist_k3: f32,
     pub lens_model: u32,
+    #[serde(default)]
+    pub lens_radius_scale: Option<f32>,
     pub tca_vr: f32,
     pub tca_vb: f32,
     pub vig_k1: f32,
@@ -247,6 +249,7 @@ impl Default for GeometryParams {
             lens_dist_k2: 0.0,
             lens_dist_k3: 0.0,
             lens_model: 0,
+            lens_radius_scale: None,
             tca_vr: 1.0,
             tca_vb: 1.0,
             vig_k1: 0.0,
@@ -308,6 +311,9 @@ pub fn get_geometry_params_from_json(adjustments: &serde_json::Value) -> Geometr
         lens_model: lens_params
             .and_then(|p| p.get("model").and_then(|m| m.as_u64()))
             .unwrap_or(0) as u32,
+        lens_radius_scale: lens_params
+            .and_then(|p| p.get("radius_scale").and_then(|k| k.as_f64()))
+            .map(|k| k as f32),
         tca_vr: lens_params
             .and_then(|p| p.get("tca_vr").and_then(|k| k.as_f64()))
             .unwrap_or(1.0) as f32,
@@ -771,16 +777,23 @@ fn solve_generic_distortion_inv(r_target: f64, k_scaled: f64) -> f64 {
     r
 }
 
+fn lens_reference_radius(params: &GeometryParams, width: f64, height: f64) -> f64 {
+    match params.lens_radius_scale {
+        Some(scale) if scale > 0.0 => width.hypot(height) / 2.0 / scale as f64,
+        _ => width.min(height) / 2.0,
+    }
+}
+
 fn compute_lens_auto_crop_scale(params: &GeometryParams, width: f32, height: f32) -> f64 {
     let cx = (width / 2.0) as f64;
     let cy = (height / 2.0) as f64;
-    let half_diagonal = (cx * cx + cy * cy).sqrt();
+    let lens_radius = lens_reference_radius(params, width as f64, height as f64);
     let max_radius_sq_inv = 1.0 / (cx * cx + cy * cy);
 
     let lk1 = params.lens_dist_k1 as f64;
     let lk2 = params.lens_dist_k2 as f64;
     let lk3 = params.lens_dist_k3 as f64;
-    let lens_dist_amt = (params.lens_distortion_amount as f64) * 2.5;
+    let lens_dist_amt = params.lens_distortion_amount as f64;
 
     let k_distortion = (params.distortion as f64 / 100.0) * 2.5;
 
@@ -813,7 +826,7 @@ fn compute_lens_auto_crop_scale(params: &GeometryParams, width: f32, height: f32
         let mut mapped_dy = dy;
 
         if has_lens_correction {
-            let ru_norm = ru / half_diagonal;
+            let ru_norm = ru / lens_radius;
             let ru_norm2 = ru_norm * ru_norm;
 
             let rd_norm = if is_ptlens {
@@ -852,7 +865,7 @@ fn compute_lens_auto_crop_scale(params: &GeometryParams, width: f32, height: f32
         }
     }
 
-    if max_scale > 1.0 {
+    if max_scale > 1.0 + 1e-6 {
         max_scale * 1.002
     } else {
         max_scale
@@ -883,12 +896,13 @@ pub fn warp_image_geometry(image: &DynamicImage, params: GeometryParams) -> Dyna
 
     let max_radius_sq_inv = 1.0 / ((cx * cx + cy * cy) as f64);
     let hd = half_diagonal;
+    let lens_radius = lens_reference_radius(&params, width as f64, height as f64);
 
     let k_distortion = (params.distortion as f64 / 100.0) * 2.5;
     let lk1 = params.lens_dist_k1 as f64;
     let lk2 = params.lens_dist_k2 as f64;
     let lk3 = params.lens_dist_k3 as f64;
-    let lens_dist_amt = (params.lens_distortion_amount as f64) * 2.5;
+    let lens_dist_amt = params.lens_distortion_amount as f64;
 
     let has_lens_correction = params.lens_distortion_enabled
         && (lk1.abs() > 1e-6 || lk2.abs() > 1e-6 || lk3.abs() > 1e-6);
@@ -955,7 +969,7 @@ pub fn warp_image_geometry(image: &DynamicImage, params: GeometryParams) -> Dyna
                         let ru = (dx * dx + dy * dy).sqrt();
 
                         if ru > 1e-6 {
-                            let ru_norm = ru / hd;
+                            let ru_norm = ru / lens_radius;
                             let ru_norm2 = ru_norm * ru_norm;
 
                             let rd_norm = if is_ptlens {
@@ -1038,16 +1052,16 @@ pub fn unwarp_image_geometry(warped_image: &DynamicImage, params: GeometryParams
     let (width, height) = src_img.dimensions();
     let mut out_buffer = vec![0.0f32; (width * height * 3) as usize];
 
-    let (forward_transform, cx, cy, half_diagonal) =
+    let (forward_transform, cx, cy, _) =
         build_transform_matrices(&params, width as f32, height as f32);
     let max_radius_sq_inv = 1.0 / ((cx * cx + cy * cy) as f64);
-    let hd = half_diagonal;
+    let lens_radius = lens_reference_radius(&params, width as f64, height as f64);
 
     let k_distortion = (params.distortion as f64 / 100.0) * 2.5;
     let lk1 = params.lens_dist_k1 as f64;
     let lk2 = params.lens_dist_k2 as f64;
     let lk3 = params.lens_dist_k3 as f64;
-    let lens_dist_amt = (params.lens_distortion_amount as f64) * 2.5;
+    let lens_dist_amt = params.lens_distortion_amount as f64;
 
     let has_lens_correction = params.lens_distortion_enabled
         && (lk1.abs() > 1e-6 || lk2.abs() > 1e-6 || lk3.abs() > 1e-6);
@@ -1098,7 +1112,7 @@ pub fn unwarp_image_geometry(warped_image: &DynamicImage, params: GeometryParams
                         let mut ru = rd;
 
                         for _ in 0..8 {
-                            let ru_norm = ru / hd;
+                            let ru_norm = ru / lens_radius;
                             let ru_norm2 = ru_norm * ru_norm;
 
                             let (f_val, f_prime) = if is_ptlens {
@@ -1262,7 +1276,7 @@ pub fn inverse_transform_point(
     let width = curr_w as f32;
     let height = curr_h as f32;
 
-    let (forward_transform, cx_f32, cy_f32, hd) = build_transform_matrices(&params, width, height);
+    let (forward_transform, cx_f32, cy_f32, _) = build_transform_matrices(&params, width, height);
     let cx = cx_f32 as f64;
     let cy = cy_f32 as f64;
     let inv = forward_transform
@@ -1279,7 +1293,7 @@ pub fn inverse_transform_point(
         let lk1 = params.lens_dist_k1 as f64;
         let lk2 = params.lens_dist_k2 as f64;
         let lk3 = params.lens_dist_k3 as f64;
-        let lens_dist_amt = (params.lens_distortion_amount as f64) * 2.5;
+        let lens_dist_amt = params.lens_distortion_amount as f64;
 
         let has_lens_correction = params.lens_distortion_enabled
             && (lk1.abs() > 1e-6 || lk2.abs() > 1e-6 || lk3.abs() > 1e-6);
@@ -1302,7 +1316,7 @@ pub fn inverse_transform_point(
             let ru = (dx * dx + dy * dy).sqrt();
 
             if ru > 1e-6 {
-                let ru_norm = ru / hd;
+                let ru_norm = ru / lens_reference_radius(&params, width as f64, height as f64);
                 let ru_norm2 = ru_norm * ru_norm;
 
                 let rd_norm = if is_ptlens {

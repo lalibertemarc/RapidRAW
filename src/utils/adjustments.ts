@@ -373,6 +373,7 @@ export interface Adjustments {
     vig_k1: number;
     vig_k2: number;
     vig_k3: number;
+    radius_scale?: number;
   } | null;
   lensMaker: string | null;
   lensModel: string | null;

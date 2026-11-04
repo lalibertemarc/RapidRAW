@@ -163,6 +163,7 @@ pub struct LensDistortionParams {
     vig_k1: f64,
     vig_k2: f64,
     vig_k3: f64,
+    radius_scale: f64,
 }
 
 fn strip_maker_prefix(name: &str, maker: &str) -> String {
@@ -203,6 +204,16 @@ impl Camera {
 }
 
 impl Lens {
+    fn calibration_aspect_ratio(&self) -> f32 {
+        self.aspect_ratio
+            .as_deref()
+            .and_then(|ratio| match ratio.split_once(':') {
+                Some((w, h)) => Some(w.trim().parse::<f32>().ok()? / h.trim().parse::<f32>().ok()?),
+                None => ratio.trim().parse().ok(),
+            })
+            .unwrap_or(1.5)
+    }
+
     pub fn get_full_model_name(&self) -> String {
         self.model
             .iter()
@@ -294,8 +305,12 @@ impl Lens {
         focal_length: f32,
         aperture: Option<f32>,
         distance: Option<f32>,
+        camera_cropfactor: Option<f32>,
     ) -> Option<LensDistortionParams> {
         let cal = self.calibration.as_ref()?;
+        let lens_cropfactor = self.cropfactor.unwrap_or(1.0);
+        let radius_scale = self.calibration_aspect_ratio().hypot(1.0) * lens_cropfactor
+            / camera_cropfactor.unwrap_or(lens_cropfactor);
 
         let mut distortions: Vec<&Distortion> = cal
             .elements
@@ -513,6 +528,7 @@ impl Lens {
             vig_k1,
             vig_k2,
             vig_k3,
+            radius_scale: radius_scale as f64,
         })
     }
 }
@@ -670,6 +686,26 @@ pub fn get_lensfun_lenses_for_maker(
     }
 }
 
+fn matching_cameras<'a>(
+    db: &'a LensDatabase,
+    maker: &'a str,
+    model: &'a str,
+) -> impl Iterator<Item = &'a Camera> {
+    db.cameras
+        .iter()
+        .filter(move |c| any_name_matches(&c.maker, maker) && any_name_matches(&c.model, model))
+}
+
+fn camera_cropfactor(db: &LensDatabase, maker: &str, model: &str) -> Option<f32> {
+    matching_cameras(
+        db,
+        maker.trim().trim_matches('"'),
+        model.trim().trim_matches('"'),
+    )
+    .next()
+    .map(|c| c.cropfactor)
+}
+
 pub fn find_lens_by_camera_mount<'a>(
     db: &'a LensDatabase,
     camera_maker: &str,
@@ -682,12 +718,7 @@ pub fn find_lens_by_camera_mount<'a>(
         return None;
     }
 
-    let mounts: Vec<&str> = db
-        .cameras
-        .iter()
-        .filter(|c| {
-            any_name_matches(&c.maker, clean_maker) && any_name_matches(&c.model, clean_model)
-        })
+    let mounts: Vec<&str> = matching_cameras(db, clean_maker, clean_model)
         .map(|c| c.mount.trim())
         .filter(|m| !m.is_empty())
         .collect();
@@ -855,9 +886,12 @@ pub fn autodetect_lens(
 }
 
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 pub fn get_lens_distortion_params(
     maker: String,
     model: String,
+    camera_maker: Option<String>,
+    camera_model: Option<String>,
     focal_length: f32,
     aperture: Option<f32>,
     distance: Option<f32>,
@@ -867,23 +901,27 @@ pub fn get_lens_distortion_params(
         .lens_db
         .lock()
         .map_err(|e| format!("Lock poisoned: {}", e))?;
-    if let Some(db) = &*db_guard {
-        let maker_lenses = lenses_for_maker(db, &maker);
-
-        if let Some(lens) = maker_lenses
-            .iter()
-            .find(|l| l.get_display_name(&maker_lenses) == model)
-        {
-            return Ok(lens.get_distortion_params(focal_length, aperture, distance));
-        }
-    }
-    Ok(None)
+    Ok(db_guard.as_ref().and_then(|db| {
+        resolve_lens_params(
+            db,
+            &maker,
+            &model,
+            camera_maker.as_deref().unwrap_or(""),
+            camera_model.as_deref().unwrap_or(""),
+            focal_length,
+            aperture,
+            distance,
+        )
+    }))
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn resolve_lens_params(
     db: &LensDatabase,
     maker: &str,
     model: &str,
+    camera_maker: &str,
+    camera_model: &str,
     focal_length: f32,
     aperture: Option<f32>,
     distance: Option<f32>,
@@ -893,7 +931,12 @@ pub fn resolve_lens_params(
         .iter()
         .find(|l| l.get_display_name(&maker_lenses) == model)
     {
-        lens.get_distortion_params(focal_length, aperture, distance)
+        lens.get_distortion_params(
+            focal_length,
+            aperture,
+            distance,
+            camera_cropfactor(db, camera_maker, camera_model),
+        )
     } else {
         None
     }
