@@ -99,6 +99,7 @@ export enum Invokes {
   LoadSettings = 'load_settings',
   MoveFiles = 'move_files',
   PreviewExportFilename = 'preview_export_filename',
+  PreloadImages = 'preload_images',
   ReadExifForPaths = 'read_exif_for_paths',
   RemoveTagForPaths = 'remove_tag_for_paths',
   RenameFiles = 'rename_files',
@@ -126,7 +127,9 @@ export enum Invokes {
   MergeHdr = 'merge_hdr',
   TestAIConnectorConnection = 'test_ai_connector_connection',
   SampleHslMixerArea = 'sample_hsl_mixer_area',
+  GetDepthPreview = 'get_depth_preview',
   UpdateWgpuTransform = 'update_wgpu_transform',
+  SetUiScale = 'set_ui_scale',
   ReleaseOriginalPreview = 'release_original_preview',
   OpenViewerWindow = 'open_viewer_window',
   CloseViewerWindow = 'close_viewer_window',
@@ -245,6 +248,7 @@ export interface AppSettings {
   mediumThumbnailResolution?: number;
   enableZoomHifi?: boolean;
   useFullDpiRendering?: boolean;
+  uiScale?: number;
   highResZoomMultiplier?: number;
   enableLivePreviews?: boolean;
   livePreviewQuality?: string;

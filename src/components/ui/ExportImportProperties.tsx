@@ -167,6 +167,10 @@ export interface ExportSettings extends FilenameSettings {
   stripGps: boolean;
   watermark: WatermarkSettings | null;
   exportMasks?: boolean;
+  exportOriginal?: {
+    crop: boolean;
+    keepExposure: boolean;
+  } | null;
   preserveFolders?: boolean;
   destinationType?: string;
   subfolder?: string;
@@ -254,6 +258,9 @@ export interface ExportPreset extends Omit<FilenameSettings, 'filenameTemplate'>
   preserveTimestamps: boolean;
   stripGps: boolean;
   exportMasks?: boolean;
+  exportOriginal?: boolean;
+  originalCrop?: boolean;
+  originalKeepExposure?: boolean;
   preserveFolders?: boolean;
   filenameTemplate: string;
   enableWatermark: boolean;

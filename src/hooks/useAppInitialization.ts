@@ -9,6 +9,7 @@ import { useProcessStore } from '../store/useProcessStore';
 import { DEFAULT_THEME_ID } from '../utils/themes';
 import { useActiveTheme } from './useActiveTheme';
 import { COPYABLE_ADJUSTMENT_KEYS, withAdjustmentLayout } from '../utils/adjustments';
+import { setLocalUiScale } from '../utils/displayScale';
 import {
   FilterCriteria,
   Invokes,
@@ -165,6 +166,7 @@ export const useAppInitialization = ({
         const reconciledWorkspace = reconcileWorkspace(settings?.workspace, isTetheringSupported);
         settings.workspace = reconciledWorkspace;
 
+        setLocalUiScale(settings.uiScale);
         setAppSettings(settings);
         i18n.changeLanguage(settings.language);
 
