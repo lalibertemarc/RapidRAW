@@ -154,4 +154,4 @@ strip = true
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(feature, values("cargo-clippy"))'] }
 
 [patch."https://github.com/CyberTimon/RapidRAW-DngLab.git"]
-rawler = { git = "https://github.com/lalibertemarc/RapidRAW-DngLab.git", branch = "fix/fuji-compressed-active-area" }
+rawler = { git = "https://github.com/lalibertemarc/RapidRAW-DngLab.git", branch = "fix/fuji-compressed-mode-v2" }
