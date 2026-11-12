@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Braces } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import clsx from 'clsx';
-import { FILENAME_TOKEN_GROUPS } from './ExportImportProperties';
+import { FILENAME_TOKEN_GROUPS } from '../../types/export';
 import Text from './Text';
 import { TextColors, TextVariants } from '../../types/typography';
 

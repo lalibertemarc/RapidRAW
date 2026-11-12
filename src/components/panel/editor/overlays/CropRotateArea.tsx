@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
 import { Crop } from 'react-image-crop';
 import { MAX_FINE_ROTATION } from '../../../../utils/cropUtils';
-import { FINE_ADJUSTMENT_MULTIPLIER, hasFineAdjustmentModifier } from '../../../../utils/keyboardUtils';
+import { FINE_ADJUSTMENT_MULTIPLIER, hasFineAdjustmentModifier } from '../../../../utils/fineAdjustment';
 
 export const CROP_ROTATE_MARGIN = 40;
 

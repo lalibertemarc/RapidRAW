@@ -1,5 +1,5 @@
-use crate::exif_processing::{read_exif_data_from_bytes, read_raw_metadata};
-use crate::formats::is_raw_file;
+use crate::decode::formats::is_raw_file;
+use crate::metadata::exif_processing::{read_exif_data_from_bytes, read_raw_metadata};
 use rawler::decoders::{RawDecodeParams, RawMetadata};
 use rawler::rawsource::RawSource;
 use serde_json::{Value, json};
@@ -37,7 +37,7 @@ fn meta(path: &str) -> Result<Value, String> {
         "bytes": bytes.len(),
         "isRaw": is_raw,
         "decoder": is_raw.then(|| decoder_info(&bytes).unwrap_or_else(|e| json!({ "error": e }))),
-        "asShot": is_raw.then(|| crate::raw_processing::read_as_shot(&bytes)).flatten().map(|as_shot| json!({
+        "asShot": is_raw.then(|| crate::decode::raw_processing::read_as_shot(&bytes)).flatten().map(|as_shot| json!({
             "whiteBalance": as_shot.white_balance,
             "exposure": {
                 "sceneReferred": as_shot.exposure.scene_referred,

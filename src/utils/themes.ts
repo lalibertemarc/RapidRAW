@@ -1,5 +1,5 @@
 import { hexToRgba, rgbToHex, validHex } from '@uiw/color-convert';
-import { Theme } from '../components/ui/AppProperties';
+import { Theme } from '../types/settings';
 
 export const THEME_TOKENS = [
   '--app-bg-primary',

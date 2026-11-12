@@ -6,7 +6,7 @@ import clsx from 'clsx';
 import Text from './Text';
 import { TextVariants } from '../../types/typography';
 import ThemeEditorModal from '../modals/ThemeEditorModal';
-import { AppSettings } from './AppProperties';
+import { AppSettings } from '../../types/settings';
 import { useActiveTheme, useThemeName } from '../../hooks/useActiveTheme';
 import { useCollapsibleHeight } from '../../hooks/useCollapsibleHeight';
 import {

@@ -59,8 +59,8 @@ import { useSortedLibrary } from './hooks/useSortedLibrary';
 import { useImagePreloader } from './hooks/useImagePreloader';
 import { useAppNavigation } from './hooks/useAppNavigation';
 import { useExternalEditSession } from './hooks/useExternalEditSession';
-import ExternalEditBar from './components/ui/ExternalEditBar';
-import { Status } from './components/ui/ExportImportProperties';
+import ExternalEditBar from './components/panel/ExternalEditBar';
+import { Status } from './types/export';
 
 import { useEditorActions } from './hooks/useEditorActions';
 import { useLibraryActions } from './hooks/useLibraryActions';
@@ -71,20 +71,15 @@ import { useAndroidBackHandler } from './hooks/useAndroidBackHandler';
 import { useActiveTheme } from './hooks/useActiveTheme';
 import './i18n';
 
-import {
-  Invokes,
-  ImageFile,
-  LibraryViewMode,
-  Panel,
-  PanelRegion,
-  ThumbnailSize,
-  ThumbnailAspectRatio,
-} from './components/ui/AppProperties';
+import { Invokes } from './types/invokes';
+import { ImageFile } from './types/library';
+import { LibraryViewMode, ThumbnailSize, ThumbnailAspectRatio } from './types/settings';
+import { Panel, PanelRegion } from './types/ui';
 
 import ImageProcessingManager from './components/managers/ImageProcessingManager';
 import ImageLoaderManager from './components/managers/ImageLoaderManager';
-import { isImmichAlbumId } from './components/immich/immichApi';
-import { useImmichEvents } from './components/immich/useImmichEvents';
+import { isImmichAlbumId } from './utils/immichApi';
+import { useImmichEvents } from './hooks/useImmichEvents';
 
 const DND_MEASURING = { droppable: { strategy: MeasuringStrategy.Always } };
 
@@ -356,6 +351,7 @@ function App() {
     handleSelectSubfolder,
     handleSelectAlbum,
     handleOpenFolder,
+    handleOpenContainingFolder,
     handleNavBack,
     handleNavForward,
     handleContinueSession,
@@ -368,7 +364,7 @@ function App() {
     externalEditSession,
     isFinishing: isExternalEditFinishing,
     finishExternalEdit,
-  } = useExternalEditSession(handleImageSelect);
+  } = useExternalEditSession(handleImageSelect, handleOpenContainingFolder);
 
   const {
     handleRate,

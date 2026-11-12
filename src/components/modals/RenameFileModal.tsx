@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import FilenameTemplateInput from '../ui/FilenameTemplateInput';
-import { isUniqueFilenameTemplate } from '../ui/ExportImportProperties';
+import { isUniqueFilenameTemplate } from '../../types/export';
 import Text from '../ui/Text';
 import { TextVariants } from '../../types/typography';
 

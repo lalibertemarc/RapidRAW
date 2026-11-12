@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo, memo, RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
-import { GLOBAL_KEYS } from './AppProperties';
+import { GLOBAL_KEYS } from '../../types/ui';
 import { useEditorStore } from '../../store/useEditorStore';
-import { FINE_ADJUSTMENT_MULTIPLIER, hasFineAdjustmentModifier } from '../../utils/keyboardUtils';
 import { SPEED_EDIT_ADJUSTMENTS } from '../../utils/adjustments';
+import { SpeedEditTarget } from '../../types/editor';
+import { FINE_ADJUSTMENT_MULTIPLIER, hasFineAdjustmentModifier } from '../../utils/fineAdjustment';
 
 export type SliderChangeEvent =
   | React.ChangeEvent<HTMLInputElement>
@@ -21,20 +22,6 @@ export interface SliderMarker {
 export interface SliderScale {
   fromPosition(position: number): number;
   toPosition(value: number): number;
-}
-
-export interface SpeedEditTarget {
-  label: string | null;
-  value: number;
-  defaultValue: number;
-  step: number;
-  minPosition: number;
-  maxPosition: number;
-  format(value: number): string;
-  toPosition(value: number): number;
-  toValue(position: number): number;
-  onChange(value: number): void;
-  onDragStateChange(state: boolean): void;
 }
 
 const LINEAR_SCALE: SliderScale = {
