@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { open } from '@tauri-apps/plugin-dialog';
-import { homeDir } from '@tauri-apps/api/path';
+import { dirname, homeDir } from '@tauri-apps/api/path';
 import { toast } from 'react-toastify';
 import { useLibraryStore } from '../store/useLibraryStore';
 import { canvasToolState, useEditorStore } from '../store/useEditorStore';
@@ -11,10 +11,12 @@ import { useSettingsStore } from '../store/useSettingsStore';
 import { Invokes } from '../types/invokes';
 import { LibraryViewMode } from '../types/settings';
 import { ImageFile } from '../types/library';
-import { INITIAL_ADJUSTMENTS, normalizeLoadedAdjustments } from '../utils/adjustments';
+import { INITIAL_ADJUSTMENTS } from '../utils/adjustments';
+import { adjustmentsFromMetadata } from '../utils/developDefaults';
 import { globalImageCache } from '../utils/ImageLRUCache';
 import { decodeImage } from '../utils/decodeImage';
 import { debouncedSave, debouncedSetHistory } from './useEditorActions';
+import { notifyEmbeddedPreview } from './useImageLoader';
 import { clearLibrarySelection } from './useLibraryActions';
 import { computeSortedLibrary } from './useSortedLibrary';
 import { getImmichAlbumImages, isImmichAlbumId } from '../utils/immichApi';
@@ -269,6 +271,7 @@ export function useAppNavigation({ clearThumbnailQueue, refs }: AppNavigationPro
             isBackendReadyRef.current = true;
             currentResRef.current = 0;
             setEditor({ originalSize: { width: _result.width, height: _result.height } });
+            notifyEmbeddedPreview(_result);
           })
           .catch((err: any) => {
             if (String(err).includes('cancelled')) return;
@@ -280,12 +283,7 @@ export function useAppNavigation({ clearThumbnailQueue, refs }: AppNavigationPro
         invoke(Invokes.LoadMetadata, { path })
           .then((metadata: any) => {
             if (selectedImagePathRef.current !== path) return;
-            let freshAdjustments: any;
-            if (metadata.adjustments && !metadata.adjustments.is_null) {
-              freshAdjustments = normalizeLoadedAdjustments(metadata.adjustments);
-            } else {
-              freshAdjustments = { ...INITIAL_ADJUSTMENTS };
-            }
+            const freshAdjustments = adjustmentsFromMetadata(metadata.adjustments);
             if (!isSliderDragging && JSON.stringify(cached.adjustments) !== JSON.stringify(freshAdjustments)) {
               setEditor({ adjustments: freshAdjustments });
               resetHistory(freshAdjustments);
@@ -370,7 +368,7 @@ export function useAppNavigation({ clearThumbnailQueue, refs }: AppNavigationPro
         globalImageCache.clear();
         setUI({ activeView: 'library' });
       } else {
-        setLibrary({ isViewLoading: true });
+        setLibrary({ isViewLoading: true, activeAlbumId: null });
       }
 
       try {
@@ -552,54 +550,18 @@ export function useAppNavigation({ clearThumbnailQueue, refs }: AppNavigationPro
     }
   }, [handleSelectSubfolder, handleSelectAlbum]);
 
-  const addRootFolder = useCallback(async (rootPath: string) => {
-    const { appSettings, handleSettingsChange } = useSettingsStore.getState();
-    const { rootPaths, folderTrees, setLibrary } = useLibraryStore.getState();
-    if (rootPaths.includes(rootPath)) return;
-
-    const newRootPaths = [...rootPaths, rootPath];
-    setLibrary({ rootPaths: newRootPaths });
-
-    if (appSettings) {
-      handleSettingsChange({ ...appSettings, rootFolders: newRootPaths } as any);
-    }
-
-    setLibrary({ isTreeLoading: true });
-    try {
-      const newTree = await invoke(Invokes.GetFolderTree, {
-        path: rootPath,
-        expandedFolders: [rootPath],
-        showImageCounts: appSettings?.enableFolderImageCounts || appSettings?.folderTreeSort?.key === 'imageCount',
-      });
-      setLibrary({ folderTrees: [...folderTrees, newTree] });
-    } catch (e) {
-      toast.error(`Failed to load folder tree: ${e}`);
-    } finally {
-      setLibrary({ isTreeLoading: false });
-    }
-  }, []);
-
   const handleOpenContainingFolder = useCallback(
     async (filePath: string) => {
-      const folderPath = filePath.replace(/[\\/][^\\/]*$/, '');
-      if (!folderPath || folderPath === filePath) return;
-      if (useLibraryStore.getState().currentFolderPath === folderPath) return;
-
-      const { rootPaths } = useLibraryStore.getState();
-      const { pinnedFolders } = useSettingsStore.getState().appSettings || {};
-      const isInside = (root: string) =>
-        folderPath === root ||
-        (folderPath.startsWith(root) && (/[\\/]$/.test(root) || ['/', '\\'].includes(folderPath[root.length])));
-      const isKnown = [...rootPaths, ...(pinnedFolders || [])].some(isInside);
-
-      if (!isKnown) await addRootFolder(folderPath);
+      const folderPath = await dirname(filePath);
+      if (!folderPath || useLibraryStore.getState().currentFolderPath === folderPath) return;
       await handleSelectSubfolder(folderPath, false, undefined, true, true);
     },
-    [addRootFolder, handleSelectSubfolder],
+    [handleSelectSubfolder],
   );
 
   const handleOpenFolder = useCallback(async () => {
-    const { osPlatform } = useSettingsStore.getState();
+    const { osPlatform, appSettings, handleSettingsChange } = useSettingsStore.getState();
+    const { rootPaths, folderTrees, setLibrary } = useLibraryStore.getState();
     const isAndroid = osPlatform === 'android';
 
     try {
@@ -614,14 +576,36 @@ export function useAppNavigation({ clearThumbnailQueue, refs }: AppNavigationPro
       }
 
       if (selectedPath) {
-        await addRootFolder(selectedPath);
+        if (!rootPaths.includes(selectedPath)) {
+          const newRootPaths = [...rootPaths, selectedPath];
+          setLibrary({ rootPaths: newRootPaths });
+
+          if (appSettings) {
+            handleSettingsChange({ ...appSettings, rootFolders: newRootPaths } as any);
+          }
+
+          setLibrary({ isTreeLoading: true });
+          try {
+            const newTree = await invoke(Invokes.GetFolderTree, {
+              path: selectedPath,
+              expandedFolders: [selectedPath],
+              showImageCounts:
+                appSettings?.enableFolderImageCounts || appSettings?.folderTreeSort?.key === 'imageCount',
+            });
+            setLibrary({ folderTrees: [...folderTrees, newTree] });
+          } catch (e) {
+            toast.error(`Failed to load folder tree: ${e}`);
+          } finally {
+            setLibrary({ isTreeLoading: false });
+          }
+        }
         await handleSelectSubfolder(selectedPath, true);
       }
     } catch (err) {
       console.error(isAndroid ? 'Failed to open Android library root:' : 'Failed to open directory dialog:', err);
       toast.error(isAndroid ? 'Failed to open library.' : 'Failed to open folder selection dialog.');
     }
-  }, [addRootFolder, handleSelectSubfolder]);
+  }, [handleSelectSubfolder]);
 
   const handleContinueSession = () => {
     const restore = async () => {

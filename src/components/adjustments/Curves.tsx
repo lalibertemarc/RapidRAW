@@ -1035,6 +1035,8 @@ function CurveGraph({ adjustments, setAdjustments, onDragStateChange }: CurveGra
                   max={0}
                   step={1}
                   defaultValue={0}
+                  resetKey={`parametricCurve.${activeChannel}.whiteLevel`}
+
                   value={activeParametricSettings.whiteLevel}
                   onChange={(e: any) => updateParametricValue('whiteLevel', parseFloat(e.target.value))}
                   onDragStateChange={onDragStateChange}
@@ -1046,6 +1048,8 @@ function CurveGraph({ adjustments, setAdjustments, onDragStateChange }: CurveGra
                   max={100}
                   step={1}
                   defaultValue={0}
+                  resetKey={`parametricCurve.${activeChannel}.highlights`}
+
                   value={activeParametricSettings.highlights}
                   onChange={(e: any) => updateParametricValue('highlights', parseFloat(e.target.value))}
                   onDragStateChange={onDragStateChange}
@@ -1057,6 +1061,8 @@ function CurveGraph({ adjustments, setAdjustments, onDragStateChange }: CurveGra
                   max={100}
                   step={1}
                   defaultValue={0}
+                  resetKey={`parametricCurve.${activeChannel}.lights`}
+
                   value={activeParametricSettings.lights}
                   onChange={(e: any) => updateParametricValue('lights', parseFloat(e.target.value))}
                   onDragStateChange={onDragStateChange}
@@ -1068,6 +1074,8 @@ function CurveGraph({ adjustments, setAdjustments, onDragStateChange }: CurveGra
                   max={100}
                   step={1}
                   defaultValue={0}
+                  resetKey={`parametricCurve.${activeChannel}.darks`}
+
                   value={activeParametricSettings.darks}
                   onChange={(e: any) => updateParametricValue('darks', parseFloat(e.target.value))}
                   onDragStateChange={onDragStateChange}
@@ -1079,6 +1087,8 @@ function CurveGraph({ adjustments, setAdjustments, onDragStateChange }: CurveGra
                   max={100}
                   step={1}
                   defaultValue={0}
+                  resetKey={`parametricCurve.${activeChannel}.shadows`}
+
                   value={activeParametricSettings.shadows}
                   onChange={(e: any) => updateParametricValue('shadows', parseFloat(e.target.value))}
                   onDragStateChange={onDragStateChange}
@@ -1090,6 +1100,8 @@ function CurveGraph({ adjustments, setAdjustments, onDragStateChange }: CurveGra
                   max={100}
                   step={1}
                   defaultValue={0}
+                  resetKey={`parametricCurve.${activeChannel}.blackLevel`}
+
                   value={activeParametricSettings.blackLevel}
                   onChange={(e: any) => updateParametricValue('blackLevel', parseFloat(e.target.value))}
                   onDragStateChange={onDragStateChange}
